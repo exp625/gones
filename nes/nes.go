@@ -3,33 +3,39 @@ package nes
 // NES struct
 type NES struct {
 	MasterClockCount uint64
-	ClockTime float64
-	AudioSampleTime float64
-	EmulatedTime    float64
-
-	CPU *CPU
-	PPU *PPU
-	APU *APU
+	ClockTime        float64
+	AudioSampleTime  float64
+	EmulatedTime     float64
+	Bus *Bus
 }
 
 // NewNES creates a new NES instance
-func NewNES(ClockTime float64, AudioSampleTime float64) *NES {
+func NewNES(clockTime float64, audioSampleTime float64) *NES {
+	ram := &RAM{}
+	cpu := &CPU{}
+	ppu := &PPU{}
+	apu := &APU{}
+	cat := &Catridge{}
+	bus := &Bus{
+		CPU: cpu,
+		RAM: ram,
+		PPU: ppu,
+		APU: apu,
+		Cartridge: cat,
+	}
+
 	return &NES{
 		MasterClockCount: 0,
-		ClockTime:        ClockTime,
-		AudioSampleTime:  AudioSampleTime,
+		ClockTime:        clockTime,
+		AudioSampleTime:  audioSampleTime,
 		EmulatedTime:     0,
-		CPU:              &CPU{},
-		PPU:              &PPU{},
-		APU:              &APU{},
+		Bus: bus,
 	}
 }
 
 // Reset resets the NES to a know state
 func (nes *NES) Reset() {
-	nes.CPU.Reset()
-	nes.PPU.Reset()
-	nes.APU.Reset()
+	nes.Bus.Reset()
 	nes.MasterClockCount = 0
 	nes.EmulatedTime = 0
 }
@@ -42,13 +48,13 @@ func (nes *NES) Clock() bool {
 	// Advance master clock count
 	nes.MasterClockCount++
 
-	// Clock the PPU and CPU
-	nes.PPU.Clock()
-	nes.APU.Clock()
+	// Clock the PPU and APU
+	nes.Bus.PPU.Clock()
+	nes.Bus.APU.Clock()
 
 	// The NES CPU runs a one third of the frequency of the master clock
-	if nes.MasterClockCount % 3 == 0 {
-		nes.CPU.Clock()
+	if nes.MasterClockCount%3 == 0 {
+		nes.Bus.CPU.Clock()
 	}
 
 	// Add the time for one master clock cycle to the emulated time.

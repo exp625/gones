@@ -1,4 +1,4 @@
-module github.com/exp625/godnes
+module github.com/exp625/gones
 
 go 1.16
 

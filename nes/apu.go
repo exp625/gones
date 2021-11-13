@@ -1,10 +1,9 @@
 package nes
 
 type APU struct {
-
 }
 
-func (apu *APU) Clock () {
+func (apu *APU) Clock() {
 
 }
 

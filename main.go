@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/exp625/godnes/nes"
+	"github.com/exp625/gones/nes"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 	"github.com/faiface/pixel"
@@ -14,12 +14,11 @@ import (
 )
 
 const (
-	AudioSampleRate =  44100
+	AudioSampleRate = 44100
 	PPUFrequency    = 5369318.0
 	NESSampleTime   = 1.0 / AudioSampleRate
 	NESClockTime    = 1.0 / PPUFrequency
 )
-
 
 // Start the main thread
 func main() {
@@ -45,7 +44,7 @@ func run() {
 
 	// Create text atlas
 	atlas := text.NewAtlas(basicfont.Face7x13, text.ASCII)
-	statustext := text.New(pixel.V(0, 768 - atlas.LineHeight()), atlas)
+	statustext := text.New(pixel.V(0, 768-atlas.LineHeight()), atlas)
 
 	//Create NES
 	emulator := &Emulator{NES: nes.NewNES(NESClockTime, NESSampleTime)}
@@ -77,6 +76,7 @@ func run() {
 		statustext.Clear()
 		fmt.Fprintf(statustext, "Auto Run Mode: %t\n", emulator.autoRun)
 		fmt.Fprintf(statustext, "Master Clock Count: %d\n", emulator.NES.MasterClockCount)
+		fmt.Fprintf(statustext, "PC Location : %d\n", emulator.NES.Bus.CPU.PC)
 		win.Clear(colornames.Black)
 		statustext.Draw(win, pixel.IM)
 
@@ -96,10 +96,11 @@ func Audio(emulator *Emulator) beep.Streamer {
 		for i := range samples {
 			// If the emulator is set to auto run: Run the emulation until the time of one audio sample passed.
 			if emulator.autoRun {
-				for !emulator.Clock() {}
+				for !emulator.Clock() {
+				}
 
 				// Get the audio sample for the APU
-				sample := emulator.APU.GetAudioSample()
+				sample := emulator.Bus.APU.GetAudioSample()
 				samples[i][0] = sample
 				samples[i][1] = sample
 			} else {
