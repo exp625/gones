@@ -10,6 +10,9 @@ import (
 	"github.com/faiface/pixel/text"
 	"golang.org/x/image/colornames"
 	"golang.org/x/image/font/basicfont"
+	"io/ioutil"
+	"log"
+	"os"
 	"time"
 )
 
@@ -50,9 +53,20 @@ func run() {
 	// Create text atlas
 	atlas := text.NewAtlas(basicfont.Face7x13, text.ASCII)
 	statusText := text.New(pixel.V(0, Height-atlas.LineHeight()*2), atlas)
+	displayText := text.New(pixel.V(0, 500), atlas)
 
 	//Create NES
 	emulator := &Emulator{NES: nes.New(NESClockTime, NESSampleTime)}
+
+	argsWithoutProg := os.Args[1:]
+	if argsWithoutProg[0] != "" {
+		bytes, err := ioutil.ReadFile(argsWithoutProg[0])
+		if err != nil {
+			log.Fatal(err)
+		}
+		emulator.Bus.Cartridge.Load(bytes)
+	}
+
 	emulator.Reset()
 
 	// Setup sound
@@ -100,39 +114,23 @@ func run() {
 
 		// Display current state
 		statusText.Clear()
+		displayText.Clear()
 		fmt.Fprintf(statusText, "Auto Run Mode: %t\n", emulator.autoRun)
 		fmt.Fprintf(statusText, "Master Clock Count: %d\n", emulator.NES.MasterClockCount)
 		fmt.Fprintf(statusText, "CPU Clock Count: %d\n", emulator.NES.Bus.CPU.ClockCount)
-		fmt.Fprintf(statusText, "PC Location: 0x%02X\n", emulator.NES.Bus.CPU.PC)
-		fmt.Fprintf(statusText, "Register A: 0x%02X\n", emulator.NES.Bus.CPU.A)
 		fmt.Fprintf(statusText, "Cycle count: %d\n", emulator.NES.Bus.CPU.CycleCount)
-		fmt.Fprintf(statusText, "RAM at 0x00FF: 0x%02X\n", emulator.NES.Bus.RAM.Data[0x00FF])
-		fmt.Fprintf(statusText, "NVss DIZC\n")
-		fmt.Fprintf(statusText, "%d%d%d%d %d%d%d%d\n",
-			intbool(emulator.NES.Bus.CPU.GetFlag(nes.FlagNegative)),
-			intbool(emulator.NES.Bus.CPU.GetFlag(nes.FlagOverflow)),
-			intbool(emulator.NES.Bus.CPU.GetFlag(nes.FlagB2)),
-			intbool(emulator.NES.Bus.CPU.GetFlag(nes.FlagB1)),
-			intbool(emulator.NES.Bus.CPU.GetFlag(nes.FlagDecimal)),
-			intbool(emulator.NES.Bus.CPU.GetFlag(nes.FlagInterruptDisable)),
-			intbool(emulator.NES.Bus.CPU.GetFlag(nes.FlagZero)),
-			intbool(emulator.NES.Bus.CPU.GetFlag(nes.FlagCarry)),
-		)
 		fmt.Fprint(statusText, "\n")
-		for i := 0; emulator.Bus.CPU.CurrentInstruction.Length > i; i++ {
+		DrawCPU(statusText, emulator)
+		DrawStack(displayText, emulator)
+		fmt.Fprint(statusText, nes.OpCodeMap[emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC)], " ")
+		for i := 1; emulator.Bus.CPU.CurrentInstruction.Length > i; i++ {
 			fmt.Fprintf(statusText, "%02X ", emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC+uint16(i)))
 		}
 		fmt.Fprint(statusText, "\n")
-		fmt.Fprintf(statusText, "Stack pointer: 0x%02X\n", emulator.NES.Bus.CPU.S)
-		for i := 0x0100; i <= 0x01FF; i++ {
-			if i%16 == 0 {
-				fmt.Fprint(statusText, "\n")
-			}
-			fmt.Fprintf(statusText, "%02X ", emulator.Bus.CPURead(uint16(i)))
-		}
+
 		win.Clear(colornames.Black)
 		statusText.Draw(win, pixel.IM.Scaled(statusText.Orig, 2))
-
+		displayText.Draw(win, pixel.IM)
 		// Update Frame
 		win.Update()
 	}
@@ -170,4 +168,57 @@ func Audio(emulator *Emulator) beep.Streamer {
 		}
 		return len(samples), true
 	})
+}
+
+func DrawCPU(statusText *text.Text, emulator *Emulator) {
+	fmt.Fprintf(statusText, "Auto Run Mode: \t %t\n", emulator.autoRun)
+	fmt.Fprintf(statusText, "Master Clock Count: \t %d\n", emulator.NES.MasterClockCount)
+	fmt.Fprintf(statusText, "CPU Clock Count: \t %d\n", emulator.NES.Bus.CPU.ClockCount)
+	fmt.Fprint(statusText, "\n")
+
+	// Print Status
+	fmt.Fprint(statusText, "CPU STATUS \t")
+
+	arr := []string{"N", "V", "-", "B", "D", "I", "Z", "C"}
+	for i := 7; i>=0; i-- {
+		if emulator.Bus.CPU.GetFlag(1 << i) {
+			statusText.Color = colornames.Green
+		} else {
+			statusText.Color = colornames.Red
+		}
+		fmt.Fprint(statusText, arr[i])
+	}
+	statusText.Color = colornames.White
+	fmt.Fprint(statusText, "\n")
+	fmt.Fprintf(statusText, "PC: 0x%02X\t", emulator.NES.Bus.CPU.PC)
+	fmt.Fprintf(statusText, "A: 0x%02X\t", emulator.NES.Bus.CPU.A)
+	fmt.Fprintf(statusText, "X: 0x%02X\t", emulator.NES.Bus.CPU.X)
+	fmt.Fprintf(statusText, "Y: 0x%02X\t", emulator.NES.Bus.CPU.Y)
+	fmt.Fprintf(statusText, "S: 0x%02X\t\n", emulator.NES.Bus.CPU.S)
+}
+
+func DrawRAM(statusText *text.Text, emulator *Emulator) {
+
+}
+
+func DrawStack(statusText *text.Text, emulator *Emulator) {
+	fmt.Fprintf(statusText, "Stack: 0x%02X\n     ", emulator.NES.Bus.CPU.S)
+	statusText.Color = colornames.Yellow
+	for i:= 0; i<=0xF; i++ {
+		fmt.Fprintf(statusText, "%02X ", uint16(i))
+	}
+
+	for i := 0x0100; i <= 0x01FF; i++ {
+		if i%16 == 0 {
+			statusText.Color = colornames.Yellow
+			fmt.Fprintf(statusText, "\n%04X ", uint16(i & 0xFFF0))
+		}
+		if emulator.Bus.CPU.S == uint8(i) {
+			statusText.Color = colornames.Green
+		} else {
+			statusText.Color = colornames.White
+		}
+		fmt.Fprintf(statusText, "%02X ", emulator.Bus.CPURead(uint16(i)))
+	}
+
 }

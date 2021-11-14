@@ -4,5 +4,8 @@ docker-compose*
 .idea
 .git
 .gitignore
+*.o
+*.s
+*.nes
 
 README.md

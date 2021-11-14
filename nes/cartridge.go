@@ -1,10 +1,13 @@
 package nes
 
+import "log"
+
 type Cartridge struct {
-	data [0xFFFF]uint8
+	data [0x8000]uint8
 }
 
 func (c *Cartridge) Reset() {
+	/*
 	c.data = [0xFFFF]uint8{}
 	c.data[0xFFFC] = 0x00
 	c.data[0xFFFD] = 0xF0
@@ -91,9 +94,19 @@ func (c *Cartridge) Reset() {
 }
 
 func (c *Cartridge) Read(location uint16) uint8 {
-	return c.data[location]
+	return c.data[location % 0x8000]
 }
 
 func (c *Cartridge) Write(location uint16, data uint8) {
 	return
+}
+
+func (c *Cartridge) Load(bytes []byte) {
+	if len(bytes) != 0x8000 {
+		log.Panic("Invalid Length")
+		return
+	}
+	for i := range c.data {
+		c.data[i] = bytes[i]
+	}
 }

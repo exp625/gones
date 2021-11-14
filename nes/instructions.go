@@ -1,5 +1,12 @@
 package nes
 
+import (
+	"log"
+	"reflect"
+	"runtime"
+	"strings"
+)
+
 type AddressModeFunc func() (uint16, uint8)
 type ExecuteFunc func(uint16, uint8)
 
@@ -11,6 +18,7 @@ type Instruction struct {
 }
 
 var Instructions [256]Instruction
+var OpCodeMap map[uint8]string
 
 func init() {
 	Instructions[0x00] = Instruction{ImpliedAddressing, BRK, 1, 7}
@@ -284,6 +292,17 @@ func init() {
 	Instructions[0xFD] = Instruction{IndexedXAbsoluteAddressing, SBC, 3, 4}
 	Instructions[0xFE] = Instruction{IndexedXAbsoluteAddressing, INC, 3, 7}
 	Instructions[0xFF] = Instruction{}
+
+	OpCodeMap = make(map[uint8]string, 0xFF)
+	for i := range Instructions {
+		if Instructions[i].Length == 0 {
+			OpCodeMap[uint8(i)] = "ERR"
+		} else {
+			str1 := runtime.FuncForPC(reflect.ValueOf(Instructions[i].Execute).Pointer()).Name()
+						str2 := runtime.FuncForPC(reflect.ValueOf(Instructions[i].AddressMode).Pointer()).Name()
+			OpCodeMap[uint8(i)] = str1[len(str1)-3:] + " (" + strings.Split(str2, ".")[2] + ") "
+		}
+	}
 }
 
 func ADC(location uint16, data uint8) {
@@ -362,8 +381,8 @@ func BRK(location uint16, data uint8) {
 	CPU.S--
 	CPU.Bus.CPUWrite(0x0100+uint16(CPU.S), uint8(pc&0x00FF))
 	CPU.S--
-	CPU.Set(FlagB1, true)
-	CPU.Set(FlagB2, true)
+	CPU.Set(FlagBreak, true)
+	CPU.Set(FlagUnused, true)
 	CPU.Bus.CPUWrite(0x0100+uint16(CPU.S), CPU.P)
 	CPU.S--
 	CPU.PC = location
@@ -403,9 +422,11 @@ func CLV(location uint16, data uint8) {
 
 func CMP(location uint16, data uint8) {
 	temp := CPU.A - data
+	log.Println(CPU.A, data)
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
-	CPU.Set(FlagCarry, CPU.GetFlag(FlagZero) && !CPU.GetFlag(FlagNegative))
+	// From Wiki: After SBC or CMP, this flag will be set if no borrow was the result, or alternatively a "greater than or equal" result.
+	CPU.Set(FlagCarry, CPU.A >= data)
 }
 
 func CPX(location uint16, data uint8) {

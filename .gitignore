@@ -8,7 +8,9 @@ bin
 *.dll
 *.so
 *.dylib
-
+*.o
+*.s
+*.nes
 # Test binary, built with `go test -c`
 *.test
 

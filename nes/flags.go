@@ -12,8 +12,8 @@ const (
 	FlagZero
 	FlagInterruptDisable
 	FlagDecimal
-	FlagB1 // Unused
-	FlagB2 // Unused
+	FlagBreak
+	FlagUnused // Unused
 	FlagOverflow
 	FlagNegative
 )

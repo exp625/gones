@@ -29,17 +29,21 @@ type C struct {
 }
 
 func (cpu *C) Clock() {
+	if cpu.CycleCount == 0 && cpu.CurrentInstruction.Length != 0 {
+		// Execute Instruction
+		cpu.CurrentInstruction.Execute(cpu.CurrentInstruction.AddressMode())
+		cpu.CycleCount = cpu.CurrentInstruction.ClockCycles
+	}
+	cpu.ClockCount++
+	cpu.CycleCount--
 	if cpu.CycleCount == 0 {
+		// Execution Complete. Load next Instruction
+		cpu.PC += uint16(cpu.CurrentInstruction.Length)
 		opcode := cpu.Bus.CPURead(cpu.PC)
 		i := Instructions[opcode]
 		cpu.CurrentInstruction = i
 		cpu.CurrentPC = cpu.PC
-		i.Execute(i.AddressMode())
-		cpu.PC += uint16(i.Length)
-		cpu.CycleCount = i.ClockCycles
 	}
-	cpu.ClockCount++
-	cpu.CycleCount--
 }
 
 func (cpu *C) Reset() {
@@ -53,6 +57,12 @@ func (cpu *C) Reset() {
 	low := uint16(cpu.Bus.CPURead(StartLocation))
 	high := uint16(cpu.Bus.CPURead(StartLocation + 1))
 	cpu.PC = (high << 8) | low
+
+	// Debug
+	opcode := cpu.Bus.CPURead(cpu.PC)
+	i := Instructions[opcode]
+	cpu.CurrentInstruction = i
+	cpu.CurrentPC = cpu.PC
 }
 
 func (cpu *C) IRQ() {
