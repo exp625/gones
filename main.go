@@ -58,10 +58,10 @@ func run() {
 	// Create text atlas
 	atlas := text.NewAtlas(basicfont.Face7x13, text.ASCII)
 	cpuText := text.New(pixel.V(0, Height-atlas.LineHeight()*2), atlas)
-	codeText := text.New(pixel.V(0, Height-atlas.LineHeight()*2), atlas)
-	zeroPageText := text.New(pixel.V(0, Height-atlas.LineHeight()*2), atlas)
-	stackText := text.New(pixel.V(400, Height-atlas.LineHeight()*2), atlas)
-	ramText := text.New(pixel.V(0, Height-atlas.LineHeight()*2), atlas)
+	codeText := text.New(pixel.V(0, Height-atlas.LineHeight()*2*5), atlas)
+	zeroPageText := text.New(pixel.V(0, Height-atlas.LineHeight()*2*10), atlas)
+	stackText := text.New(pixel.V(400, Height-atlas.LineHeight()*2*25), atlas)
+	ramText := text.New(pixel.V(0, Height-atlas.LineHeight()*2*50), atlas)
 
 	//Create NES
 	emulator := &Emulator{NES: nes.New(NESClockTime, NESSampleTime)}
@@ -114,12 +114,8 @@ func run() {
 				m = m.Moved(pixel.V(0, -cpuText.Bounds().H()))
 			}
 			codeText.Draw(win, m.Scaled(cpuText.Orig, 2))
-
-			m = m.Moved(pixel.V(0, codeText.Bounds().Max.Y-codeText.Bounds().H()))
 			zeroPageText.Draw(win, m)
 			stackText.Draw(win, m)
-
-			m = m.Moved(pixel.V(0, stackText.Bounds().Max.Y-stackText.Bounds().H()))
 			ramText.Draw(win, m)
 		}
 
