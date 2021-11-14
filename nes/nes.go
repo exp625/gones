@@ -6,30 +6,31 @@ type NES struct {
 	ClockTime        float64
 	AudioSampleTime  float64
 	EmulatedTime     float64
-	Bus *Bus
+	Bus              *Bus
 }
 
-// NewNES creates a new NES instance
-func NewNES(clockTime float64, audioSampleTime float64) *NES {
+// New creates a new NES instance
+func New(clockTime float64, audioSampleTime float64) *NES {
+	c := CPU
 	ram := &RAM{}
-	cpu := &CPU{}
 	ppu := &PPU{}
 	apu := &APU{}
-	cat := &Catridge{}
+	cat := &Cartridge{}
 	bus := &Bus{
-		CPU: cpu,
-		RAM: ram,
-		PPU: ppu,
-		APU: apu,
+		CPU:       c,
+		RAM:       ram,
+		PPU:       ppu,
+		APU:       apu,
 		Cartridge: cat,
 	}
+	bus.CPU.Bus = bus
 
 	return &NES{
 		MasterClockCount: 0,
 		ClockTime:        clockTime,
 		AudioSampleTime:  audioSampleTime,
 		EmulatedTime:     0,
-		Bus: bus,
+		Bus:              bus,
 	}
 }
 

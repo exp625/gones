@@ -1,6 +1,12 @@
 package nes
 
-type CPU struct {
+var CPU *C
+
+func init() {
+	CPU = &C{}
+}
+
+type C struct {
 	// Accumulator
 	A uint8
 	// Index X
@@ -14,20 +20,45 @@ type CPU struct {
 	// Status Register
 	P uint8
 
-	bus Bus
+	Bus *Bus
+
+	ClockCount         int64
+	CycleCount         int
+	CurrentInstruction Instruction
+	CurrentPC          uint16
 }
 
-func (cpu *CPU) Clock() {
-
+func (cpu *C) Clock() {
+	if cpu.CycleCount == 0 {
+		opcode := cpu.Bus.CPURead(cpu.PC)
+		i := Instructions[opcode]
+		cpu.CurrentInstruction = i
+		cpu.CurrentPC = cpu.PC
+		i.Execute(i.AddressMode())
+		cpu.PC += uint16(i.Length)
+		cpu.CycleCount = i.ClockCycles
+	}
+	cpu.ClockCount++
+	cpu.CycleCount--
 }
 
-func (cpu *CPU) Reset() {
+func (cpu *C) Reset() {
+	cpu.ClockCount = 0
+	cpu.CycleCount = 0
 	// Set IRQ Disabled
 	cpu.P = FlagIRQDisabled
 	cpu.S = 0xFD
 
 	// Load the program counter
-	low := uint16(cpu.bus.CPURead(StartLocation))
-	high := uint16(cpu.bus.CPURead(StartLocation + 1))
+	low := uint16(cpu.Bus.CPURead(StartLocation))
+	high := uint16(cpu.Bus.CPURead(StartLocation + 1))
 	cpu.PC = (high << 8) | low
+}
+
+func (cpu *C) IRQ() {
+
+}
+
+func (cpu *C) NMI() {
+
 }
