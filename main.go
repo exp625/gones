@@ -31,11 +31,16 @@ func main() {
 // Emulator struct
 type Emulator struct {
 	*nes.NES
-	autoRun bool
+	autoRun                   bool
+	hideDebug                 bool
+	hideInfo                  bool
+	autoRunCycles             int
+	nanoSecondsSpentInAutoRun time.Duration
+	autoRunStarted            time.Time
 }
 
 const (
-	Width  = 1000
+	Width  = 1200
 	Height = 1000
 )
 
@@ -52,8 +57,11 @@ func run() {
 
 	// Create text atlas
 	atlas := text.NewAtlas(basicfont.Face7x13, text.ASCII)
-	statusText := text.New(pixel.V(0, Height-atlas.LineHeight()*2), atlas)
-	displayText := text.New(pixel.V(0, 500), atlas)
+	cpuText := text.New(pixel.V(0, Height-atlas.LineHeight()*2), atlas)
+	codeText := text.New(pixel.V(0, Height-atlas.LineHeight()*2), atlas)
+	zeroPageText := text.New(pixel.V(0, Height-atlas.LineHeight()*2), atlas)
+	stackText := text.New(pixel.V(400, Height-atlas.LineHeight()*2), atlas)
+	ramText := text.New(pixel.V(0, Height-atlas.LineHeight()*2), atlas)
 
 	//Create NES
 	emulator := &Emulator{NES: nes.New(NESClockTime, NESSampleTime)}
@@ -75,68 +83,100 @@ func run() {
 	if err != nil {
 		panic(err)
 	}
+	defer speaker.Close()
 	speaker.Play(Audio(emulator))
 
 	// Render Loop
 	for !win.Closed() {
-		// Space will toggle the auto run mode
-		if win.JustPressed(pixelgl.KeySpace) {
-			emulator.autoRun = !emulator.autoRun
-		}
-		// Right Arrow Key issues one Master Clock
-		if win.JustPressed(pixelgl.KeyRight) && !emulator.autoRun {
-			emulator.Clock()
-		}
-
-		// Up Arrow Key issues three Master Clocks
-		if win.JustPressed(pixelgl.KeyUp) && !emulator.autoRun {
-			emulator.Clock()
-			emulator.Clock()
-			emulator.Clock()
-		}
-
-		// Enter Key one CPU instruction
-		if win.JustPressed(pixelgl.KeyEnter) && !emulator.autoRun {
-			emulator.Clock()
-			emulator.Clock()
-			emulator.Clock()
-			for emulator.NES.Bus.CPU.CycleCount != 0 {
-				emulator.Clock()
-				emulator.Clock()
-				emulator.Clock()
-			}
-		}
-
-		// R Key will reset the emulator
-		if win.JustPressed(pixelgl.KeyR) {
-			emulator.Reset()
-		}
-
-		// Display current state
-		statusText.Clear()
-		displayText.Clear()
-		fmt.Fprintf(statusText, "Auto Run Mode: %t\n", emulator.autoRun)
-		fmt.Fprintf(statusText, "Master Clock Count: %d\n", emulator.NES.MasterClockCount)
-		fmt.Fprintf(statusText, "CPU Clock Count: %d\n", emulator.NES.Bus.CPU.ClockCount)
-		fmt.Fprintf(statusText, "Cycle count: %d\n", emulator.NES.Bus.CPU.CycleCount)
-		fmt.Fprint(statusText, "\n")
-		DrawCPU(statusText, emulator)
-		DrawStack(displayText, emulator)
-		fmt.Fprint(statusText, nes.OpCodeMap[emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC)], " ")
-		for i := 1; emulator.Bus.CPU.CurrentInstruction.Length > i; i++ {
-			fmt.Fprintf(statusText, "%02X ", emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC+uint16(i)))
-		}
-		fmt.Fprint(statusText, "\n")
-
 		win.Clear(colornames.Black)
-		statusText.Draw(win, pixel.IM.Scaled(statusText.Orig, 2))
-		displayText.Draw(win, pixel.IM)
+
+		handleInput(win, emulator)
+
+		if !emulator.hideInfo {
+			cpuText.Clear()
+			DrawCPU(cpuText, emulator)
+			cpuText.Draw(win, pixel.IM.Scaled(cpuText.Orig, 2))
+		}
+
+		if !emulator.hideDebug {
+			codeText.Clear()
+			zeroPageText.Clear()
+			stackText.Clear()
+			ramText.Clear()
+
+			DrawCode(codeText, emulator)
+			DrawZeroPage(zeroPageText, emulator)
+			DrawStack(stackText, emulator)
+			DrawRAM(ramText, emulator)
+
+			m := pixel.IM
+			if !emulator.hideInfo {
+				m = m.Moved(pixel.V(0, -cpuText.Bounds().H()))
+			}
+			codeText.Draw(win, m.Scaled(cpuText.Orig, 2))
+
+			m = m.Moved(pixel.V(0, codeText.Bounds().Max.Y-codeText.Bounds().H()))
+			zeroPageText.Draw(win, m)
+			stackText.Draw(win, m)
+
+			m = m.Moved(pixel.V(0, stackText.Bounds().Max.Y-stackText.Bounds().H()))
+			ramText.Draw(win, m)
+		}
+
 		// Update Frame
 		win.Update()
 	}
+}
 
-	// Cleanup
-	speaker.Close()
+func handleInput(win *pixelgl.Window, emulator *Emulator) {
+	if emulator.autoRun {
+		emulator.nanoSecondsSpentInAutoRun += time.Now().Sub(emulator.autoRunStarted)
+	}
+	emulator.autoRunStarted = time.Now()
+
+	// Space will toggle the auto run mode
+	if win.JustPressed(pixelgl.KeySpace) {
+		emulator.autoRun = !emulator.autoRun
+	}
+
+	// D Key toggles display of hideDebug hideInfo
+	if win.JustPressed(pixelgl.KeyD) {
+		emulator.hideDebug = !emulator.hideDebug
+	}
+
+	// I Key toggles display of hideInfo
+	if win.JustPressed(pixelgl.KeyI) {
+		emulator.hideInfo = !emulator.hideInfo
+	}
+
+	// Right Arrow Key issues one Master Clock
+	if win.JustPressed(pixelgl.KeyRight) && !emulator.autoRun {
+		emulator.Clock()
+	}
+
+	// Up Arrow Key issues three Master Clocks
+	if win.JustPressed(pixelgl.KeyUp) && !emulator.autoRun {
+		emulator.Clock()
+		emulator.Clock()
+		emulator.Clock()
+	}
+
+	// Enter Key one CPU instruction
+	if win.JustPressed(pixelgl.KeyEnter) && !emulator.autoRun {
+		emulator.Clock()
+		emulator.Clock()
+		emulator.Clock()
+		for emulator.NES.Bus.CPU.CycleCount != 0 {
+			emulator.Clock()
+			emulator.Clock()
+			emulator.Clock()
+		}
+	}
+
+	// R Key will reset the emulator
+	if win.JustPressed(pixelgl.KeyR) {
+		emulator.Reset()
+	}
 }
 
 func intbool(b bool) int {
@@ -155,6 +195,7 @@ func Audio(emulator *Emulator) beep.Streamer {
 			// If the emulator is set to auto run: Run the emulation until the time of one audio sample passed.
 			if emulator.autoRun {
 				for !emulator.Clock() {
+					emulator.autoRunCycles++
 				}
 
 				// Get the audio sample for the APU
@@ -174,19 +215,22 @@ func DrawCPU(statusText *text.Text, emulator *Emulator) {
 	fmt.Fprintf(statusText, "Auto Run Mode: \t %t\n", emulator.autoRun)
 	fmt.Fprintf(statusText, "Master Clock Count: \t %d\n", emulator.NES.MasterClockCount)
 	fmt.Fprintf(statusText, "CPU Clock Count: \t %d\n", emulator.NES.Bus.CPU.ClockCount)
+	fmt.Fprintf(statusText, "Clock Cycles Per Second (during auto run): %0.2f/s\n",
+		1000*1000*1000*float64(emulator.autoRunCycles)/(float64(emulator.nanoSecondsSpentInAutoRun)),
+	)
 	fmt.Fprint(statusText, "\n")
 
 	// Print Status
 	fmt.Fprint(statusText, "CPU STATUS \t")
 
-	arr := []string{"N", "V", "-", "B", "D", "I", "Z", "C"}
-	for i := 7; i>=0; i-- {
+	arr := "CZIDB-VN"
+	for i := 0; i < 8; i++ {
 		if emulator.Bus.CPU.GetFlag(1 << i) {
 			statusText.Color = colornames.Green
 		} else {
 			statusText.Color = colornames.Red
 		}
-		fmt.Fprint(statusText, arr[i])
+		fmt.Fprint(statusText, string(arr[i]))
 	}
 	statusText.Color = colornames.White
 	fmt.Fprint(statusText, "\n")
@@ -197,21 +241,91 @@ func DrawCPU(statusText *text.Text, emulator *Emulator) {
 	fmt.Fprintf(statusText, "S: 0x%02X\t\n", emulator.NES.Bus.CPU.S)
 }
 
-func DrawRAM(statusText *text.Text, emulator *Emulator) {
+func DrawCode(statusText *text.Text, emulator *Emulator) {
+	offset := uint16(0)
+	for j := 0; j <= 5; j++ {
+		if j == 0 {
+			statusText.Color = colornames.Yellow
+		}
+		fmt.Fprintf(statusText, "0x%04X ", emulator.Bus.CPU.CurrentPC+offset)
+		fmt.Fprint(statusText, nes.OpCodeMap[emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC+offset)], " ")
+		inst := nes.Instructions[emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC+offset)]
+		if inst.Length != 0 {
+			addr, _ := inst.AddressMode()
+			if j == 0 {
+				fmt.Fprintf(statusText, "(0x%04X) ", addr)
+			} else {
+				fmt.Fprint(statusText, "         ")
+			}
+			for i := 1; i < inst.Length; i++ {
+				fmt.Fprintf(statusText, "%02X ", emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC+offset+uint16(i)))
+			}
+			statusText.Color = colornames.White
+			offset += uint16(inst.Length)
+			fmt.Fprint(statusText, "\n")
+		}
+	}
+}
 
+func DrawRAM(statusText *text.Text, emulator *Emulator) {
+	statusText.Color = colornames.White
+	fmt.Fprint(statusText, "Ram Content:\n     ")
+	statusText.Color = colornames.Yellow
+	for i := 0; i <= 0xF; i++ {
+		fmt.Fprintf(statusText, "%02X ", uint16(i))
+	}
+
+	for x := 0x0200; x <= 0x07FF; x += 0x10 {
+		// Check if this "row" of memory has anything other than 0x00 in it
+		var hasContent bool
+		for y := 0; y <= 15; y++ {
+			if emulator.Bus.CPURead(uint16(x+y)) != 0x00 {
+				hasContent = true
+				break
+			}
+		}
+		// Display the "row" of memory iuf
+		if hasContent {
+			statusText.Color = colornames.Yellow
+			fmt.Fprintf(statusText, "\n%04X ", uint16(x&0xFFF0))
+			statusText.Color = colornames.White
+			for y := 0; y <= 15; y++ {
+				fmt.Fprintf(statusText, "%02X ", emulator.Bus.CPURead(uint16(x+y)))
+			}
+		}
+	}
+}
+
+func DrawZeroPage(statusText *text.Text, emulator *Emulator) {
+	statusText.Color = colornames.White
+	fmt.Fprint(statusText, "Zero Page:\n     ")
+	statusText.Color = colornames.Yellow
+	for i := 0; i <= 0xF; i++ {
+		fmt.Fprintf(statusText, "%02X ", uint16(i))
+	}
+
+	for i := 0x0000; i <= 0x00FF; i++ {
+		if i%16 == 0 {
+			statusText.Color = colornames.Yellow
+			fmt.Fprintf(statusText, "\n%04X ", uint16(i&0xFFF0))
+		}
+		statusText.Color = colornames.White
+		fmt.Fprintf(statusText, "%02X ", emulator.Bus.CPURead(uint16(i)))
+	}
 }
 
 func DrawStack(statusText *text.Text, emulator *Emulator) {
+	statusText.Color = colornames.White
 	fmt.Fprintf(statusText, "Stack: 0x%02X\n     ", emulator.NES.Bus.CPU.S)
 	statusText.Color = colornames.Yellow
-	for i:= 0; i<=0xF; i++ {
+	for i := 0; i <= 0xF; i++ {
 		fmt.Fprintf(statusText, "%02X ", uint16(i))
 	}
 
 	for i := 0x0100; i <= 0x01FF; i++ {
 		if i%16 == 0 {
 			statusText.Color = colornames.Yellow
-			fmt.Fprintf(statusText, "\n%04X ", uint16(i & 0xFFF0))
+			fmt.Fprintf(statusText, "\n%04X ", uint16(i&0xFFF0))
 		}
 		if emulator.Bus.CPU.S == uint8(i) {
 			statusText.Color = colornames.Green
