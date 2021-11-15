@@ -38,6 +38,7 @@ type Emulator struct {
 	hideDebug                 bool
 	hideInfo                  bool
 	hidePatternTables         bool
+	displayRamPC              bool
 	autoRunCycles             int
 	nanoSecondsSpentInAutoRun time.Duration
 	autoRunStarted            time.Time
@@ -81,7 +82,7 @@ func run() {
 
 	//Create NES
 	emulator := &Emulator{NES: nes.New(NESClockTime, NESSampleTime)}
-
+	emulator.hidePatternTables = true
 
 	emulator.InsertCartridge(cat)
 
@@ -134,8 +135,8 @@ func run() {
 		}
 
 		if !emulator.hidePatternTables {
-			DrawCHRROM(emulator, 0).Draw(win, pixel.IM.Moved(pixel.V(128, 128)).Scaled(pixel.V(128, 128), 2))
-			DrawCHRROM(emulator, 1).Draw(win, pixel.IM.Moved(pixel.V(128*3, 128)).Scaled(pixel.V(128*3, 128), 2))
+			DrawCHRROM(emulator, 0).Draw(win, pixel.IM.Moved(pixel.V(256 + 5, 256 + 5)).Scaled(pixel.V(256 + 5, 256 + 5), 4))
+			DrawCHRROM(emulator, 1).Draw(win, pixel.IM.Moved(pixel.V(256*3 + 10, 256 + 5)).Scaled(pixel.V(256*3 + 10, 256 + 5), 4))
 		}
 
 
@@ -174,6 +175,11 @@ func handleInput(win *pixelgl.Window, emulator *Emulator) {
 	// Right Arrow Key issues one Master Clock
 	if win.JustPressed(pixelgl.KeyRight) && !emulator.autoRun {
 		emulator.Clock()
+	}
+
+	// Toggle rom pc
+	if win.JustPressed(pixelgl.KeyX) && !emulator.autoRun {
+		emulator.displayRamPC = !emulator.displayRamPC
 	}
 
 	// Up Arrow Key issues three Master Clocks
@@ -269,8 +275,14 @@ func DrawCode(statusText *text.Text, emulator *Emulator) {
 		if j == 0 {
 			statusText.Color = colornames.Yellow
 		}
-		fmt.Fprintf(statusText, "0x%04X ", emulator.Bus.CPU.CurrentPC+offset)
-		fmt.Fprint(statusText, nes.OpCodeMap[emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC+offset)], " ")
+		if emulator.displayRamPC {
+			fmt.Fprintf(statusText, "0x%04X ", (emulator.Bus.CPU.CurrentPC+offset - 0x8000) % 0x4000 * uint16(emulator.Bus.Cartridge.PrgRomSize) + 0x0010)
+		} else {
+			fmt.Fprintf(statusText, "0x%04X ", emulator.Bus.CPU.CurrentPC+offset)
+		}
+
+		fmt.Fprintf(statusText, "0x%02X ", emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC+offset))
+		fmt.Fprint(statusText, "[",nes.OpCodeMap[emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC+offset)], "] ")
 		inst := nes.Instructions[emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC+offset)]
 		if inst.Length != 0 {
 			addr, _ := inst.AddressMode()
@@ -279,7 +291,7 @@ func DrawCode(statusText *text.Text, emulator *Emulator) {
 			} else {
 				fmt.Fprint(statusText, "         ")
 			}
-			for i := 1; i < inst.Length; i++ {
+			for i := 1; i < int(inst.Length); i++ {
 				fmt.Fprintf(statusText, "%02X ", emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC+offset+uint16(i)))
 			}
 			statusText.Color = colornames.White
@@ -381,17 +393,21 @@ func DrawCHRROM (emulator *Emulator, table int) *pixel.Sprite{
 		for x := 0; x < 16; x++ {
 				for tileY := 0; tileY < 8; tileY++ {
 
-					addressPlane0 := uint16(table<<13 | y<<8 | x<<4 | 0 << 3 | tileY)
-					addressPlane1 := uint16(table<<13 | y<<8 | x<<4 | 1 << 3 | tileY)
+					addressPlane0 := uint16(table<<12 | y<<8 | x<<4 | 0 << 3 | tileY)
+					addressPlane1 := uint16(table<<12 | y<<8 | x<<4 | 1 << 3 | tileY)
 					plane0 := emulator.Bus.PPURead(addressPlane0)
 					plane1 := emulator.Bus.PPURead(addressPlane1)
 
 					for tileX := 0; tileX < 8; tileX++ {
 
-						if (plane0 >> (7 - tileX)) & 0x01 + (plane1 >> (7 - tileX)) & 0x01 != 0 {
+						if (plane0 >> (7 - tileX)) & 0x01 == 1 && (plane1 >> (7 - tileX)) & 0x01 ==1 {
 							img.Set(x * 8 + tileX, y * 8 + tileY, color.White)
+						} else if (plane1 >> (7 - tileX)) & 0x01 ==1 {
+							img.Set(x * 8 + tileX, y * 8 + tileY, color.Gray16{0xAAAA})
+						} else if (plane0 >> (7 - tileX)) & 0x01 ==1 {
+							img.Set(x * 8 + tileX, y * 8 + tileY, color.Gray16{0x5555})
 						} else {
-							img.Set(x * 8 + tileX, y * 8 + tileY, color.Black)
+							img.Set(x * 8 + tileX, y * 8 + tileY, color.Gray16{0x1111})
 						}
 
 					}
