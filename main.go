@@ -180,6 +180,7 @@ func handleInput(win *pixelgl.Window, emulator *Emulator) {
 	// Q Key set PC to 0x4000
 	if win.JustPressed(pixelgl.KeyQ) && !emulator.autoRun {
 		emulator.Bus.CPU.PC = 0xC000
+		emulator.Bus.CPU.P = 0x24
 		opcode := emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.PC)
 		i := nes.Instructions[opcode]
 		emulator.Bus.CPU.CurrentInstruction = i
@@ -270,6 +271,7 @@ func DrawCPU(statusText *text.Text, emulator *Emulator) {
 		fmt.Fprint(statusText, string(arr[i]))
 	}
 	statusText.Color = colornames.White
+	fmt.Fprintf(statusText, "%02X", emulator.Bus.CPU.P)
 	fmt.Fprint(statusText, "\n")
 	fmt.Fprintf(statusText, "PC: 0x%02X\t", emulator.NES.Bus.CPU.PC)
 	fmt.Fprintf(statusText, "A: 0x%02X\t", emulator.NES.Bus.CPU.A)

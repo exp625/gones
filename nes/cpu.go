@@ -35,18 +35,23 @@ type C struct {
 func (cpu *C) Clock() {
 	if cpu.CycleCount == 0 && cpu.CurrentInstruction.Length != 0 {
 
-		fmt.Printf("0x%04X ", cpu.CurrentPC)
+		fmt.Printf("%04X  ", cpu.CurrentPC)
 
 
-		fmt.Printf( "0x%02X ", cpu.Bus.CPURead(cpu.CurrentPC))
-		fmt.Print( "[",OpCodeMap[cpu.Bus.CPURead(cpu.CurrentPC)], "] ")
+		fmt.Printf( "%02X ", cpu.Bus.CPURead(cpu.CurrentPC))
+
 		inst := cpu.CurrentInstruction
-		addr, _ := inst.AddressMode()
-		fmt.Printf("(0x%04X) ", addr)
-
-		for i := 1; i < int(inst.Length); i++ {
+		i := 1
+		for ; i < int(inst.Length); i++ {
 			fmt.Printf("%02X ", cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC+uint16(i)))
 		}
+		for ; i < 3; i++ {
+			fmt.Print("   ")
+		}
+		fmt.Print( "  ",OpCodeMap[cpu.Bus.CPURead(cpu.CurrentPC)], " ")
+
+		addr, _ := inst.AddressMode()
+		fmt.Printf("0x%04X", addr)
 		fmt.Print("\n")
 		// Execute Instruction
 		loc, data := cpu.CurrentInstruction.AddressMode()
@@ -68,6 +73,9 @@ func (cpu *C) Reset() {
 	cpu.ClockCount = 0
 	cpu.CycleCount = 0
 	// Set IRQ Disabled
+	cpu.A = 0
+	cpu.X = 0
+	cpu.Y = 0
 	cpu.P = FlagIRQDisabled
 	cpu.S = 0xFD
 

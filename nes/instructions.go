@@ -337,7 +337,7 @@ func ADC(location uint16, data uint8, length uint16) {
 }
 
 func AND(location uint16, data uint8, length uint16) {
-	temp := CPU.A & CPU.Bus.CPURead(location)
+	temp := CPU.A & data
 	CPU.A = temp
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
@@ -378,7 +378,9 @@ func BEQ(location uint16, data uint8, length uint16) {
 }
 
 func BIT(location uint16, data uint8, length uint16) {
-	CPU.Set(FlagZero, (CPU.A&data) == 1)
+	temp := CPU.A & data
+
+	CPU.Set(FlagZero, temp == 0)
 	CPU.Set(FlagOverflow, (data>>6)&0x01 == 1)
 	CPU.Set(FlagNegative, (data>>7)&0x01 == 1)
 	CPU.PC += length
@@ -465,7 +467,7 @@ func CLV(location uint16, data uint8, length uint16) {
 func CMP(location uint16, data uint8, length uint16) {
 	temp := CPU.A - data
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
-	CPU.Set(FlagZero, temp == 0)
+	CPU.Set(FlagZero, temp & 0x00FF == 0)
 	// From Wiki: After SBC or CMP, this flag will be set if no borrow was the result, or alternatively a "greater than or equal" result.
 	CPU.Set(FlagCarry, CPU.A >= data)
 	CPU.PC += length
