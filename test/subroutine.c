@@ -10,6 +10,7 @@ void incX() {
 }
 
 int main() {
+    x = 0;
     incX();
     // Return value will be stored in A register
     return x;

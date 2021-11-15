@@ -42,8 +42,9 @@ func LoadCartridge (rom []byte) *Cartridge {
 
 	prgRom :=  make([]uint8, int(prgRomSize) * 0x4000)
 	chrRom :=  make([]uint8, int(prgRomSize) * 0x2000)
-	ptr := 0xF
+	ptr := 0x10
 	if trainerPresent {
+		log.Println("Trainer present!")
 		ptr += 0x200
 	}
 	for i := 0; i < int(prgRomSize) * 0x4000; i++ {

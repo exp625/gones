@@ -70,7 +70,7 @@ func run() {
 	atlas := text.NewAtlas(basicfont.Face7x13, text.ASCII)
 	cpuText := text.New(pixel.V(0, Height-atlas.LineHeight()*2), atlas)
 	codeText := text.New(pixel.V(0, Height-atlas.LineHeight()*2-200), atlas)
-	cardridgeText := text.New(pixel.V(400, Height-atlas.LineHeight()*2-200), atlas)
+	cardridgeText := text.New(pixel.V(800, Height-atlas.LineHeight()*2-200), atlas)
 	zeroPageText := text.New(pixel.V(0, Height-atlas.LineHeight()*2-370), atlas)
 	stackText := text.New(pixel.V(400, Height-atlas.LineHeight()*2-370), atlas)
 	ramText := text.New(pixel.V(0, Height-atlas.LineHeight()*2-620), atlas)

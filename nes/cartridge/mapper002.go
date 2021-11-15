@@ -91,7 +91,7 @@ func (m *Mapper002) DebugDisplay (text *text.Text) {
 	fmt.Fprint(text, "Cartridge with Mapper 002\n")
 	fmt.Fprintf(text, "PRG ROM Size: %d * 16 KB\n", m.cartridge.PrgRomSize)
 	fmt.Fprintf(text, "PRG BANK    : %d \n", m.bankSelect)
-	fmt.Fprintf(text, "CHR ROM Size: %d * 8 KB\n", m.cartridge.PrgRomSize)
+	fmt.Fprintf(text, "CHR ROM Size: %d * 8 KB\n", m.cartridge.ChrRomSize)
 	str := "Horizontal "
 	if m.Mirroring() {
 		str = "Vertical "

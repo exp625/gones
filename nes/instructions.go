@@ -1,7 +1,6 @@
 package nes
 
 import (
-	"log"
 	"reflect"
 	"runtime"
 	"strings"
@@ -439,7 +438,6 @@ func CLV(location uint16, data uint8) {
 
 func CMP(location uint16, data uint8) {
 	temp := CPU.A - data
-	log.Println(CPU.A, data)
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
 	// From Wiki: After SBC or CMP, this flag will be set if no borrow was the result, or alternatively a "greater than or equal" result.
@@ -606,12 +604,7 @@ func ROL(location uint16, data uint8) {
 	CPU.Set(FlagNegative, (temp&0x80) == 0x80)
 	CPU.Set(FlagZero, temp == 0)
 
-	if CPU.CurrentInstruction.ClockCycles == 2 {
-		// Accumulator Addressing
-		CPU.A = temp
-	} else {
-		CPU.Bus.CPUWrite(location, temp)
-	}
+
 }
 
 func ROR(location uint16, data uint8) {

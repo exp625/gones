@@ -91,7 +91,7 @@ func (m *Mapper000) DebugDisplay(text *text.Text) {
 	// No other game has ram on the cartridge
 	fmt.Fprint(text, "Cartridge with Mapper 000\n")
 	fmt.Fprintf(text, "PRG ROM Size: %d * 16 KB\n", m.cartridge.PrgRomSize)
-	fmt.Fprintf(text, "CHR ROM Size: %d * 8 KB\n", m.cartridge.PrgRomSize)
+	fmt.Fprintf(text, "CHR ROM Size: %d * 8 KB\n", m.cartridge.ChrRomSize)
 	str := "Horizontal "
 	if m.Mirroring() {
 		str = "Vertical "
