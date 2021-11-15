@@ -1,5 +1,7 @@
 package nes
 
+import "github.com/exp625/gones/nes/cartridge"
+
 // NES struct
 type NES struct {
 	MasterClockCount uint64
@@ -15,13 +17,11 @@ func New(clockTime float64, audioSampleTime float64) *NES {
 	ram := &RAM{}
 	ppu := &PPU{}
 	apu := &APU{}
-	cat := &Cartridge{}
 	bus := &Bus{
 		CPU:       c,
 		RAM:       ram,
 		PPU:       ppu,
 		APU:       apu,
-		Cartridge: cat,
 	}
 	bus.CPU.Bus = bus
 
@@ -69,4 +69,8 @@ func (nes *NES) Clock() bool {
 
 	// Return if an audio sample is ready
 	return audioSampleReady
+}
+
+func (nes *NES) InsertCartridge(cat *cartridge.Cartridge)  {
+	nes.Bus.Cartridge = cat
 }

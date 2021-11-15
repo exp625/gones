@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/exp625/gones/nes"
+	"github.com/exp625/gones/nes/cartridge"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 	"github.com/faiface/pixel"
@@ -45,6 +46,16 @@ const (
 )
 
 func run() {
+	// Load Cartridge
+	argsWithoutProg := os.Args[1:]
+	if argsWithoutProg[0] == "" {
+		log.Panic("No rom file provided")
+	}
+	bytes, err := ioutil.ReadFile(argsWithoutProg[0])
+	if err != nil {
+		log.Fatal(err)
+	}
+	cat := cartridge.LoadCartridge(bytes)
 	// Create Window
 	cfg := pixelgl.WindowConfig{
 		Title:  "Pixel Rocks!",
@@ -59,6 +70,7 @@ func run() {
 	atlas := text.NewAtlas(basicfont.Face7x13, text.ASCII)
 	cpuText := text.New(pixel.V(0, Height-atlas.LineHeight()*2), atlas)
 	codeText := text.New(pixel.V(0, Height-atlas.LineHeight()*2-200), atlas)
+	cardridgeText := text.New(pixel.V(400, Height-atlas.LineHeight()*2-200), atlas)
 	zeroPageText := text.New(pixel.V(0, Height-atlas.LineHeight()*2-370), atlas)
 	stackText := text.New(pixel.V(400, Height-atlas.LineHeight()*2-370), atlas)
 	ramText := text.New(pixel.V(0, Height-atlas.LineHeight()*2-620), atlas)
@@ -66,14 +78,9 @@ func run() {
 	//Create NES
 	emulator := &Emulator{NES: nes.New(NESClockTime, NESSampleTime)}
 
-	argsWithoutProg := os.Args[1:]
-	if argsWithoutProg[0] != "" {
-		bytes, err := ioutil.ReadFile(argsWithoutProg[0])
-		if err != nil {
-			log.Fatal(err)
-		}
-		emulator.Bus.Cartridge.Load(bytes)
-	}
+
+	emulator.InsertCartridge(cat)
+
 
 	emulator.Reset()
 
@@ -103,17 +110,20 @@ func run() {
 			zeroPageText.Clear()
 			stackText.Clear()
 			ramText.Clear()
+			cardridgeText.Clear()
 
 			DrawCode(codeText, emulator)
 			DrawZeroPage(zeroPageText, emulator)
 			DrawStack(stackText, emulator)
 			DrawRAM(ramText, emulator)
+			emulator.Bus.Cartridge.DebugDisplay(cardridgeText)
 
 			moved := pixel.IM
 			if emulator.hideInfo {
 				moved = moved.Moved(pixel.V(0, 200))
 			}
 			codeText.Draw(win, pixel.IM.Scaled(codeText.Orig, 2).Chained(moved))
+			cardridgeText.Draw(win, pixel.IM.Scaled(cardridgeText.Orig, 2).Chained(moved))
 			zeroPageText.Draw(win, moved)
 			stackText.Draw(win, moved)
 			ramText.Draw(win, moved)
