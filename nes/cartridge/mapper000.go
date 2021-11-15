@@ -72,7 +72,10 @@ func (m *Mapper000) PPURead(location uint16) (bool, uint8) {
 
 func (m *Mapper000) PPUWrite(location uint16, data uint8) bool {
 	if location <= 0x1FFF {
-		// Responsible for the address, but nothing happens
+		if m.cartridge.ChrRam {
+			// CHR RAM
+			m.cartridge.ChrRom[location] = data
+		}
 		return true
 	}
 	return false

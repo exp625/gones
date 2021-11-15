@@ -11,6 +11,8 @@ import (
 	"github.com/faiface/pixel/text"
 	"golang.org/x/image/colornames"
 	"golang.org/x/image/font/basicfont"
+	"image"
+	"image/color"
 	"io/ioutil"
 	"log"
 	"os"
@@ -35,6 +37,7 @@ type Emulator struct {
 	autoRun                   bool
 	hideDebug                 bool
 	hideInfo                  bool
+	hidePatternTables         bool
 	autoRunCycles             int
 	nanoSecondsSpentInAutoRun time.Duration
 	autoRunStarted            time.Time
@@ -60,6 +63,7 @@ func run() {
 	cfg := pixelgl.WindowConfig{
 		Title:  "Pixel Rocks!",
 		Bounds: pixel.R(0, 0, Width, Height),
+		VSync: true,
 	}
 	win, err := pixelgl.NewWindow(cfg)
 	if err != nil {
@@ -129,6 +133,13 @@ func run() {
 			ramText.Draw(win, moved)
 		}
 
+		if !emulator.hidePatternTables {
+			DrawCHRROM(emulator, 0).Draw(win, pixel.IM.Moved(pixel.V(128, 128)).Scaled(pixel.V(128, 128), 2))
+			DrawCHRROM(emulator, 1).Draw(win, pixel.IM.Moved(pixel.V(128*3, 128)).Scaled(pixel.V(128*3, 128), 2))
+		}
+
+
+
 		// Update Frame
 		win.Update()
 	}
@@ -153,6 +164,11 @@ func handleInput(win *pixelgl.Window, emulator *Emulator) {
 	// I Key toggles display of hideInfo
 	if win.JustPressed(pixelgl.KeyI) {
 		emulator.hideInfo = !emulator.hideInfo
+	}
+
+	// P Key toggles display of patternTables
+	if win.JustPressed(pixelgl.KeyP) {
+		emulator.hidePatternTables = !emulator.hidePatternTables
 	}
 
 	// Right Arrow Key issues one Master Clock
@@ -340,5 +356,49 @@ func DrawStack(statusText *text.Text, emulator *Emulator) {
 		}
 		fmt.Fprintf(statusText, "%02X ", emulator.Bus.CPURead(uint16(i)))
 	}
+
+}
+
+func DrawCHRROM (emulator *Emulator, table int) *pixel.Sprite{
+	width := 128
+	height := 128
+
+	upLeft := image.Point{X: 0, Y: 0}
+	lowRight := image.Point{X: width, Y: height}
+	img := image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
+
+	//DCBA98 76543210
+	//---------------
+	//	0HRRRR CCCCPTTT
+	//  |||||| |||||+++- T: Fine Y offset, the row number within a tile
+	//  |||||| ||||+---- P: Bit plane (0: "lower"; 1: "upper")
+	//  |||||| ++++----- C: Tile column
+	//  ||++++---------- R: Tile row
+	//  |+-------------- H: Half of sprite table (0: "left"; 1: "right")
+	//  +--------------- 0: Pattern table is at $0000-$1FFF
+
+	for y := 0; y < 16; y++ {
+		for x := 0; x < 16; x++ {
+				for tileY := 0; tileY < 8; tileY++ {
+
+					addressPlane0 := uint16(table<<13 | y<<8 | x<<4 | 0 << 3 | tileY)
+					addressPlane1 := uint16(table<<13 | y<<8 | x<<4 | 1 << 3 | tileY)
+					plane0 := emulator.Bus.PPURead(addressPlane0)
+					plane1 := emulator.Bus.PPURead(addressPlane1)
+
+					for tileX := 0; tileX < 8; tileX++ {
+
+						if (plane0 >> (7 - tileX)) & 0x01 + (plane1 >> (7 - tileX)) & 0x01 != 0 {
+							img.Set(x * 8 + tileX, y * 8 + tileY, color.White)
+						} else {
+							img.Set(x * 8 + tileX, y * 8 + tileY, color.Black)
+						}
+
+					}
+				}
+			}
+		}
+	pic := pixel.PictureDataFromImage(img)
+	return pixel.NewSprite(pic, pic.Bounds())
 
 }

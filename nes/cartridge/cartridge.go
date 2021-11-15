@@ -7,6 +7,7 @@ type Cartridge struct {
 	PrgRom     []uint8
 	ChrRomSize uint8
 	ChrRom     []uint8
+	ChrRam bool
 	MirrorBit  bool
 	Mapper
 
@@ -36,12 +37,18 @@ type Cartridge struct {
 func LoadCartridge (rom []byte) *Cartridge {
 	prgRomSize := rom[4]
 	chrRomSize := rom[5]
+	chrRam := false
+	if chrRomSize == 0 {
+		chrRomSize = 1
+		chrRam = true
+	}
 	mapperNumber := rom[6] & 0xF0 >> 4
 	trainerPresent := rom[6] & 0b00000100 >> 2 == 1
 	mirrowBit := rom[6] & 0b00000001 == 1
 
 	prgRom :=  make([]uint8, int(prgRomSize) * 0x4000)
-	chrRom :=  make([]uint8, int(prgRomSize) * 0x2000)
+	chrRom :=  make([]uint8, int(chrRomSize) * 0x2000)
+
 	ptr := 0x10
 	if trainerPresent {
 		log.Println("Trainer present!")
@@ -51,16 +58,21 @@ func LoadCartridge (rom []byte) *Cartridge {
 		prgRom[i] = rom[ptr]
 		ptr++
 	}
-	for i := 0; i < int(chrRomSize) * 0x2000; i++ {
-		chrRom[i] = rom[ptr]
-		ptr++
+	if !chrRam {
+		for i := 0; i < int(chrRomSize) * 0x2000; i++ {
+			chrRom[i] = rom[ptr]
+			ptr++
+		}
 	}
+
+
 
 	cartridge := &Cartridge{
 		PrgRomSize: prgRomSize,
 		PrgRom: prgRom,
 		ChrRomSize: chrRomSize,
 		ChrRom: chrRom,
+		ChrRam: chrRam,
 		Mapper:     nil,
 		MirrorBit: mirrowBit,
 	}

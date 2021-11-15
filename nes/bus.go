@@ -49,6 +49,23 @@ func (b *Bus) CPUWrite(location uint16, data uint8) {
 	}
 }
 
+func (b *Bus) PPURead(location uint16) uint8 {
+	switch {
+	case location <= 0x1FFF:
+		_, data := b.Cartridge.PPURead(location)
+		return data
+	}
+	return 0
+}
+
+func (b *Bus) PPUWrite(location uint16, data uint8) {
+	switch {
+	case location <= 0x1FFF:
+		b.Cartridge.PPUWrite(location, data)
+	}
+
+}
+
 func (b *Bus) Reset() {
 	b.Cartridge.Reset()
 	b.RAM.Reset()
