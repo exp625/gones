@@ -6,8 +6,6 @@ type RAM struct {
 
 func (ram *RAM) Reset() {
 	ram.Data = [0x0800]uint8{}
-	ram.Data[0x00FF] = 0xDD
-	ram.Data[0x0300] = 0xDD
 }
 
 func (ram *RAM) Read(location uint16) (bool, uint8) {

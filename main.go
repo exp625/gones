@@ -177,6 +177,15 @@ func handleInput(win *pixelgl.Window, emulator *Emulator) {
 		emulator.Clock()
 	}
 
+	// Q Key set PC to 0x4000
+	if win.JustPressed(pixelgl.KeyQ) && !emulator.autoRun {
+		emulator.Bus.CPU.PC = 0xC000
+		opcode := emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.PC)
+		i := nes.Instructions[opcode]
+		emulator.Bus.CPU.CurrentInstruction = i
+		emulator.Bus.CPU.CurrentPC = emulator.Bus.CPU.PC
+	}
+
 	// Toggle rom pc
 	if win.JustPressed(pixelgl.KeyX) && !emulator.autoRun {
 		emulator.displayRamPC = !emulator.displayRamPC

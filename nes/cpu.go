@@ -1,5 +1,9 @@
 package nes
 
+import (
+	"fmt"
+)
+
 var CPU *C
 
 func init() {
@@ -30,6 +34,20 @@ type C struct {
 
 func (cpu *C) Clock() {
 	if cpu.CycleCount == 0 && cpu.CurrentInstruction.Length != 0 {
+
+		fmt.Printf("0x%04X ", cpu.CurrentPC)
+
+
+		fmt.Printf( "0x%02X ", cpu.Bus.CPURead(cpu.CurrentPC))
+		fmt.Print( "[",OpCodeMap[cpu.Bus.CPURead(cpu.CurrentPC)], "] ")
+		inst := cpu.CurrentInstruction
+		addr, _ := inst.AddressMode()
+		fmt.Printf("(0x%04X) ", addr)
+
+		for i := 1; i < int(inst.Length); i++ {
+			fmt.Printf("%02X ", cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC+uint16(i)))
+		}
+		fmt.Print("\n")
 		// Execute Instruction
 		loc, data := cpu.CurrentInstruction.AddressMode()
 		cpu.CurrentInstruction.Execute(loc, data, cpu.CurrentInstruction.Length)

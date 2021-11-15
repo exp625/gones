@@ -416,10 +416,11 @@ func BRK(location uint16, data uint8, length uint16) {
 	CPU.S--
 	CPU.Set(FlagBreak, true)
 	CPU.Set(FlagUnused, true)
+	CPU.Set(FlagInterruptDisable, true)
 	CPU.Bus.CPUWrite(0x0100+uint16(CPU.S), CPU.P)
 	CPU.S--
+	CPU.Set(FlagBreak, false)
 
-	CPU.Set(FlagInterruptDisable, true)
 	low := uint16(CPU.Bus.CPURead(0xFFFE))
 	high := uint16(CPU.Bus.CPURead(0xFFFF))
 	CPU.PC = (high << 8) | low
