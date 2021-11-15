@@ -7,12 +7,12 @@ import (
 )
 
 type AddressModeFunc func() (uint16, uint8)
-type ExecuteFunc func(uint16, uint8)
+type ExecuteFunc func(uint16, uint8, uint16)
 
 type Instruction struct {
 	AddressMode AddressModeFunc
 	Execute     ExecuteFunc
-	Length      int
+	Length      uint16
 	ClockCycles int
 }
 
@@ -304,7 +304,9 @@ func init() {
 	}
 }
 
-func ADC(location uint16, data uint8) {
+// TODO: Branch instruction add 1 cycle if they branch and another if a page is crossed
+
+func ADC(location uint16, data uint8, length uint16) {
 	var carry uint8
 	if CPU.GetFlag(FlagCarry) {
 		carry = 1
@@ -331,67 +333,83 @@ func ADC(location uint16, data uint8) {
 	// Negative Number + Negative Number = Negative Result -> OK! NO Overflow
 	// so V = ~(A^M) & (A^R)
 	CPU.Set(FlagOverflow, ^(uint16(CPU.A)^uint16(data)) & (uint16(CPU.A)^temp) == 0)
+	CPU.PC += length
 }
 
-func AND(location uint16, data uint8) {
+func AND(location uint16, data uint8, length uint16) {
 	temp := CPU.A & CPU.Bus.CPURead(location)
 	CPU.A = temp
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
+	CPU.PC += length
 }
 
-func ASL(location uint16, data uint8) {
+func ASL(location uint16, data uint8, length uint16) {
 	newCarry := (data >> 7) & 0x01
 	newData := data << 1
 	CPU.Set(FlagCarry, newCarry == 1)
 	CPU.Set(FlagNegative, (newData>>7)&0x01 == 1)
 	CPU.Set(FlagZero, newData == 0)
+	CPU.PC += length
 }
 
-func BCC(location uint16, data uint8) {
+func BCC(location uint16, data uint8, length uint16) {
 	if !CPU.GetFlag(FlagCarry) {
-		CPU.PC = location
+		  CPU.PC = location
+		return
 	}
+	CPU.PC += length
 }
 
-func BCS(location uint16, data uint8) {
+func BCS(location uint16, data uint8, length uint16) {
 	if CPU.GetFlag(FlagCarry) {
-		CPU.PC = location
+		  CPU.PC = location
+		return
 	}
+	CPU.PC += length
 }
 
-func BEQ(location uint16, data uint8) {
+func BEQ(location uint16, data uint8, length uint16) {
 	if CPU.GetFlag(FlagZero) {
-		CPU.PC = location
+		 CPU.PC = location
+		return
 	}
+	CPU.PC += length
 }
 
-func BIT(location uint16, data uint8) {
+func BIT(location uint16, data uint8, length uint16) {
 	CPU.Set(FlagZero, (CPU.A&data) == 1)
 	CPU.Set(FlagOverflow, (data>>6)&0x01 == 1)
 	CPU.Set(FlagNegative, (data>>7)&0x01 == 1)
+	CPU.PC += length
 }
 
-func BMI(location uint16, data uint8) {
+func BMI(location uint16, data uint8, length uint16) {
 	if CPU.GetFlag(FlagNegative) {
-		CPU.PC = location
+		  CPU.PC = location
+		return
 	}
+	CPU.PC += length
 }
 
-func BNE(location uint16, data uint8) {
+func BNE(location uint16, data uint8, length uint16) {
 	if !CPU.GetFlag(FlagZero) {
-		CPU.PC = location
+		  CPU.PC = location
+		return
 	}
+	CPU.PC += length
 }
 
-func BPL(location uint16, data uint8) {
+func BPL(location uint16, data uint8, length uint16) {
 	if !CPU.GetFlag(FlagNegative) {
-		CPU.PC = location
+		 CPU.PC = location
+		return
 	}
+	CPU.PC += length
 }
 
-func BRK(location uint16, data uint8) {
-	pc := CPU.PC + 1
+func BRK(location uint16, data uint8, length uint16) {
+	pc := CPU.PC + length
 	CPU.Bus.CPUWrite(0x0100+uint16(CPU.S), uint8((pc>>8)&0x00FF))
 	CPU.S--
 	CPU.Bus.CPUWrite(0x0100+uint16(CPU.S), uint8(pc&0x00FF))
@@ -405,140 +423,160 @@ func BRK(location uint16, data uint8) {
 	low := uint16(CPU.Bus.CPURead(0xFFFE))
 	high := uint16(CPU.Bus.CPURead(0xFFFF))
 	CPU.PC = (high << 8) | low
-	CPU.PC = CPU.PC - uint16(CPU.CurrentInstruction.Length)
 }
 
-func BVC(location uint16, data uint8) {
+func BVC(location uint16, data uint8, length uint16) {
 	if !CPU.GetFlag(FlagOverflow) {
-		CPU.PC = location
+		  CPU.PC = location
+		return
 	}
+	CPU.PC += length
 }
 
-func BVS(location uint16, data uint8) {
+func BVS(location uint16, data uint8, length uint16) {
 	if CPU.GetFlag(FlagOverflow) {
-		CPU.PC = location
+		  CPU.PC = location
+		return
 	}
+	CPU.PC += length
 }
 
-func CLC(location uint16, data uint8) {
+func CLC(location uint16, data uint8, length uint16) {
 	CPU.Set(FlagCarry, false)
+	CPU.PC += length
 }
 
-func CLD(location uint16, data uint8) {
+func CLD(location uint16, data uint8, length uint16) {
 	CPU.Set(FlagDecimal, false)
+	CPU.PC += length
 }
 
-func CLI(location uint16, data uint8) {
+func CLI(location uint16, data uint8, length uint16) {
 	CPU.Set(FlagInterruptDisable, false)
+	CPU.PC += length
 }
 
-func CLV(location uint16, data uint8) {
+func CLV(location uint16, data uint8, length uint16) {
 	CPU.Set(FlagOverflow, false)
+	CPU.PC += length
 }
 
-func CMP(location uint16, data uint8) {
+func CMP(location uint16, data uint8, length uint16) {
 	temp := CPU.A - data
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
 	// From Wiki: After SBC or CMP, this flag will be set if no borrow was the result, or alternatively a "greater than or equal" result.
 	CPU.Set(FlagCarry, CPU.A >= data)
+	CPU.PC += length
 }
 
-func CPX(location uint16, data uint8) {
+func CPX(location uint16, data uint8, length uint16) {
 	temp := CPU.X - data
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
 	CPU.Set(FlagCarry, CPU.GetFlag(FlagZero) && !CPU.GetFlag(FlagNegative))
+	CPU.PC += length
 }
 
-func CPY(location uint16, data uint8) {
+func CPY(location uint16, data uint8, length uint16) {
 	temp := CPU.Y - data
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
 	CPU.Set(FlagCarry, CPU.GetFlag(FlagZero) && !CPU.GetFlag(FlagNegative))
+	CPU.PC += length
 }
 
-func DEC(location uint16, data uint8) {
+func DEC(location uint16, data uint8, length uint16) {
 	temp := CPU.Bus.CPURead(location) - 1
 	CPU.Bus.CPUWrite(location, temp)
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
+	CPU.PC += length
 }
 
-func DEX(location uint16, data uint8) {
+func DEX(location uint16, data uint8, length uint16) {
 	temp := CPU.X - 1
 	CPU.X = temp
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
+	CPU.PC += length
 }
 
-func DEY(location uint16, data uint8) {
+func DEY(location uint16, data uint8, length uint16) {
 	temp := CPU.Y - 1
 	CPU.Y = temp
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
+	CPU.PC += length
 }
 
-func EOR(location uint16, data uint8) {
+func EOR(location uint16, data uint8, length uint16) {
 	temp := CPU.A ^ CPU.Bus.CPURead(location)
 	CPU.A = temp
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
+	CPU.PC += length
 }
 
-func INC(location uint16, data uint8) {
+func INC(location uint16, data uint8, length uint16) {
 	temp := CPU.Bus.CPURead(location) + 1
 	CPU.Bus.CPUWrite(location, temp)
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
+	CPU.PC += length
 }
 
-func INX(location uint16, data uint8) {
+func INX(location uint16, data uint8, length uint16) {
 	temp := CPU.X + 1
 	CPU.X = temp
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
+	CPU.PC += length
 }
 
-func INY(location uint16, data uint8) {
+func INY(location uint16, data uint8, length uint16) {
 	temp := CPU.Y + 1
 	CPU.Y = temp
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
+	CPU.PC += length
 }
 
-func JMP(location uint16, data uint8) {
-	CPU.PC = location - uint16(CPU.CurrentInstruction.Length)
+func JMP(location uint16, data uint8, length uint16) {
+	 CPU.PC = location
 }
 
-func JSR(location uint16, data uint8) {
-	pc := CPU.PC + uint16(CPU.CurrentInstruction.Length)
+func JSR(location uint16, data uint8, length uint16) {
+	pc := CPU.PC + length
 	CPU.Bus.CPUWrite(0x0100+uint16(CPU.S), uint8((pc>>8)&0x00FF))
 	CPU.S--
 	CPU.Bus.CPUWrite(0x0100+uint16(CPU.S), uint8(pc&0x00FF))
 	CPU.S--
-	CPU.PC = location - uint16(CPU.CurrentInstruction.Length)
+	CPU.PC = location
 }
 
-func LDA(location uint16, data uint8) {
+func LDA(location uint16, data uint8, length uint16) {
 	CPU.A = data
 	CPU.Set(FlagNegative, (data>>7)&0x01 == 1)
 	CPU.Set(FlagZero, data == 0)
+	CPU.PC += length
 }
 
-func LDX(location uint16, data uint8) {
+func LDX(location uint16, data uint8, length uint16) {
 	CPU.X = data
 	CPU.Set(FlagNegative, (data>>7)&0x01 == 1)
 	CPU.Set(FlagZero, data == 0)
+	CPU.PC += length
 }
 
-func LDY(location uint16, data uint8) {
+func LDY(location uint16, data uint8, length uint16) {
 	CPU.Y = data
 	CPU.Set(FlagNegative, (data>>7)&0x01 == 1)
 	CPU.Set(FlagZero, data == 0)
+	CPU.PC += length
 }
 
-func LSR(location uint16, data uint8) {
+func LSR(location uint16, data uint8, length uint16) {
 	temp := data >> 1
 	CPU.Set(FlagCarry, data&0x01 == 1)
 	CPU.Set(FlagNegative, false)
@@ -549,50 +587,57 @@ func LSR(location uint16, data uint8) {
 	} else {
 		CPU.Bus.CPUWrite(location, temp)
 	}
+	CPU.PC += length
 }
 
-func NOP(location uint16, data uint8) {
+func NOP(location uint16, data uint8, length uint16) {
+	CPU.PC += length
 	return
 }
 
-func ORA(location uint16, data uint8) {
+func ORA(location uint16, data uint8, length uint16) {
 
 	temp := CPU.A | CPU.Bus.CPURead(location)
 	CPU.A = temp
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
+	CPU.PC += length
 }
 
-func PHA(location uint16, data uint8) {
+func PHA(location uint16, data uint8, length uint16) {
 	temp := CPU.A
 	CPU.Bus.CPUWrite(0x0100|uint16(CPU.S), temp)
 	CPU.S--
+	CPU.PC += length
 }
 
-func PHP(location uint16, data uint8) {
+func PHP(location uint16, data uint8, length uint16) {
 	temp := CPU.P
 	temp = temp & 0b00110000
 	CPU.Bus.CPUWrite(0x0100|uint16(CPU.S), temp)
 	CPU.S--
+	CPU.PC += length
 }
 
-func PLA(location uint16, data uint8) {
+func PLA(location uint16, data uint8, length uint16) {
 	CPU.S++
 	temp := CPU.Bus.CPURead(0x0100 | uint16(CPU.S))
 	CPU.A = temp
 
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
+	CPU.PC += length
 }
 
-func PLP(location uint16, data uint8) {
+func PLP(location uint16, data uint8, length uint16) {
 	CPU.S++
 	temp := CPU.Bus.CPURead(0x0100 | uint16(CPU.S))
 	temp = temp | 0b11001111
+	CPU.PC += length
 
 }
 
-func ROL(location uint16, data uint8) {
+func ROL(location uint16, data uint8, length uint16) {
 	var carry uint8
 	if CPU.GetFlag(FlagCarry) {
 		carry = 1
@@ -603,11 +648,11 @@ func ROL(location uint16, data uint8) {
 	CPU.Set(FlagCarry, (data & 0x80) == 0x80)
 	CPU.Set(FlagNegative, (temp&0x80) == 0x80)
 	CPU.Set(FlagZero, temp == 0)
-
+	CPU.PC += length
 
 }
 
-func ROR(location uint16, data uint8) {
+func ROR(location uint16, data uint8, length uint16) {
 	var carry uint8
 	if CPU.GetFlag(FlagCarry) {
 		carry = 0x80
@@ -624,10 +669,11 @@ func ROR(location uint16, data uint8) {
 	} else {
 		CPU.Bus.CPUWrite(location, temp)
 	}
+	CPU.PC += length
 
 }
 
-func RTI(location uint16, data uint8) {
+func RTI(location uint16, data uint8, length uint16) {
 	CPU.S++
 	status := CPU.Bus.CPURead(0x0100 + uint16(CPU.S))
 
@@ -642,16 +688,16 @@ func RTI(location uint16, data uint8) {
 	CPU.PC = pc
 }
 
-func RTS(location uint16, data uint8) {
+func RTS(location uint16, data uint8, length uint16) {
 	CPU.S++
 	low := uint16(CPU.Bus.CPURead(0x0100 + uint16(CPU.S)))
 	CPU.S++
 	high := uint16(CPU.Bus.CPURead(0x0100 + uint16(CPU.S)))
 	pc := (high << 8) | low
-	CPU.PC = pc - uint16(CPU.CurrentInstruction.Length)
+	CPU.PC = pc
 }
 
-func SBC(location uint16, data uint8) {
+func SBC(location uint16, data uint8, length uint16) {
 	var carry uint8
 	if CPU.GetFlag(FlagCarry) {
 		carry = 1
@@ -680,68 +726,81 @@ func SBC(location uint16, data uint8) {
 	// Negative Number + Negative Number = Negative Result -> OK! NO Overflow
 	// so V = ~(A^M) & (A^R)
 	CPU.Set(FlagOverflow, ^(uint16(CPU.A)^uint16(dataInverse)) & (uint16(CPU.A)^temp) == 0)
+	CPU.PC += length
 }
 
-func SEC(location uint16, data uint8) {
+func SEC(location uint16, data uint8, length uint16) {
 	CPU.Set(FlagCarry, true)
+	CPU.PC += length
 }
 
-func SED(location uint16, data uint8) {
+func SED(location uint16, data uint8, length uint16) {
 	CPU.Set(FlagDecimal, true)
+	CPU.PC += length
 }
 
-func SEI(location uint16, data uint8) {
+func SEI(location uint16, data uint8, length uint16) {
 	CPU.Set(FlagInterruptDisable, true)
+	CPU.PC += length
 }
 
-func STA(location uint16, data uint8) {
+func STA(location uint16, data uint8, length uint16) {
 	CPU.Bus.CPUWrite(location, CPU.A)
+	CPU.PC += length
 }
 
-func STX(location uint16, data uint8) {
+func STX(location uint16, data uint8, length uint16) {
 	CPU.Bus.CPUWrite(location, CPU.X)
+	CPU.PC += length
 }
 
-func STY(location uint16, data uint8) {
+func STY(location uint16, data uint8, length uint16) {
 	CPU.Bus.CPUWrite(location, CPU.Y)
+	CPU.PC += length
 }
 
-func TAX(location uint16, data uint8) {
+func TAX(location uint16, data uint8, length uint16) {
 	val := CPU.A
 	CPU.X = val
 	CPU.Set(FlagNegative, (val>>7)&0x01 == 1)
 	CPU.Set(FlagZero, val == 0)
+	CPU.PC += length
 }
 
-func TAY(location uint16, data uint8) {
+func TAY(location uint16, data uint8, length uint16) {
 	val := CPU.A
 	CPU.Y = val
 	CPU.Set(FlagNegative, (val>>7)&0x01 == 1)
 	CPU.Set(FlagZero, val == 0)
+	CPU.PC += length
 }
 
-func TSX(location uint16, data uint8) {
+func TSX(location uint16, data uint8, length uint16) {
 	val := CPU.S
 	CPU.X = val
 	CPU.Set(FlagNegative, (val>>7)&0x01 == 1)
 	CPU.Set(FlagZero, val == 0)
+	CPU.PC += length
 }
 
-func TXA(location uint16, data uint8) {
+func TXA(location uint16, data uint8, length uint16) {
 	val := CPU.X
 	CPU.A = val
 	CPU.Set(FlagNegative, (val>>7)&0x01 == 1)
 	CPU.Set(FlagZero, val == 0)
+	CPU.PC += length
 }
 
-func TXS(location uint16, data uint8) {
+func TXS(location uint16, data uint8, length uint16) {
 	val := CPU.X
 	CPU.S = val
+	CPU.PC += length
 }
 
-func TYA(location uint16, data uint8) {
+func TYA(location uint16, data uint8, length uint16) {
 	val := CPU.Y
 	CPU.A = val
 	CPU.Set(FlagNegative, (val>>7)&0x01 == 1)
 	CPU.Set(FlagZero, val == 0)
+	CPU.PC += length
 }

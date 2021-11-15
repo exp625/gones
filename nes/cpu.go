@@ -31,14 +31,14 @@ type C struct {
 func (cpu *C) Clock() {
 	if cpu.CycleCount == 0 && cpu.CurrentInstruction.Length != 0 {
 		// Execute Instruction
-		cpu.CurrentInstruction.Execute(cpu.CurrentInstruction.AddressMode())
+		loc, data := cpu.CurrentInstruction.AddressMode()
+		cpu.CurrentInstruction.Execute(loc, data, cpu.CurrentInstruction.Length)
 		cpu.CycleCount = cpu.CurrentInstruction.ClockCycles
 	}
 	cpu.ClockCount++
 	cpu.CycleCount--
 	if cpu.CycleCount == 0 {
 		// Execution Complete. Load next Instruction
-		cpu.PC += uint16(cpu.CurrentInstruction.Length)
 		opcode := cpu.Bus.CPURead(cpu.PC)
 		i := Instructions[opcode]
 		cpu.CurrentInstruction = i

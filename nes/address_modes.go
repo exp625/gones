@@ -75,9 +75,9 @@ func REL() (uint16, uint8) {
 	offset := CPU.Bus.CPURead(CPU.PC + 1)
 	// Offset is negative
 	if offset&0x80 == 0x80 {
-		return CPU.PC - uint16(offset), 0
+		return CPU.PC - uint16(offset) + CPU.CurrentInstruction.Length, 0
 	} else {
-		return CPU.PC + uint16(offset), 0
+		return CPU.PC + uint16(offset) + CPU.CurrentInstruction.Length, 0
 	}
 
 }
