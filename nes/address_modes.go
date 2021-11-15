@@ -72,13 +72,9 @@ func IMP() (uint16, uint8) {
 
 func REL() (uint16, uint8) {
 	// Read the address as 8-bit signed offset relative to the current PC
-	offset := CPU.Bus.CPURead(CPU.PC + 1)
+	offset := int8(CPU.Bus.CPURead(CPU.PC + 1))
 	// Offset is negative
-	if offset&0x80 == 0x80 {
-		return CPU.PC - uint16(offset) + CPU.CurrentInstruction.Length, 0
-	} else {
-		return CPU.PC + uint16(offset) + CPU.CurrentInstruction.Length, 0
-	}
+	return uint16(int16(CPU.PC) + int16(offset) + int16(CPU.CurrentInstruction.Length)), 0
 
 }
 
