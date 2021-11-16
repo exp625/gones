@@ -1,6 +1,10 @@
 package nes
 
-import "github.com/exp625/gones/nes/cartridge"
+import (
+	"fmt"
+	"github.com/exp625/gones/nes/cartridge"
+	"os"
+)
 
 // NES struct
 type NES struct {
@@ -9,6 +13,7 @@ type NES struct {
 	AudioSampleTime  float64
 	EmulatedTime     float64
 	Bus              *Bus
+	Logger			 *os.File
 }
 
 // New creates a new NES instance
@@ -25,13 +30,15 @@ func New(clockTime float64, audioSampleTime float64) *NES {
 	}
 	bus.CPU.Bus = bus
 
-	return &NES{
+	nes := &NES{
 		MasterClockCount: 0,
 		ClockTime:        clockTime,
 		AudioSampleTime:  audioSampleTime,
 		EmulatedTime:     0,
 		Bus:              bus,
 	}
+	bus.CPU.NES = nes
+	return nes
 }
 
 // Reset resets the NES to a know state
@@ -73,4 +80,63 @@ func (nes *NES) Clock() bool {
 
 func (nes *NES) InsertCartridge(cat *cartridge.Cartridge)  {
 	nes.Bus.Cartridge = cat
+}
+
+func (nes *NES) Log () {
+	if nes.Logger != nil && nes.Bus.CPU.CurrentInstruction.Length != 0{
+		// Build log line
+		cpu := nes.Bus.CPU
+		inst := cpu.CurrentInstruction
+		logLine := fmt.Sprintf("%04X  ", cpu.CurrentPC)
+		logLine += fmt.Sprintf( "%02X ", cpu.Bus.CPURead(cpu.CurrentPC))
+		i := 1
+		for ; i < int(inst.Length); i++ {
+			logLine += fmt.Sprintf("%02X ", cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC+uint16(i)))
+		}
+		for ; i < 3; i++ {
+			logLine += "   "
+		}
+		logLine += fmt.Sprint( " ",OpCodeMap[cpu.Bus.CPURead(cpu.CurrentPC)][0], " ")
+		addr, data := inst.AddressMode()
+		// Display Address
+		switch OpCodeMap[cpu.Bus.CPURead(cpu.CurrentPC)][1] {
+		case "REL":
+			logLine += fmt.Sprintf("$%04X                       ", addr)
+		case "ABS":
+			logLine += fmt.Sprintf("$%04X                       ", addr)
+		case "IMM":
+			logLine += fmt.Sprintf("#$%02X                        ", data)
+		case "IMP":
+			logLine += fmt.Sprint("                            ")
+		case "ACC":
+			logLine += fmt.Sprint("                            ")
+		case "ZPX":
+			logLine += fmt.Sprintf("$%02X = %02X                    ", addr & 0x00FF, data)
+		case "ZPY":
+			logLine += fmt.Sprintf("$%02X = %02X                    ", addr & 0x00FF, data)
+		case "ZP0":
+			logLine += fmt.Sprintf("$%02X = %02X                    ", addr & 0x00FF, data)
+		case "IDX":
+			// Second byte is added to register X -> result is a zero page address where the actual memory location is stored.
+			logLine += fmt.Sprintf("($%02X,X) @ %02X = %04X = %02X    ", cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 1), cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 1) + cpu.X, addr, data)
+		case "IDY":
+			// Second byte is added to register X -> result is a zero page address where the actual memory location is stored.
+			logLine += fmt.Sprintf("($%02X),Y = %04X @ %04X = %02X  ", cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 1), cpu.Bus.CPURead(0x00FF & uint16(cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 1))) + cpu.X, addr, data)
+		case "IND":
+			logLine += fmt.Sprintf("($%02X%02X) = %04X              ",cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 2), cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 1), addr )
+		case "ABX":
+			logLine += fmt.Sprintf("$%02X%02X,X @ %04X = %02X         ", cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 2), cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 1), addr, data)
+		case "ABY":
+			logLine += fmt.Sprintf("$%02X%02X,Y @ %04X = %02X         ", cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 2), cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 1), addr, data)
+		default:
+			logLine += fmt.Sprint("                            ")
+		}
+
+		// Add current CPU Status
+		logLine += fmt.Sprintf("A:%02X X:%02X Y:%02X P:%02X SP:%02X ", cpu.A, cpu.X, cpu.Y, cpu.P, cpu.S)
+		logLine += fmt.Sprintf("PPU:%3d,%3d ", nes.Bus.PPU.ScanLine, nes.Bus.PPU.Position)
+		logLine += fmt.Sprintf("CYC:%d", cpu.ClockCount)
+		fmt.Fprintln(nes.Logger, logLine)
+	}
+
 }

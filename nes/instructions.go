@@ -17,7 +17,7 @@ type Instruction struct {
 }
 
 var Instructions [256]Instruction
-var OpCodeMap map[uint8]string
+var OpCodeMap map[uint8][2]string
 
 func init() {
 	Instructions[0x00] = Instruction{IMP, BRK, 1, 7}
@@ -292,14 +292,16 @@ func init() {
 	Instructions[0xFE] = Instruction{ABX, INC, 3, 7}
 	Instructions[0xFF] = Instruction{}
 
-	OpCodeMap = make(map[uint8]string, 0xFF)
+	OpCodeMap = make(map[uint8][2]string, 0xFF)
 	for i := range Instructions {
 		if Instructions[i].Length == 0 {
-			OpCodeMap[uint8(i)] = "ERR"
+			arr := [2]string{ "ERR" , "ERR"}
+			OpCodeMap[uint8(i)] = arr
 		} else {
 			str1 := runtime.FuncForPC(reflect.ValueOf(Instructions[i].Execute).Pointer()).Name()
 			str2 := runtime.FuncForPC(reflect.ValueOf(Instructions[i].AddressMode).Pointer()).Name()
-			OpCodeMap[uint8(i)] = str1[len(str1)-3:] + " " + strings.Split(str2, ".")[2]
+			arr := [2]string{ str1[len(str1)-3:] , strings.Split(str2, ".")[2]}
+			OpCodeMap[uint8(i)] = arr
 		}
 	}
 }

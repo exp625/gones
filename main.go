@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -39,6 +40,7 @@ type Emulator struct {
 	hideInfo                  bool
 	hidePatternTables         bool
 	displayRamPC              bool
+	loggingEnabled            bool
 	autoRunCycles             int
 	nanoSecondsSpentInAutoRun time.Duration
 	autoRunStarted            time.Time
@@ -152,6 +154,17 @@ func handleInput(win *pixelgl.Window, emulator *Emulator) {
 	}
 	emulator.autoRunStarted = time.Now()
 
+	// L Key will enable or disable logging
+	if win.JustPressed(pixelgl.KeyL) {
+		if emulator.loggingEnabled {
+			StopLogging(emulator)
+			emulator.loggingEnabled = false
+		} else {
+			StartLogging(emulator)
+			emulator.loggingEnabled = true
+		}
+	}
+
 	// Space will toggle the auto run mode
 	if win.JustPressed(pixelgl.KeySpace) {
 		emulator.autoRun = !emulator.autoRun
@@ -179,6 +192,7 @@ func handleInput(win *pixelgl.Window, emulator *Emulator) {
 
 	// Q Key set PC to 0x4000
 	if win.JustPressed(pixelgl.KeyQ) && !emulator.autoRun {
+		emulator.Reset()
 		emulator.Bus.CPU.PC = 0xC000
 		emulator.Bus.CPU.P = 0x24
 		opcode := emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.PC)
@@ -250,7 +264,7 @@ func Audio(emulator *Emulator) beep.Streamer {
 }
 
 func DrawCPU(statusText *text.Text, emulator *Emulator) {
-	fmt.Fprintf(statusText, "Auto Run Mode: \t %t\n", emulator.autoRun)
+	fmt.Fprintf(statusText, "Auto Run Mode: \t %t \t Logging Enabled: \t %t \n", emulator.autoRun, emulator.loggingEnabled)
 	fmt.Fprintf(statusText, "Master Clock Count: \t %d\n", emulator.NES.MasterClockCount)
 	fmt.Fprintf(statusText, "CPU Clock Count: \t %d\n", emulator.NES.Bus.CPU.ClockCount)
 	fmt.Fprintf(statusText, "Clock Cycles Per Second (during auto run): %0.2f/s\n",
@@ -282,28 +296,59 @@ func DrawCPU(statusText *text.Text, emulator *Emulator) {
 
 func DrawCode(statusText *text.Text, emulator *Emulator) {
 	offset := uint16(0)
+	if emulator.Bus.CPU.CycleCount < 0 {
+		fmt.Fprint(statusText, "ERR")
+		return
+	}
 	for j := 0; j <= 5; j++ {
 		if j == 0 {
 			statusText.Color = colornames.Yellow
 		}
 		if emulator.displayRamPC {
-			fmt.Fprintf(statusText, "0x%04X ", (emulator.Bus.CPU.CurrentPC+offset - 0x8000) % 0x4000 * uint16(emulator.Bus.Cartridge.PrgRomSize) + 0x0010)
+			fmt.Fprintf(statusText, "%04X ", (emulator.Bus.CPU.PC+offset - 0x8000) % 0x4000 * uint16(emulator.Bus.Cartridge.PrgRomSize) + 0x0010)
 		} else {
-			fmt.Fprintf(statusText, "0x%04X ", emulator.Bus.CPU.CurrentPC+offset)
+			fmt.Fprintf(statusText, "%04X ", emulator.Bus.CPU.PC+offset)
 		}
+		inst := nes.Instructions[emulator.Bus.CPURead(emulator.Bus.CPU.PC+offset)]
+		i := 0
+		for ; i < int(inst.Length); i++ {
+			fmt.Fprintf(statusText, "%02X ", emulator.Bus.CPURead(emulator.Bus.CPU.PC+offset+uint16(i)))
+		}
+		for ; i < 3; i++ {
+			fmt.Fprint(statusText,"   ")
+		}
+		fmt.Fprint(statusText, "",nes.OpCodeMap[emulator.Bus.CPURead(emulator.Bus.CPU.PC+offset)], " ")
 
-		fmt.Fprintf(statusText, "0x%02X ", emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC+offset))
-		fmt.Fprint(statusText, "[",nes.OpCodeMap[emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC+offset)], "] ")
-		inst := nes.Instructions[emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC+offset)]
 		if inst.Length != 0 {
-			addr, _ := inst.AddressMode()
+			addr, data := inst.AddressMode()
 			if j == 0 {
-				fmt.Fprintf(statusText, "(0x%04X) ", addr)
-			} else {
-				fmt.Fprint(statusText, "         ")
-			}
-			for i := 1; i < int(inst.Length); i++ {
-				fmt.Fprintf(statusText, "%02X ", emulator.Bus.CPURead(emulator.Bus.CPU.CurrentPC+offset+uint16(i)))
+				// Display Address
+				switch nes.OpCodeMap[emulator.Bus.CPURead(emulator.Bus.CPU.PC)][1] {
+				case "REL":
+					fmt.Fprintf(statusText,"$%04X", addr)
+				case "ABS":
+					fmt.Fprintf(statusText,"$%04X", addr)
+				case "IMM":
+					fmt.Fprintf(statusText,"#$%02X", data)
+				case "ZPX":
+					fmt.Fprintf(statusText,"$%02X = %02X", addr & 0x00FF, data)
+				case "ZPY":
+					fmt.Fprintf(statusText,"$%02X = %02X", addr & 0x00FF, data)
+				case "ZP0":
+					fmt.Fprintf(statusText,"$%02X = %02X", addr & 0x00FF, data)
+				case "IDX":
+					// Second byte is added to register X -> result is a zero page address where the actual memory location is stored.
+					fmt.Fprintf(statusText,"($%02X,X) @ %02X = %04X = %02X", emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 1), emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 1) + emulator.Bus.CPU.X, addr, data)
+				case "IDY":
+					// Second byte is added to register X -> result is a zero page address where the actual memory location is stored.
+					fmt.Fprintf(statusText,"($%02X),Y = %04X @ %04X = %02X", emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 1), emulator.Bus.CPU.Bus.CPURead(0x00FF & uint16(emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 1))) + emulator.Bus.CPU.X, addr, data)
+				case "IND":
+					fmt.Fprintf(statusText,"($%02X%02X) = %04X",emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 2), emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 1), addr )
+				case "ABX":
+					fmt.Fprintf(statusText,"$%02X%02X,X @ %04X = %02X", emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 2), emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 1), addr, data)
+				case "ABY":
+					fmt.Fprintf(statusText,"$%02X%02X,Y @ %04X = %02X", emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 2), emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 1), addr, data)
+				}
 			}
 			statusText.Color = colornames.White
 			offset += uint16(inst.Length)
@@ -428,4 +473,40 @@ func DrawCHRROM (emulator *Emulator, table int) *pixel.Sprite{
 	pic := pixel.PictureDataFromImage(img)
 	return pixel.NewSprite(pic, pic.Bounds())
 
+}
+
+
+func StartLogging (emulator *Emulator) {
+	name := time.Now().Format("log/2006-01-02_15-01-05_nes.log")
+	ensureLogDir(name)
+	fo, err := os.Create(name)
+	if err != nil {
+		log.Fatalf("error creating file: %v", err)
+		return
+	}
+	defer fo.Close()
+
+	f, err := os.OpenFile(name, os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	if err != nil {
+		log.Fatalf("error opening file: %v", err)
+		return
+	}
+	emulator.NES.Logger = f
+	log.SetOutput(f)
+}
+
+func StopLogging (emulator *Emulator) {
+	log.SetOutput(os.Stdout)
+	emulator.NES.Logger.Close()
+	emulator.NES.Logger = nil
+}
+
+func ensureLogDir(fileName string) {
+	dirName := filepath.Dir(fileName)
+	if _, serr := os.Stat(dirName); serr != nil {
+		merr := os.MkdirAll(dirName, os.ModePerm)
+		if merr != nil {
+			panic(merr)
+		}
+	}
 }

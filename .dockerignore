@@ -9,3 +9,5 @@ docker-compose*
 *.nes
 
 README.md
+/log
+*.log

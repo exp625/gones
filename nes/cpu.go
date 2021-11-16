@@ -1,9 +1,5 @@
 package nes
 
-import (
-	"fmt"
-)
-
 var CPU *C
 
 func init() {
@@ -25,7 +21,7 @@ type C struct {
 	P uint8
 
 	Bus *Bus
-
+	NES *NES
 	ClockCount         int64
 	CycleCount         int
 	CurrentInstruction Instruction
@@ -33,45 +29,27 @@ type C struct {
 }
 
 func (cpu *C) Clock() {
-	if cpu.CycleCount == 0 && cpu.CurrentInstruction.Length != 0 {
-
-		fmt.Printf("%04X  ", cpu.CurrentPC)
-
-
-		fmt.Printf( "%02X ", cpu.Bus.CPURead(cpu.CurrentPC))
-
-		inst := cpu.CurrentInstruction
-		i := 1
-		for ; i < int(inst.Length); i++ {
-			fmt.Printf("%02X ", cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC+uint16(i)))
-		}
-		for ; i < 3; i++ {
-			fmt.Print("   ")
-		}
-		fmt.Print( "  ",OpCodeMap[cpu.Bus.CPURead(cpu.CurrentPC)], " ")
-
-		addr, _ := inst.AddressMode()
-		fmt.Printf("0x%04X", addr)
-		fmt.Print("\n")
-		// Execute Instruction
-		loc, data := cpu.CurrentInstruction.AddressMode()
-		cpu.CurrentInstruction.Execute(loc, data, cpu.CurrentInstruction.Length)
-		cpu.CycleCount = cpu.CurrentInstruction.ClockCycles
-	}
 	cpu.ClockCount++
-	cpu.CycleCount--
-	if cpu.CycleCount == 0 {
-		// Execution Complete. Load next Instruction
+	if cpu.CycleCount == 0  {
 		opcode := cpu.Bus.CPURead(cpu.PC)
 		i := Instructions[opcode]
 		cpu.CurrentInstruction = i
 		cpu.CurrentPC = cpu.PC
+		if cpu.CurrentInstruction.Length != 0 {
+			// Execute Instruction
+			cpu.NES.Log()
+			loc, data := cpu.CurrentInstruction.AddressMode()
+			cpu.CurrentInstruction.Execute(loc, data, cpu.CurrentInstruction.Length)
+			cpu.CycleCount = cpu.CurrentInstruction.ClockCycles
+		}
 	}
+	cpu.CycleCount--
 }
 
 func (cpu *C) Reset() {
+	// Reset takes 6 clock cycles
 	cpu.ClockCount = 0
-	cpu.CycleCount = 0
+	cpu.CycleCount = 6
 	// Set IRQ Disabled
 	cpu.A = 0
 	cpu.X = 0
@@ -89,6 +67,7 @@ func (cpu *C) Reset() {
 	i := Instructions[opcode]
 	cpu.CurrentInstruction = i
 	cpu.CurrentPC = cpu.PC
+
 }
 
 func (cpu *C) IRQ() {

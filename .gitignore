@@ -21,3 +21,5 @@ bin
 # vendor/
 
 *.pem
+/log
+*.log
