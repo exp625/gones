@@ -64,7 +64,7 @@ func run() {
 	cat := cartridge.LoadCartridge(bytes)
 	// Create Window
 	cfg := pixelgl.WindowConfig{
-		Title:  "Pixel Rocks!",
+		Title:  "GoNes",
 		Bounds: pixel.R(0, 0, Width, Height),
 		VSync: true,
 	}
