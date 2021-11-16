@@ -27,7 +27,7 @@ This project uses the two awesome libraries
 ## Usage
 
 Start the emulator with ``nes romfile.rom``
-The rom file should be valid rom file including iNES header
+The rom file should be valid rom file including iNES header.
 You can build your own rom file with the description below.
 
 ## Controls
@@ -53,8 +53,14 @@ You can build your own rom file with the description below.
 
 ### Using WSL cross compilation
 1. Open a linux terminal inside the cloned repository
-2. Run ``CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc go build -o ./bin/nes.exe ./main.go``
+2. Install the following packages ``libgl1-mesa-dev xorg-dev gcc-multilib gcc-mingw-w64 libasound2-dev``
+3. Run ``CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc go build -o ./bin/nes.exe ./main.go``
 
+### For Linux
+ 
+### Using WSL cross compilation
+2. Install the following packages ``libgl1-mesa-dev xorg-dev gcc-multilib gcc-mingw-w64 libasound2-dev``
+3. Run ``go build -o ./bin/nes ./main.go``
 
 ## Compiling C programs to 6502 using cc65
 1. Install the [cc65 compiler ](https://github.com/cc65/cc65)
