@@ -15,13 +15,13 @@ This project uses the two awesome libraries
 
 ![](./screenshots/VerboseLogging.PNG?raw=true)
 
-- [] CPU Working
-- [] Illegal Opcodes
-- [] PPU Working
-- [] DMA Working
-- [] Cycle accurate
-- [] Input Working
-- [] APU Working
+- [ ] CPU Working
+- [ ] Illegal Opcodes
+- [ ] PPU Working
+- [ ] DMA Working
+- [ ] Cycle accurate
+- [ ] Input Working
+- [ ] APU Working
 - Implemented iNES Mappers: Mapper000, Mapper002
 
 ## Usage
