@@ -221,7 +221,7 @@ func init() {
 	Instructions[0xBB] = Instruction{}
 	Instructions[0xBC] = Instruction{ABX, LDY, 3, 4}
 	Instructions[0xBD] = Instruction{ABX, LDA, 3, 4}
-	Instructions[0xBE] = Instruction{ABX, LDX, 3, 4}
+	Instructions[0xBE] = Instruction{ABY, LDX, 3, 4}
 	Instructions[0xBF] = Instruction{}
 
 	Instructions[0xC0] = Instruction{IMM, CPY, 2, 2}
