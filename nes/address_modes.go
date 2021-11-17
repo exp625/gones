@@ -80,11 +80,15 @@ func REL() (uint16, uint8, uint8) {
 
 func IDX() (uint16, uint8, uint8) {
 	// Build pointer from high and low bit
-	offset := CPU.Bus.CPURead(CPU.PC + 1)
+	offset := uint16(CPU.Bus.CPURead(CPU.PC + 1))
 
 	// Build location from high and low bits
-	low := uint16(CPU.Bus.CPURead(ZeroPage | (uint16(offset) + uint16(CPU.X)) & 0x00FF))
-	high := uint16(CPU.Bus.CPURead(ZeroPage | (uint16(offset) + uint16(CPU.X) + 1) & 0x00FF))
+	low := uint16(CPU.Bus.CPURead(ZeroPage | (offset + uint16(CPU.X)) & 0x00FF))
+	if offset & 0x00FF == 0x00FF {
+		// offset + 1 is on next page. However, we want low to warp around and disallow page turn
+		offset -= 0x0100
+	}
+	high := uint16(CPU.Bus.CPURead(ZeroPage | (offset + uint16(CPU.X) + 1) & 0x00FF))
 
 	location := (high << 8) | low
 
@@ -93,11 +97,15 @@ func IDX() (uint16, uint8, uint8) {
 
 func IZY() (uint16, uint8, uint8) {
 	// Build pointer from high and low bit
-	offset := CPU.Bus.CPURead(CPU.PC + 1)
+	offset := uint16(CPU.Bus.CPURead(CPU.PC + 1))
 
 	// Build location from high and low bits
-	low := uint16(CPU.Bus.CPURead(uint16(offset) & 0x00FF))
-	high := uint16(CPU.Bus.CPURead(uint16(offset + 1) & 0x00FF))
+	low := uint16(CPU.Bus.CPURead(offset & 0x00FF))
+	if offset & 0x00FF == 0x00FF {
+		// offset + 1 is on next page. However, we want low to warp around and disallow page turn
+		offset -= 0x0100
+	}
+	high := uint16(CPU.Bus.CPURead(offset + 1 & 0x00FF))
 
 	location := (high << 8) | low
 	location += uint16(CPU.Y)
@@ -117,7 +125,13 @@ func IND() (uint16, uint8, uint8) {
 
 	// Build location from high and low bits
 	low = uint16(CPU.Bus.CPURead(pointer))
+	if pointer & 0x00FF == 0x00FF {
+		// pointer + 1 is on next page. However, we want low to warp around and disallow page turn
+		pointer -= 0x0100
+	}
 	high = uint16(CPU.Bus.CPURead(pointer + 1))
+
+
 	location := (high << 8) | low
 	return location, CPU.Bus.CPURead(location), 0
 }
