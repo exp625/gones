@@ -382,9 +382,9 @@ func DrawCode(statusText *text.Text, emulator *Emulator) {
 				case "IMM":
 					fmt.Fprintf(statusText,"#$%02X", data)
 				case "ZPX":
-					fmt.Fprintf(statusText,"$%02X = %02X", addr & 0x00FF, data)
+					fmt.Fprintf(statusText,"$%02X,X @ %02X = %02X", addr & 0x00FF, (addr & 0x00FF) + uint16(emulator.Bus.CPU.X), data)
 				case "ZPY":
-					fmt.Fprintf(statusText,"$%02X = %02X", addr & 0x00FF, data)
+					fmt.Fprintf(statusText,"$%02X,Y @ %02X = %02X", addr & 0x00FF, (addr & 0x00FF) + uint16(emulator.Bus.CPU.X), data)
 				case "ZP0":
 					fmt.Fprintf(statusText,"$%02X = %02X", addr & 0x00FF, data)
 				case "IDX":
