@@ -8,7 +8,7 @@ const (
 )
 
 const (
-	FlagCarry Flag = 1 << iota
+	FlagCarry uint8 = 1 << iota
 	FlagZero
 	FlagInterruptDisable
 	FlagDecimal
@@ -18,14 +18,14 @@ const (
 	FlagNegative
 )
 
-func (cpu *C) Set(flag Flag, value bool) {
+func (cpu *C) Set(flag uint8, value bool) {
 	if value {
-		cpu.P = cpu.P | uint8(flag)
+		cpu.P = cpu.P | flag
 	} else {
-		cpu.P = cpu.P & ^uint8(flag)
+		cpu.P = cpu.P & ^flag
 	}
 }
 
-func (cpu *C) GetFlag(flag Flag) bool {
-	return cpu.P&uint8(flag) == uint8(flag)
+func (cpu *C) GetFlag(flag uint8) bool {
+	return cpu.P&flag == flag
 }

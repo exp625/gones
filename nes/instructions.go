@@ -626,15 +626,15 @@ func PHA(location uint16, data uint8, length uint16) {
 
 func PHP(location uint16, data uint8, length uint16) {
 	temp := CPU.P
-	temp = temp & 0b00110000
-	CPU.Bus.CPUWrite(0x0100|uint16(CPU.S), temp)
+	temp = temp | FlagBreak | FlagUnused
+	CPU.Bus.CPUWrite(ZeroPage | uint16(CPU.S), temp)
 	CPU.S--
 	CPU.PC += length
 }
 
 func PLA(location uint16, data uint8, length uint16) {
 	CPU.S++
-	temp := CPU.Bus.CPURead(0x0100 | uint16(CPU.S))
+	temp := CPU.Bus.CPURead(ZeroPage | uint16(CPU.S))
 	CPU.A = temp
 
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
@@ -644,8 +644,8 @@ func PLA(location uint16, data uint8, length uint16) {
 
 func PLP(location uint16, data uint8, length uint16) {
 	CPU.S++
-	temp := CPU.Bus.CPURead(0x0100 | uint16(CPU.S))
-	temp = temp | 0b11001111
+	temp := CPU.Bus.CPURead(ZeroPage | uint16(CPU.S))
+	temp = temp & ^(FlagBreak | FlagUnused)
 	CPU.PC += length
 
 }
