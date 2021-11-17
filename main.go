@@ -196,7 +196,7 @@ func handleInput(win *pixelgl.Window, emulator *Emulator) {
 		emulator.Reset()
 		emulator.Bus.CPU.PC = 0xC000
 		emulator.Bus.CPU.P = 0x24
-		opcode := emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.PC)
+		opcode := emulator.Bus.CPURead(emulator.Bus.CPU.PC)
 		i := nes.Instructions[opcode]
 		emulator.Bus.CPU.CurrentInstruction = i
 		emulator.Bus.CPU.CurrentPC = emulator.Bus.CPU.PC
@@ -389,16 +389,16 @@ func DrawCode(statusText *text.Text, emulator *Emulator) {
 					fmt.Fprintf(statusText,"$%02X = %02X", addr & 0x00FF, data)
 				case "IDX":
 					// Second byte is added to register X -> result is a zero page address where the actual memory location is stored.
-					fmt.Fprintf(statusText,"($%02X,X) @ %02X = %04X = %02X", emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 1), emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 1) + emulator.Bus.CPU.X, addr, data)
-				case "IDY":
+					fmt.Fprintf(statusText,"($%02X,X) @ %02X = %04X = %02X", emulator.Bus.CPURead(emulator.Bus.CPU.PC + 1), emulator.Bus.CPURead(emulator.Bus.CPU.PC + 1) + emulator.Bus.CPU.X, addr, data)
+				case "IZY":
 					// Second byte is added to register X -> result is a zero page address where the actual memory location is stored.
-					fmt.Fprintf(statusText,"($%02X),Y = %04X @ %04X = %02X", emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 1), emulator.Bus.CPU.Bus.CPURead(0x00FF & uint16(emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 1))) + emulator.Bus.CPU.X, addr, data)
+					fmt.Fprintf(statusText,"($%02X),Y = %04X @ %04X = %02X", addr - uint16(emulator.Bus.CPU.Y), addr, data)
 				case "IND":
-					fmt.Fprintf(statusText,"($%02X%02X) = %04X",emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 2), emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 1), addr )
+					fmt.Fprintf(statusText,"($%02X%02X) = %04X",emulator.Bus.CPURead(emulator.Bus.CPU.PC + 2), emulator.Bus.CPURead(emulator.Bus.CPU.PC + 1), addr )
 				case "ABX":
-					fmt.Fprintf(statusText,"$%02X%02X,X @ %04X = %02X", emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 2), emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 1), addr, data)
+					fmt.Fprintf(statusText,"$%02X%02X,X @ %04X = %02X", emulator.Bus.CPURead(emulator.Bus.CPU.PC + 2), emulator.Bus.CPURead(emulator.Bus.CPU.PC + 1), addr, data)
 				case "ABY":
-					fmt.Fprintf(statusText,"$%02X%02X,Y @ %04X = %02X", emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 2), emulator.Bus.CPU.Bus.CPURead(emulator.Bus.CPU.Bus.CPU.PC + 1), addr, data)
+					fmt.Fprintf(statusText,"$%02X%02X,Y @ %04X = %02X", emulator.Bus.CPURead(emulator.Bus.CPU.PC + 2), emulator.Bus.CPURead(emulator.Bus.CPU.PC + 1), addr, data)
 				}
 			}
 			statusText.Color = colornames.White

@@ -80,11 +80,11 @@ func REL() (uint16, uint8, uint8) {
 
 func IDX() (uint16, uint8, uint8) {
 	// Build pointer from high and low bit
-	pointer := CPU.PC + 1
+	offset := CPU.Bus.CPURead(CPU.PC + 1)
 
 	// Build location from high and low bits
-	low := uint16(CPU.Bus.CPURead((pointer + uint16(CPU.X)) & 0x00FF))
-	high := uint16(CPU.Bus.CPURead((pointer + uint16(CPU.X) + 1) & 0x00FF))
+	low := uint16(CPU.Bus.CPURead(ZeroPage | (uint16(offset) + uint16(CPU.X)) & 0x00FF))
+	high := uint16(CPU.Bus.CPURead(ZeroPage | (uint16(offset) + uint16(CPU.X) + 1) & 0x00FF))
 
 	location := (high << 8) | low
 
@@ -93,11 +93,11 @@ func IDX() (uint16, uint8, uint8) {
 
 func IZY() (uint16, uint8, uint8) {
 	// Build pointer from high and low bit
-	pointer := CPU.PC + 1
+	offset := CPU.Bus.CPURead(CPU.PC + 1)
 
 	// Build location from high and low bits
-	low := uint16(CPU.Bus.CPURead(pointer & 0x00FF))
-	high := uint16(CPU.Bus.CPURead((pointer + 1) & 0x00FF))
+	low := uint16(CPU.Bus.CPURead(uint16(offset) & 0x00FF))
+	high := uint16(CPU.Bus.CPURead(uint16(offset + 1) & 0x00FF))
 
 	location := (high << 8) | low
 	location += uint16(CPU.Y)

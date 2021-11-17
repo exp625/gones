@@ -91,7 +91,7 @@ func (nes *NES) Log () {
 		logLine += fmt.Sprintf( "%02X ", cpu.Bus.CPURead(cpu.CurrentPC))
 		i := 1
 		for ; i < int(inst.Length); i++ {
-			logLine += fmt.Sprintf("%02X ", cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC+uint16(i)))
+			logLine += fmt.Sprintf("%02X ", cpu.Bus.CPURead(cpu.CurrentPC+uint16(i)))
 		}
 		for ; i < 3; i++ {
 			logLine += "   "
@@ -123,16 +123,16 @@ func (nes *NES) Log () {
 			logLine += fmt.Sprintf("$%02X = %02X                    ", addr & 0x00FF, data)
 		case "IDX":
 			// Second byte is added to register X -> result is a zero page address where the actual memory location is stored.
-			logLine += fmt.Sprintf("($%02X,X) @ %02X = %04X = %02X    ", cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 1), cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 1) + cpu.X, addr, data)
-		case "IDY":
-			// Second byte is added to register X -> result is a zero page address where the actual memory location is stored.
-			logLine += fmt.Sprintf("($%02X),Y = %04X @ %04X = %02X  ", cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 1), cpu.Bus.CPURead(0x00FF & uint16(cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 1))) + cpu.X, addr, data)
+			logLine += fmt.Sprintf("($%02X,X) @ %02X = %04X = %02X    ", cpu.Bus.CPURead(cpu.CurrentPC + 1), cpu.Bus.CPURead(cpu.CurrentPC + 1) + cpu.X, addr, data)
+		case "IZY":
+			// The second byte of the instruction points to a memory location in zero page -> content is added to Y register -> result is low order byte of the effective address
+			logLine += fmt.Sprintf("($%02X),Y = %04X @ %04X = %02X  ", cpu.Bus.CPURead(cpu.CurrentPC + 1), addr - uint16(cpu.Y), addr, data)
 		case "IND":
-			logLine += fmt.Sprintf("($%02X%02X) = %04X              ",cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 2), cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 1), addr )
+			logLine += fmt.Sprintf("($%02X%02X) = %04X              ",cpu.Bus.CPURead(cpu.CurrentPC + 2), cpu.Bus.CPURead(cpu.CurrentPC + 1), addr )
 		case "ABX":
-			logLine += fmt.Sprintf("$%02X%02X,X @ %04X = %02X         ", cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 2), cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 1), addr, data)
+			logLine += fmt.Sprintf("$%02X%02X,X @ %04X = %02X         ", cpu.Bus.CPURead(cpu.CurrentPC + 2), cpu.Bus.CPURead(cpu.CurrentPC + 1), addr, data)
 		case "ABY":
-			logLine += fmt.Sprintf("$%02X%02X,Y @ %04X = %02X         ", cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 2), cpu.Bus.CPURead(cpu.Bus.CPU.CurrentPC + 1), addr, data)
+			logLine += fmt.Sprintf("$%02X%02X,Y @ %04X = %02X         ", cpu.Bus.CPURead(cpu.CurrentPC + 2), cpu.Bus.CPURead(cpu.CurrentPC + 1), addr, data)
 		default:
 			logLine += fmt.Sprint("                            ")
 		}
