@@ -179,7 +179,7 @@ func init() {
 	Instructions[0x93] = Instruction{}
 	Instructions[0x94] = Instruction{ZPX, STY, 2, 4}
 	Instructions[0x95] = Instruction{ZPX, STA, 2, 4}
-	Instructions[0x96] = Instruction{ZPX, STX, 2, 4}
+	Instructions[0x96] = Instruction{ZPY, STX, 2, 4}
 	Instructions[0x97] = Instruction{}
 	Instructions[0x98] = Instruction{IMP, TYA, 1, 2}
 	Instructions[0x99] = Instruction{ABY, STA, 3, 5}
