@@ -53,7 +53,8 @@ func ABX() (uint16, uint8, uint8) {
 	location += uint16(CPU.X)
 
 	// high bits increased due to x offset
-	if location&0xFF00 != (high << 8) {
+	// Only if instruction normally takes 4 clock cycles, this page cross adds another cycle
+	if location&0xFF00 != (high << 8) && Instructions[CPU.Bus.CPURead(CPU.PC)].ClockCycles == 4 {
 		return location, CPU.Bus.CPURead(location), 1
 	}
 	return location, CPU.Bus.CPURead(location), 0
@@ -69,7 +70,8 @@ func ABY() (uint16, uint8, uint8) {
 	location += uint16(CPU.Y)
 
 	// high bits increased due to x offset
-	if location&0xFF00 != (high << 8) {
+	// Only if instruction normally takes 4 clock cycles, this page cross adds another cycle
+	if location&0xFF00 != (high << 8) && Instructions[CPU.Bus.CPURead(CPU.PC)].ClockCycles == 4 {
 		return location, CPU.Bus.CPURead(location), 1
 	}
 	return location, CPU.Bus.CPURead(location), 0
