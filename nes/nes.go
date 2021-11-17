@@ -99,11 +99,16 @@ func (nes *NES) Log () {
 		logLine += fmt.Sprint( " ",OpCodeMap[cpu.Bus.CPURead(cpu.CurrentPC)][0], " ")
 		addr, data, _ := inst.AddressMode()
 		// Display Address
-		switch OpCodeMap[cpu.Bus.CPURead(cpu.CurrentPC)][1] {
+		opCode := OpCodeMap[cpu.Bus.CPURead(cpu.CurrentPC)]
+		switch opCode[1] {
 		case "REL":
 			logLine += fmt.Sprintf("$%04X                       ", addr)
 		case "ABS":
-			logLine += fmt.Sprintf("$%04X                       ", addr)
+			if addr <= 0x1FFF {
+				logLine += fmt.Sprintf("$%04X = %02X                  ", addr, data)
+			} else {
+				logLine += fmt.Sprintf("$%04X                       ", addr)
+			}
 		case "IMM":
 			logLine += fmt.Sprintf("#$%02X                        ", data)
 		case "IMP":
