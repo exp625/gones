@@ -417,8 +417,11 @@ func BPL(location uint16, data uint8, length uint16) {
 }
 
 func BRK(location uint16, data uint8, length uint16) {
-	// pc needs to point to end of instruction
-	pc := CPU.PC + length
+	// From https://www.masswerk.at/6502/6502_instruction_set.html#BRK
+	// The return address pushed to the stack is
+	// PC+2, providing an extra byte of spacing for a break mark
+	// (identifying a reason for the break.)
+	pc := CPU.PC + 2
 	CPU.Bus.CPUWrite(0x0100+uint16(CPU.S), uint8((pc>>8)&0x00FF))
 	CPU.S--
 	CPU.Bus.CPUWrite(0x0100+uint16(CPU.S), uint8(pc&0x00FF))
@@ -561,8 +564,9 @@ func JMP(location uint16, data uint8, length uint16) {
 }
 
 func JSR(location uint16, data uint8, length uint16) {
-	// pc needs to point to end of instruction
-	pc := CPU.PC + length - 1
+	// From https://www.masswerk.at/6502/6502_instruction_set.html#JSR
+	// push (PC+2)
+	pc := CPU.PC + 2
 	CPU.Bus.CPUWrite(ZeroPage | uint16(CPU.S), uint8((pc>>8)&0x00FF))
 	CPU.S--
 	CPU.Bus.CPUWrite(ZeroPage | uint16(CPU.S), uint8(pc&0x00FF))
@@ -704,7 +708,7 @@ func RTI(location uint16, data uint8, length uint16) {
 	high := uint16(CPU.Bus.CPURead(0x0100 + uint16(CPU.S)))
 
 	pc := (high << 8) | low
-	CPU.PC = pc
+	CPU.PC = pc + length
 }
 
 func RTS(location uint16, data uint8, length uint16) {
@@ -713,8 +717,7 @@ func RTS(location uint16, data uint8, length uint16) {
 	CPU.S++
 	high := uint16(CPU.Bus.CPURead(0x0100 + uint16(CPU.S)))
 	pc := (high << 8) | low
-	// pc points to end on last instruction, next instruction is located at pc + 1
-	CPU.PC = pc + 1
+	CPU.PC = pc + length
 }
 
 func SBC(location uint16, data uint8, length uint16) {
