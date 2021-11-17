@@ -233,7 +233,7 @@ func init() {
 	Instructions[0xC6] = Instruction{ZP0, DEC, 2, 5}
 	Instructions[0xC7] = Instruction{}
 	Instructions[0xC8] = Instruction{IMP, INY, 1, 2}
-	Instructions[0xC9] = Instruction{IMM, CMP, 2, 3}
+	Instructions[0xC9] = Instruction{IMM, CMP, 2, 2}
 	Instructions[0xCA] = Instruction{IMP, DEX, 1, 2}
 	Instructions[0xCB] = Instruction{}
 	Instructions[0xCC] = Instruction{ABS, CPY, 3, 4}
