@@ -694,9 +694,10 @@ func ROR(location uint16, data uint8, length uint16) {
 func RTI(location uint16, data uint8, length uint16) {
 	CPU.S++
 	status := CPU.Bus.CPURead(0x0100 + uint16(CPU.S))
+	// Ignore bit 4 and 5 from Stack but keep the value of bit 4 and 5 on the PC
+	// Only bit 4 and 5 | Value from Stack without bit 4 and 5
 
-	status = status & 0b11001111
-	CPU.P = status
+	CPU.P = (CPU.P & (FlagBreak | FlagUnused)) | status & ^(FlagBreak | FlagUnused)
 	CPU.S++
 	low := uint16(CPU.Bus.CPURead(0x0100 + uint16(CPU.S)))
 	CPU.S++
