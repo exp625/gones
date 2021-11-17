@@ -345,11 +345,17 @@ func AND(location uint16, data uint8, length uint16) {
 }
 
 func ASL(location uint16, data uint8, length uint16) {
-	newCarry := (data >> 7) & 0x01
-	newData := data << 1
-	CPU.Set(FlagCarry, newCarry == 1)
-	CPU.Set(FlagNegative, (newData>>7)&0x01 == 1)
-	CPU.Set(FlagZero, newData == 0)
+	carry := (data >> 7) & 0x01
+	temp := data << 1
+	CPU.Set(FlagCarry, carry == 1)
+	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	CPU.Set(FlagZero, temp == 0)
+	if CPU.CurrentInstruction.ClockCycles == 2 {
+		// Accumulator Addressing
+		CPU.A = temp
+	} else {
+		CPU.Bus.CPUWrite(location, temp)
+	}
 	CPU.PC += length
 }
 
@@ -670,6 +676,12 @@ func ROL(location uint16, data uint8, length uint16) {
 	CPU.Set(FlagCarry, (data & 0x80) == 0x80)
 	CPU.Set(FlagNegative, (temp&0x80) == 0x80)
 	CPU.Set(FlagZero, temp == 0)
+	if CPU.CurrentInstruction.ClockCycles == 2 {
+		// Accumulator Addressing
+		CPU.A = temp
+	} else {
+		CPU.Bus.CPUWrite(location, temp)
+	}
 	CPU.PC += length
 
 }
