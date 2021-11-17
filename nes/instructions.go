@@ -708,7 +708,7 @@ func RTI(location uint16, data uint8, length uint16) {
 	high := uint16(CPU.Bus.CPURead(0x0100 + uint16(CPU.S)))
 
 	pc := (high << 8) | low
-	CPU.PC = pc + length
+	CPU.PC = pc
 }
 
 func RTS(location uint16, data uint8, length uint16) {
@@ -717,7 +717,8 @@ func RTS(location uint16, data uint8, length uint16) {
 	CPU.S++
 	high := uint16(CPU.Bus.CPURead(0x0100 + uint16(CPU.S)))
 	pc := (high << 8) | low
-	CPU.PC = pc + length
+	// I don't know why???
+	CPU.PC = pc + 1
 }
 
 func SBC(location uint16, data uint8, length uint16) {
