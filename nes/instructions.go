@@ -315,6 +315,7 @@ func ADC(location uint16, data uint8, length uint16) {
 	}
 	// Perform calculation in 16 bit
 	temp := uint16(CPU.A) + uint16(data) + uint16(carry)
+	tempSigned := int16(int8(CPU.A)) + int16(int8(data)) + int16(int8(carry))
 
 	// Store last 8 bits to A register
 	CPU.A = uint8(temp & 0x00FF)
@@ -325,16 +326,13 @@ func ADC(location uint16, data uint8, length uint16) {
 	// Check if last 8 bits are zero
 	CPU.Set(FlagZero, (temp & 0x00FF) == 0)
 
-	// Check if result is greater thant 255. If true we have a carry
+	// Check if result is greater than 255. If true we have a carry
 	CPU.Set(FlagCarry, temp > 255)
 
-	// Positive Number + Positive Number = Negative Result -> Overflow
-	// Negative Number + Negative Number = Positive Result -> Overflow
-	// Positive Number + Negative Number = Either Result -> Cannot Overflow
-	// Positive Number + Positive Number = Positive Result -> OK! No Overflow
-	// Negative Number + Negative Number = Negative Result -> OK! NO Overflow
-	// so V = ~(A^M) & (A^R)
-	CPU.Set(FlagOverflow, ^(uint16(CPU.A)^uint16(data)) & (uint16(CPU.A)^temp) == 0)
+	// http://www.6502.org/tutorials/vflag.html
+	// V indicates whether the result of an addition or subtraction is outside the range -128 to 127, i.e. whether there is a twos complement overflow
+	CPU.Set(FlagOverflow, tempSigned < -128 || tempSigned > 127)
+
 	CPU.PC += length
 }
 
@@ -721,6 +719,7 @@ func SBC(location uint16, data uint8, length uint16) {
 
 	// Perform calculation in 16 bit
 	temp := uint16(CPU.A) + uint16(dataInverse) + uint16(carry)
+	tempSigned := int16(int8(CPU.A)) + int16(int8(dataInverse)) + int16(int8(carry))
 
 	// Store last 8 bits to A register
 	CPU.A = uint8(temp & 0x00FF)
@@ -734,13 +733,9 @@ func SBC(location uint16, data uint8, length uint16) {
 	// Check if result is greater thant 255. If true we have a carry
 	CPU.Set(FlagCarry, temp > 255)
 
-	// Positive Number + Positive Number = Negative Result -> Overflow
-	// Negative Number + Negative Number = Positive Result -> Overflow
-	// Positive Number + Negative Number = Either Result -> Cannot Overflow
-	// Positive Number + Positive Number = Positive Result -> OK! No Overflow
-	// Negative Number + Negative Number = Negative Result -> OK! NO Overflow
-	// so V = ~(A^M) & (A^R)
-	CPU.Set(FlagOverflow, ^(uint16(CPU.A)^uint16(dataInverse)) & (uint16(CPU.A)^temp) == 0)
+	// http://www.6502.org/tutorials/vflag.html
+	// V indicates whether the result of an addition or subtraction is outside the range -128 to 127, i.e. whether there is a twos complement overflow
+	CPU.Set(FlagOverflow, tempSigned < -128 || tempSigned > 127)
 	CPU.PC += length
 }
 
