@@ -24,13 +24,22 @@ func ABS() (uint16, uint8, uint8) {
 
 func ZPX() (uint16, uint8, uint8) {
 	// Zero page is address range 0x0000 - 0x00FF
-	location := uint16(CPU.Bus.CPURead(CPU.PC+1)) & 0x00FF
+	location := uint16(CPU.Bus.CPURead(CPU.PC+1)) + uint16(CPU.X)
+	if location > 0x00FF {
+		// location is on next page. However, we want low to warp around and disallow page turn
+		location -= 0x0100
+	}
 	return location, CPU.Bus.CPURead(location), 0
 }
 
 func ZPY() (uint16, uint8, uint8) {
 	// Zero page is address range 0x0000 - 0x00FF
-	location := uint16(CPU.Bus.CPURead(CPU.PC+1+uint16(CPU.Y))) & 0x00FF
+
+	location := uint16(CPU.Bus.CPURead(CPU.PC+1)) + uint16(CPU.Y)
+	if location > 0x00FF {
+		// location is on next page. However, we want low to warp around and disallow page turn
+		location -= 0x0100
+	}
 	return location, CPU.Bus.CPURead(location), 0
 }
 
