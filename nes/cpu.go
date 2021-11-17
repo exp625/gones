@@ -3,7 +3,8 @@ package nes
 var CPU *C
 
 const (
-	ZeroPage uint16 = 0x0100
+	ZeroPage uint16 = 0x0000
+	StackPage uint16 = 0x0100
 	NMIVector uint16 = 0xFFFA
 	ResetVector uint16 = 0xFFFC
 	IRQVector uint16 = 0xFFFE

@@ -573,9 +573,9 @@ func JSR(location uint16, data uint8, length uint16) {
 	// From https://www.masswerk.at/6502/6502_instruction_set.html#JSR
 	// push (PC+2)
 	pc := CPU.PC + 2
-	CPU.Bus.CPUWrite(ZeroPage | uint16(CPU.S), uint8((pc>>8)&0x00FF))
+	CPU.Bus.CPUWrite(StackPage| uint16(CPU.S), uint8((pc>>8)&0x00FF))
 	CPU.S--
-	CPU.Bus.CPUWrite(ZeroPage | uint16(CPU.S), uint8(pc&0x00FF))
+	CPU.Bus.CPUWrite(StackPage| uint16(CPU.S), uint8(pc&0x00FF))
 	CPU.S--
 
 	CPU.PC = location
@@ -632,7 +632,7 @@ func ORA(location uint16, data uint8, length uint16) {
 
 func PHA(location uint16, data uint8, length uint16) {
 	temp := CPU.A
-	CPU.Bus.CPUWrite(ZeroPage | uint16(CPU.S), temp)
+	CPU.Bus.CPUWrite(StackPage| uint16(CPU.S), temp)
 	CPU.S--
 	CPU.PC += length
 }
@@ -640,14 +640,14 @@ func PHA(location uint16, data uint8, length uint16) {
 func PHP(location uint16, data uint8, length uint16) {
 	temp := CPU.P
 	temp = temp | FlagBreak | FlagUnused
-	CPU.Bus.CPUWrite(ZeroPage | uint16(CPU.S), temp)
+	CPU.Bus.CPUWrite(StackPage| uint16(CPU.S), temp)
 	CPU.S--
 	CPU.PC += length
 }
 
 func PLA(location uint16, data uint8, length uint16) {
 	CPU.S++
-	temp := CPU.Bus.CPURead(ZeroPage | uint16(CPU.S))
+	temp := CPU.Bus.CPURead(StackPage | uint16(CPU.S))
 	CPU.A = temp
 
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
@@ -657,7 +657,7 @@ func PLA(location uint16, data uint8, length uint16) {
 
 func PLP(location uint16, data uint8, length uint16) {
 	CPU.S++
-	temp := CPU.Bus.CPURead(ZeroPage | uint16(CPU.S))
+	temp := CPU.Bus.CPURead(StackPage | uint16(CPU.S))
 	// Ignore bit 4 and 5 from Stack but keep the value of bit 4 and 5 on the PC
 	// Only bit 4 and 5 | Value from Stack without bit 4 and 5
 	CPU.P = (CPU.P & (FlagBreak | FlagUnused)) | temp & ^(FlagBreak | FlagUnused)
