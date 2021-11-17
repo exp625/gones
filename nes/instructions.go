@@ -485,7 +485,8 @@ func CPX(location uint16, data uint8, length uint16) {
 	temp := CPU.X - data
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
-	CPU.Set(FlagCarry, CPU.GetFlag(FlagZero) && !CPU.GetFlag(FlagNegative))
+	// From Wiki: After SBC or CMP, this flag will be set if no borrow was the result, or alternatively a "greater than or equal" result.
+	CPU.Set(FlagCarry, CPU.X >= data)
 	CPU.PC += length
 }
 
@@ -493,7 +494,8 @@ func CPY(location uint16, data uint8, length uint16) {
 	temp := CPU.Y - data
 	CPU.Set(FlagNegative, (temp>>7)&0x01 == 1)
 	CPU.Set(FlagZero, temp == 0)
-	CPU.Set(FlagCarry, CPU.GetFlag(FlagZero) && !CPU.GetFlag(FlagNegative))
+	// From Wiki: After SBC or CMP, this flag will be set if no borrow was the result, or alternatively a "greater than or equal" result.
+	CPU.Set(FlagCarry, CPU.Y >= data)
 	CPU.PC += length
 }
 
