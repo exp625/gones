@@ -40,7 +40,7 @@ func (cpu *C) Clock() {
 			cpu.NES.Log()
 			loc, data := cpu.CurrentInstruction.AddressMode()
 			cpu.CurrentInstruction.Execute(loc, data, cpu.CurrentInstruction.Length)
-			cpu.CycleCount = cpu.CurrentInstruction.ClockCycles
+			cpu.CycleCount += cpu.CurrentInstruction.ClockCycles
 		}
 	}
 	cpu.CycleCount--

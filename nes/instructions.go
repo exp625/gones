@@ -306,7 +306,7 @@ func init() {
 	}
 }
 
-// TODO: Branch instruction add 1 cycle if they branch and another if a page is crossed
+// TODO: Branch instruction add 1 cycle if a page is crossed
 
 func ADC(location uint16, data uint8, length uint16) {
 	var carry uint8
@@ -357,7 +357,8 @@ func ASL(location uint16, data uint8, length uint16) {
 
 func BCC(location uint16, data uint8, length uint16) {
 	if !CPU.GetFlag(FlagCarry) {
-		  CPU.PC = location
+		CPU.PC = location
+		CPU.CycleCount++
 		return
 	}
 	CPU.PC += length
@@ -365,7 +366,8 @@ func BCC(location uint16, data uint8, length uint16) {
 
 func BCS(location uint16, data uint8, length uint16) {
 	if CPU.GetFlag(FlagCarry) {
-		  CPU.PC = location
+		CPU.PC = location
+		CPU.CycleCount++
 		return
 	}
 	CPU.PC += length
@@ -373,7 +375,8 @@ func BCS(location uint16, data uint8, length uint16) {
 
 func BEQ(location uint16, data uint8, length uint16) {
 	if CPU.GetFlag(FlagZero) {
-		 CPU.PC = location
+		CPU.PC = location
+		CPU.CycleCount++
 		return
 	}
 	CPU.PC += length
@@ -390,7 +393,8 @@ func BIT(location uint16, data uint8, length uint16) {
 
 func BMI(location uint16, data uint8, length uint16) {
 	if CPU.GetFlag(FlagNegative) {
-		  CPU.PC = location
+		CPU.PC = location
+		CPU.CycleCount++
 		return
 	}
 	CPU.PC += length
@@ -398,7 +402,8 @@ func BMI(location uint16, data uint8, length uint16) {
 
 func BNE(location uint16, data uint8, length uint16) {
 	if !CPU.GetFlag(FlagZero) {
-		  CPU.PC = location
+		CPU.PC = location
+		CPU.CycleCount++
 		return
 	}
 	CPU.PC += length
@@ -406,7 +411,8 @@ func BNE(location uint16, data uint8, length uint16) {
 
 func BPL(location uint16, data uint8, length uint16) {
 	if !CPU.GetFlag(FlagNegative) {
-		 CPU.PC = location
+		CPU.PC = location
+		CPU.CycleCount++
 		return
 	}
 	CPU.PC += length
@@ -432,7 +438,8 @@ func BRK(location uint16, data uint8, length uint16) {
 
 func BVC(location uint16, data uint8, length uint16) {
 	if !CPU.GetFlag(FlagOverflow) {
-		  CPU.PC = location
+		CPU.PC = location
+		CPU.CycleCount++
 		return
 	}
 	CPU.PC += length
@@ -440,7 +447,8 @@ func BVC(location uint16, data uint8, length uint16) {
 
 func BVS(location uint16, data uint8, length uint16) {
 	if CPU.GetFlag(FlagOverflow) {
-		  CPU.PC = location
+		CPU.PC = location
+		CPU.CycleCount++
 		return
 	}
 	CPU.PC += length
