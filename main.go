@@ -332,6 +332,8 @@ func DrawCode(statusText *text.Text, emulator *Emulator) {
 					} else {
 						fmt.Fprintf(statusText,"$%04X                       ", addr)
 					}
+				case "ACC":
+					fmt.Fprint(statusText,"A")
 				case "IMM":
 					fmt.Fprintf(statusText,"#$%02X", data)
 				case "ZPX":

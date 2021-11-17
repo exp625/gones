@@ -114,7 +114,7 @@ func (nes *NES) Log () {
 		case "IMP":
 			logLine += fmt.Sprint("                            ")
 		case "ACC":
-			logLine += fmt.Sprint("                            ")
+			logLine += fmt.Sprint("A                           ")
 		case "ZPX":
 			logLine += fmt.Sprintf("$%02X = %02X                    ", addr & 0x00FF, data)
 		case "ZPY":
