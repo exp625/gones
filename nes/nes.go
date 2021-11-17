@@ -116,9 +116,9 @@ func (nes *NES) Log () {
 		case "ACC":
 			logLine += fmt.Sprint("A                           ")
 		case "ZPX":
-			logLine += fmt.Sprintf("$%02X,X @ %02X = %02X             ", addr & 0x00FF, (addr & 0x00FF) + uint16(cpu.X), data)
+			logLine += fmt.Sprintf("$%02X,X @ %02X = %02X             ", cpu.Bus.CPURead(cpu.CurrentPC + 1), addr, data)
 		case "ZPY":
-			logLine += fmt.Sprintf("$%02X,Y @ %02X = %02X             ", addr & 0x00FF, (addr & 0x00FF) + uint16(cpu.Y), data)
+			logLine += fmt.Sprintf("$%02X,Y @ %02X = %02X             ", cpu.Bus.CPURead(cpu.CurrentPC + 1), addr, data)
 		case "ZP0":
 			logLine += fmt.Sprintf("$%02X = %02X                    ", addr & 0x00FF, data)
 		case "IDX":
