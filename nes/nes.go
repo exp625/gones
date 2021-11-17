@@ -97,7 +97,7 @@ func (nes *NES) Log () {
 			logLine += "   "
 		}
 		logLine += fmt.Sprint( " ",OpCodeMap[cpu.Bus.CPURead(cpu.CurrentPC)][0], " ")
-		addr, data := inst.AddressMode()
+		addr, data, _ := inst.AddressMode()
 		// Display Address
 		switch OpCodeMap[cpu.Bus.CPURead(cpu.CurrentPC)][1] {
 		case "REL":

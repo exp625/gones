@@ -320,7 +320,7 @@ func DrawCode(statusText *text.Text, emulator *Emulator) {
 		fmt.Fprint(statusText, "",nes.OpCodeMap[emulator.Bus.CPURead(emulator.Bus.CPU.PC+offset)], " ")
 
 		if inst.Length != 0 {
-			addr, data := inst.AddressMode()
+			addr, data, _ := inst.AddressMode()
 			if j == 0 {
 				// Display Address
 				switch nes.OpCodeMap[emulator.Bus.CPURead(emulator.Bus.CPU.PC)][1] {

@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-type AddressModeFunc func() (uint16, uint8)
+type AddressModeFunc func() (uint16, uint8, uint8) // location, data, additional cycles
 type ExecuteFunc func(uint16, uint8, uint16)
 
 type Instruction struct {
