@@ -114,7 +114,7 @@ func init() {
 	Instructions[0x56] = Instruction{ZPX, LSR, 2, 6}
 	Instructions[0x57] = Instruction{}
 	Instructions[0x58] = Instruction{IMP, CLI, 1, 2}
-	Instructions[0x59] = Instruction{ABX, EOR, 3, 4}
+	Instructions[0x59] = Instruction{ABY, EOR, 3, 4}
 	Instructions[0x5A] = Instruction{}
 	Instructions[0x5B] = Instruction{}
 	Instructions[0x5C] = Instruction{}
