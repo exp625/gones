@@ -41,6 +41,7 @@ type Emulator struct {
 	hidePatternTables         bool
 	displayRamPC              bool
 	loggingEnabled            bool
+	requestedSteps            int
 	autoRunCycles             int
 	nanoSecondsSpentInAutoRun time.Duration
 	autoRunStarted            time.Time
@@ -215,15 +216,59 @@ func handleInput(win *pixelgl.Window, emulator *Emulator) {
 
 	// Enter Key one CPU instruction
 	if win.JustPressed(pixelgl.KeyEnter) && !emulator.autoRun {
-		emulator.Clock()
-		emulator.Clock()
-		emulator.Clock()
-		for emulator.NES.Bus.CPU.CycleCount != 0 {
-			emulator.Clock()
-			emulator.Clock()
-			emulator.Clock()
+		if emulator.requestedSteps == 0 {
+			emulator.requestedSteps = 1
 		}
+
+		for emulator.requestedSteps != 0 {
+			emulator.Clock()
+			emulator.Clock()
+			emulator.Clock()
+			for emulator.NES.Bus.CPU.CycleCount != 0 {
+				emulator.Clock()
+				emulator.Clock()
+				emulator.Clock()
+			}
+			emulator.requestedSteps--
+
+		}
+		emulator.requestedSteps = 0
 	}
+
+	if win.JustPressed(pixelgl.KeyKP0) {
+		emulator.requestedSteps = emulator.requestedSteps * 10 + 0
+	}
+	if win.JustPressed(pixelgl.KeyKP1) {
+		emulator.requestedSteps = emulator.requestedSteps * 10 + 1
+	}
+	if win.JustPressed(pixelgl.KeyKP2) {
+		emulator.requestedSteps = emulator.requestedSteps * 10 + 2
+	}
+	if win.JustPressed(pixelgl.KeyKP3) {
+		emulator.requestedSteps = emulator.requestedSteps * 10 + 3
+	}
+	if win.JustPressed(pixelgl.KeyKP4) {
+		emulator.requestedSteps = emulator.requestedSteps * 10 + 4
+	}
+	if win.JustPressed(pixelgl.KeyKP5) {
+		emulator.requestedSteps = emulator.requestedSteps * 10 + 5
+	}
+	if win.JustPressed(pixelgl.KeyKP6) {
+		emulator.requestedSteps = emulator.requestedSteps * 10 + 6
+	}
+	if win.JustPressed(pixelgl.KeyKP7) {
+		emulator.requestedSteps = emulator.requestedSteps * 10 + 7
+	}
+	if win.JustPressed(pixelgl.KeyKP8) {
+		emulator.requestedSteps = emulator.requestedSteps * 10 + 8
+	}
+	if win.JustPressed(pixelgl.KeyKP9) {
+		emulator.requestedSteps = emulator.requestedSteps * 10 + 9
+	}
+	if win.JustPressed(pixelgl.KeyEscape) {
+		emulator.requestedSteps = 0
+	}
+
 
 	// R Key will reset the emulator
 	if win.JustPressed(pixelgl.KeyR) {
@@ -266,7 +311,7 @@ func Audio(emulator *Emulator) beep.Streamer {
 func DrawCPU(statusText *text.Text, emulator *Emulator) {
 	fmt.Fprintf(statusText, "Auto Run Mode: \t %t \t Logging Enabled: \t %t \n", emulator.autoRun, emulator.loggingEnabled)
 	fmt.Fprintf(statusText, "Master Clock Count: \t %d\n", emulator.NES.MasterClockCount)
-	fmt.Fprintf(statusText, "CPU Clock Count: \t %d\n", emulator.NES.Bus.CPU.ClockCount)
+	fmt.Fprintf(statusText, "CPU Clock Count: \t %d \t Requested: \t %d \n", emulator.NES.Bus.CPU.ClockCount, emulator.requestedSteps)
 	fmt.Fprintf(statusText, "Clock Cycles Per Second (during auto run): %0.2f/s\n",
 		1000*1000*1000*float64(emulator.autoRunCycles)/(float64(emulator.nanoSecondsSpentInAutoRun)),
 	)

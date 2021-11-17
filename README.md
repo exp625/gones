@@ -41,6 +41,8 @@ You can build your own rom file with the description below.
 * ``P`` Hide/Display Pattern Tables
 * ``I`` Hide/Display Emulator Information
 * ``L`` Enable Logging
+* ``Keypad`` Enter requested instruction that should be executed when pressing enter. 0 = Disabled, 
+* ``Esc`` Reset requested instructions
 
 ## Building
 
