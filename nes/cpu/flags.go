@@ -3,11 +3,6 @@ package cpu
 type Flag uint8
 
 const (
-	FlagIRQDisabled = 0x34
-	StartLocation   = 0xFFFC
-)
-
-const (
 	FlagCarry uint8 = 1 << iota
 	FlagZero
 	FlagInterruptDisable

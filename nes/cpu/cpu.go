@@ -35,52 +35,39 @@ type CPU6502 struct {
 	Bus                bus.Bus
 	ClockCount         int64
 	CycleCount         int
-	CurrentInstruction Instruction
-	CurrentPC          uint16
 }
 
-func (cpu *CPU6502) Clock() bool {
-	exec := false
+func (cpu *CPU6502) Clock() {
 	cpu.ClockCount++
 	if cpu.CycleCount == 0  {
 		opcode := cpu.Bus.CPURead(cpu.PC)
-		i := Instructions[opcode]
-		cpu.CurrentInstruction = i
-		cpu.CurrentPC = cpu.PC
-		if cpu.CurrentInstruction.Length != 0 {
-			// Execute Instruction
-			exec = true
-			loc, data, addCycle := cpu.CurrentInstruction.AddressMode()
-			cpu.CurrentInstruction.Execute(loc, data, cpu.CurrentInstruction.Length)
-			cpu.CycleCount += cpu.CurrentInstruction.ClockCycles + int(addCycle)
+		inst := Instructions[opcode]
+		if inst.Length != 0 {
+			cpu.Bus.Log()
+			loc, data, addCycle := inst.AddressMode()
+			inst.Execute(loc, data, inst.Length)
+			cpu.CycleCount += inst.ClockCycles + int(addCycle)
 		}
 	}
 	cpu.CycleCount--
-	return exec
 }
 
 func (cpu *CPU6502) Reset() {
 	// Reset takes 6 clock cycles
 	cpu.ClockCount = 0
 	cpu.CycleCount = 6
-	// Set IRQ Disabled
+	// Set Registers to zero
 	cpu.A = 0
 	cpu.X = 0
 	cpu.Y = 0
-	cpu.P = FlagIRQDisabled
+	// Set status flags
+	cpu.P = FlagUnused | FlagBreak | FlagInterruptDisable
+	// Set stack pointer
 	cpu.S = 0xFD
-
-	// Load the program counter
-	low := uint16(cpu.Bus.CPURead(StartLocation))
-	high := uint16(cpu.Bus.CPURead(StartLocation + 1))
+	// Load the program counter from the reset vector
+	low := uint16(cpu.Bus.CPURead(ResetVector))
+	high := uint16(cpu.Bus.CPURead(ResetVector + 1))
 	cpu.PC = (high << 8) | low
-
-	// Debug
-	opcode := cpu.Bus.CPURead(cpu.PC)
-	i := Instructions[opcode]
-	cpu.CurrentInstruction = i
-	cpu.CurrentPC = cpu.PC
-
 }
 
 func (cpu *CPU6502) IRQ() {

@@ -5,4 +5,5 @@ type Bus interface {
 	CPUWrite(location uint16, data uint8)
 	PPURead(location uint16) uint8
 	PPUWrite(location uint16, data uint8)
+	Log()
 }

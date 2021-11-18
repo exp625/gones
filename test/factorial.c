@@ -5,6 +5,7 @@ unsigned char main() {
     		factorial = factorial * i;
     }
     // Return value will be stored in A register
+    *(unsigned char*) 0x00F0 = factorial;
     return factorial;
 }
 

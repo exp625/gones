@@ -197,10 +197,6 @@ func handleInput(win *pixelgl.Window, emulator *Emulator) {
 		emulator.Reset()
 		emulator.CPU.PC = 0xC000
 		emulator.CPU.P = 0x24
-		opcode := emulator.CPURead(emulator.CPU.PC)
-		i := cpu.Instructions[opcode]
-		emulator.CPU.CurrentInstruction = i
-		emulator.CPU.CurrentPC = emulator.CPU.PC
 	}
 
 	// Toggle rom pc
