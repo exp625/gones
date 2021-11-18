@@ -26,7 +26,7 @@ func ZPX() (uint16, uint8, uint8) {
 	// Zero page is address range 0x0000 - 0x00FF
 	location := uint16(CPU.Bus.CPURead(CPU.PC+1)) + uint16(CPU.X)
 	if location > 0x00FF {
-		// location is on next page. However, we want low to warp around and disallow page turn
+		// location is on next page. However, we want low to wrap around and disallow page turn
 		location -= 0x0100
 	}
 	return location, CPU.Bus.CPURead(location), 0
@@ -37,7 +37,7 @@ func ZPY() (uint16, uint8, uint8) {
 
 	location := uint16(CPU.Bus.CPURead(CPU.PC+1)) + uint16(CPU.Y)
 	if location > 0x00FF {
-		// location is on next page. However, we want low to warp around and disallow page turn
+		// location is on next page. However, we want low to wrap around and disallow page turn
 		location -= 0x0100
 	}
 	return location, CPU.Bus.CPURead(location), 0
@@ -97,7 +97,7 @@ func IDX() (uint16, uint8, uint8) {
 	// Build location from high and low bits
 	low := uint16(CPU.Bus.CPURead(ZeroPage | (offset + uint16(CPU.X)) & 0x00FF))
 	if offset & 0x00FF == 0x00FF {
-		// offset + 1 is on next page. However, we want low to warp around and disallow page turn
+		// offset + 1 is on next page. However, we want low to wrap around and disallow page turn
 		offset -= 0x0100
 	}
 	high := uint16(CPU.Bus.CPURead(ZeroPage | (offset + uint16(CPU.X) + 1) & 0x00FF))
@@ -114,7 +114,7 @@ func IZY() (uint16, uint8, uint8) {
 	// Build location from high and low bits
 	low := uint16(CPU.Bus.CPURead(offset & 0x00FF))
 	if offset & 0x00FF == 0x00FF {
-		// offset + 1 is on next page. However, we want low to warp around and disallow page turn
+		// offset + 1 is on next page. However, we want low to wrap around and disallow page turn
 		offset -= 0x0100
 	}
 	high := uint16(CPU.Bus.CPURead(offset + 1 & 0x00FF))
@@ -138,7 +138,7 @@ func IND() (uint16, uint8, uint8) {
 	// Build location from high and low bits
 	low = uint16(CPU.Bus.CPURead(pointer))
 	if pointer & 0x00FF == 0x00FF {
-		// pointer + 1 is on next page. However, we want low to warp around and disallow page turn
+		// pointer + 1 is on next page. However, we want low to wrap around and disallow page turn
 		pointer -= 0x0100
 	}
 	high = uint16(CPU.Bus.CPURead(pointer + 1))
