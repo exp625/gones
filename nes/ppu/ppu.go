@@ -1,4 +1,4 @@
-package nes
+package ppu
 
 type PPU struct {
 	ScanLine uint16

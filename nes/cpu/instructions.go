@@ -1,4 +1,4 @@
-package nes
+package cpu
 
 import (
 	"reflect"
@@ -306,7 +306,6 @@ func init() {
 	}
 }
 
-// TODO: Branch instruction add 1 cycle if a page is crossed
 
 func ADC(location uint16, data uint8, length uint16) {
 	var carry uint8
@@ -660,7 +659,7 @@ func PLP(location uint16, data uint8, length uint16) {
 	temp := CPU.Bus.CPURead(StackPage | uint16(CPU.S))
 	// Ignore bit 4 and 5 from Stack but keep the value of bit 4 and 5 on the PC
 	// Only bit 4 and 5 | Value from Stack without bit 4 and 5
-	CPU.P = (CPU.P & (FlagBreak | FlagUnused)) | temp & ^(FlagBreak | FlagUnused)
+	CPU.P = (CPU.P & (FlagBreak | FlagUnused)) | temp & ^(FlagBreak|FlagUnused)
 	CPU.PC += length
 
 }
@@ -713,7 +712,7 @@ func RTI(location uint16, data uint8, length uint16) {
 	// Ignore bit 4 and 5 from Stack but keep the value of bit 4 and 5 on the PC
 	// Only bit 4 and 5 | Value from Stack without bit 4 and 5
 
-	CPU.P = (CPU.P & (FlagBreak | FlagUnused)) | status & ^(FlagBreak | FlagUnused)
+	CPU.P = (CPU.P & (FlagBreak | FlagUnused)) | status & ^(FlagBreak|FlagUnused)
 	CPU.S++
 	low := uint16(CPU.Bus.CPURead(0x0100 + uint16(CPU.S)))
 	CPU.S++

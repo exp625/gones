@@ -1,4 +1,4 @@
-package nes
+package cpu
 
 type Flag uint8
 
@@ -18,7 +18,7 @@ const (
 	FlagNegative
 )
 
-func (cpu *C) Set(flag uint8, value bool) {
+func (cpu *CPU6502) Set(flag uint8, value bool) {
 	if value {
 		cpu.P = cpu.P | flag
 	} else {
@@ -26,6 +26,6 @@ func (cpu *C) Set(flag uint8, value bool) {
 	}
 }
 
-func (cpu *C) GetFlag(flag uint8) bool {
+func (cpu *CPU6502) GetFlag(flag uint8) bool {
 	return cpu.P&flag == flag
 }

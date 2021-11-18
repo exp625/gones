@@ -1,4 +1,4 @@
-package nes
+package cpu
 
 func ACC() (uint16, uint8, uint8) {
 	return 0, CPU.A, 0

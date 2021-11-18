@@ -1,4 +1,4 @@
-package nes
+package ram
 
 type RAM struct {
 	Data [0x0800]uint8

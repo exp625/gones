@@ -15,7 +15,7 @@ This project uses the two awesome libraries
 
 ![](./screenshots/VerboseLogging.PNG?raw=true)
 
-- [ ] CPU Working
+- [x] CPU Working "_We`ve build a working 6502 emulator. Kinda cool_"
 - [ ] Illegal Opcodes
 - [ ] PPU Working
 - [ ] DMA Working

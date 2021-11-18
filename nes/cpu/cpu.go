@@ -1,6 +1,10 @@
-package nes
+package cpu
 
-var CPU *C
+import (
+	"github.com/exp625/gones/nes/bus"
+)
+
+var CPU *CPU6502
 
 const (
 	ZeroPage uint16 = 0x0000
@@ -11,10 +15,10 @@ const (
 )
 
 func init() {
-	CPU = &C{}
+	CPU = &CPU6502{}
 }
 
-type C struct {
+type CPU6502 struct {
 	// Accumulator
 	A uint8
 	// Index X
@@ -28,15 +32,15 @@ type C struct {
 	// Status Register
 	P uint8
 
-	Bus *Bus
-	NES *NES
+	Bus                bus.Bus
 	ClockCount         int64
 	CycleCount         int
 	CurrentInstruction Instruction
 	CurrentPC          uint16
 }
 
-func (cpu *C) Clock() {
+func (cpu *CPU6502) Clock() bool {
+	exec := false
 	cpu.ClockCount++
 	if cpu.CycleCount == 0  {
 		opcode := cpu.Bus.CPURead(cpu.PC)
@@ -45,16 +49,17 @@ func (cpu *C) Clock() {
 		cpu.CurrentPC = cpu.PC
 		if cpu.CurrentInstruction.Length != 0 {
 			// Execute Instruction
-			cpu.NES.Log()
+			exec = true
 			loc, data, addCycle := cpu.CurrentInstruction.AddressMode()
 			cpu.CurrentInstruction.Execute(loc, data, cpu.CurrentInstruction.Length)
 			cpu.CycleCount += cpu.CurrentInstruction.ClockCycles + int(addCycle)
 		}
 	}
 	cpu.CycleCount--
+	return exec
 }
 
-func (cpu *C) Reset() {
+func (cpu *CPU6502) Reset() {
 	// Reset takes 6 clock cycles
 	cpu.ClockCount = 0
 	cpu.CycleCount = 6
@@ -78,10 +83,10 @@ func (cpu *C) Reset() {
 
 }
 
-func (cpu *C) IRQ() {
+func (cpu *CPU6502) IRQ() {
 
 }
 
-func (cpu *C) NMI() {
+func (cpu *CPU6502) NMI() {
 
 }

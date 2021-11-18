@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/exp625/gones/nes"
 	"github.com/exp625/gones/nes/cartridge"
+	"github.com/exp625/gones/nes/cpu"
 	"github.com/faiface/beep"
 	"github.com/faiface/beep/speaker"
 	"github.com/faiface/pixel"
@@ -124,7 +125,7 @@ func run() {
 			DrawZeroPage(zeroPageText, emulator)
 			DrawStack(stackText, emulator)
 			DrawRAM(ramText, emulator)
-			emulator.Bus.Cartridge.DebugDisplay(cardridgeText)
+			emulator.Cartridge.DebugDisplay(cardridgeText)
 
 			moved := pixel.IM
 			if emulator.hideInfo {
@@ -194,12 +195,12 @@ func handleInput(win *pixelgl.Window, emulator *Emulator) {
 	// Q Key set PC to 0x4000
 	if win.JustPressed(pixelgl.KeyQ) && !emulator.autoRun {
 		emulator.Reset()
-		emulator.Bus.CPU.PC = 0xC000
-		emulator.Bus.CPU.P = 0x24
-		opcode := emulator.Bus.CPURead(emulator.Bus.CPU.PC)
-		i := nes.Instructions[opcode]
-		emulator.Bus.CPU.CurrentInstruction = i
-		emulator.Bus.CPU.CurrentPC = emulator.Bus.CPU.PC
+		emulator.CPU.PC = 0xC000
+		emulator.CPU.P = 0x24
+		opcode := emulator.CPURead(emulator.CPU.PC)
+		i := cpu.Instructions[opcode]
+		emulator.CPU.CurrentInstruction = i
+		emulator.CPU.CurrentPC = emulator.CPU.PC
 	}
 
 	// Toggle rom pc
@@ -224,7 +225,7 @@ func handleInput(win *pixelgl.Window, emulator *Emulator) {
 			emulator.Clock()
 			emulator.Clock()
 			emulator.Clock()
-			for emulator.NES.Bus.CPU.CycleCount != 0 {
+			for emulator.CPU.CycleCount != 0 {
 				emulator.Clock()
 				emulator.Clock()
 				emulator.Clock()
@@ -296,7 +297,7 @@ func Audio(emulator *Emulator) beep.Streamer {
 				}
 
 				// Get the audio sample for the APU
-				sample := emulator.Bus.APU.GetAudioSample()
+				sample := emulator.APU.GetAudioSample()
 				samples[i][0] = sample
 				samples[i][1] = sample
 			} else {
@@ -311,7 +312,7 @@ func Audio(emulator *Emulator) beep.Streamer {
 func DrawCPU(statusText *text.Text, emulator *Emulator) {
 	fmt.Fprintf(statusText, "Auto Run Mode: \t %t \t Logging Enabled: \t %t \n", emulator.autoRun, emulator.loggingEnabled)
 	fmt.Fprintf(statusText, "Master Clock Count: \t %d\n", emulator.NES.MasterClockCount)
-	fmt.Fprintf(statusText, "CPU Clock Count: \t %d \t Requested: \t %d \n", emulator.NES.Bus.CPU.ClockCount, emulator.requestedSteps)
+	fmt.Fprintf(statusText, "CPU Clock Count: \t %d \t Requested: \t %d \n", emulator.CPU.ClockCount, emulator.requestedSteps)
 	fmt.Fprintf(statusText, "Clock Cycles Per Second (during auto run): %0.2f/s\n",
 		1000*1000*1000*float64(emulator.autoRunCycles)/(float64(emulator.nanoSecondsSpentInAutoRun)),
 	)
@@ -322,7 +323,7 @@ func DrawCPU(statusText *text.Text, emulator *Emulator) {
 
 	arr := "CZIDB-VN"
 	for i := 0; i < 8; i++ {
-		if emulator.Bus.CPU.GetFlag(1 << i) {
+		if emulator.CPU.GetFlag(1 << i) {
 			statusText.Color = colornames.Green
 		} else {
 			statusText.Color = colornames.Red
@@ -330,18 +331,18 @@ func DrawCPU(statusText *text.Text, emulator *Emulator) {
 		fmt.Fprint(statusText, string(arr[i]))
 	}
 	statusText.Color = colornames.White
-	fmt.Fprintf(statusText, "%02X", emulator.Bus.CPU.P)
+	fmt.Fprintf(statusText, "%02X", emulator.CPU.P)
 	fmt.Fprint(statusText, "\n")
-	fmt.Fprintf(statusText, "PC: 0x%02X\t", emulator.NES.Bus.CPU.PC)
-	fmt.Fprintf(statusText, "A: 0x%02X\t", emulator.NES.Bus.CPU.A)
-	fmt.Fprintf(statusText, "X: 0x%02X\t", emulator.NES.Bus.CPU.X)
-	fmt.Fprintf(statusText, "Y: 0x%02X\t", emulator.NES.Bus.CPU.Y)
-	fmt.Fprintf(statusText, "S: 0x%02X\t\n", emulator.NES.Bus.CPU.S)
+	fmt.Fprintf(statusText, "PC: 0x%02X\t", emulator.CPU.PC)
+	fmt.Fprintf(statusText, "A: 0x%02X\t", emulator.CPU.A)
+	fmt.Fprintf(statusText, "X: 0x%02X\t", emulator.CPU.X)
+	fmt.Fprintf(statusText, "Y: 0x%02X\t", emulator.CPU.Y)
+	fmt.Fprintf(statusText, "S: 0x%02X\t\n", emulator.CPU.S)
 }
 
 func DrawCode(statusText *text.Text, emulator *Emulator) {
 	offset := uint16(0)
-	if emulator.Bus.CPU.CycleCount < 0 {
+	if emulator.CPU.CycleCount < 0 {
 		fmt.Fprint(statusText, "ERR")
 		return
 	}
@@ -350,25 +351,25 @@ func DrawCode(statusText *text.Text, emulator *Emulator) {
 			statusText.Color = colornames.Yellow
 		}
 		if emulator.displayRamPC {
-			fmt.Fprintf(statusText, "%04X ", (emulator.Bus.CPU.PC+offset - 0x8000) % 0x4000 * uint16(emulator.Bus.Cartridge.PrgRomSize) + 0x0010)
+			fmt.Fprintf(statusText, "%04X ", (emulator.CPU.PC+offset - 0x8000) % 0x4000 * uint16(emulator.Cartridge.PrgRomSize) + 0x0010)
 		} else {
-			fmt.Fprintf(statusText, "%04X ", emulator.Bus.CPU.PC+offset)
+			fmt.Fprintf(statusText, "%04X ", emulator.CPU.PC+offset)
 		}
-		inst := nes.Instructions[emulator.Bus.CPURead(emulator.Bus.CPU.PC+offset)]
+		inst := cpu.Instructions[emulator.CPURead(emulator.CPU.PC+offset)]
 		i := 0
 		for ; i < int(inst.Length); i++ {
-			fmt.Fprintf(statusText, "%02X ", emulator.Bus.CPURead(emulator.Bus.CPU.PC+offset+uint16(i)))
+			fmt.Fprintf(statusText, "%02X ", emulator.CPURead(emulator.CPU.PC+offset+uint16(i)))
 		}
 		for ; i < 3; i++ {
 			fmt.Fprint(statusText,"   ")
 		}
-		fmt.Fprint(statusText, "",nes.OpCodeMap[emulator.Bus.CPURead(emulator.Bus.CPU.PC+offset)], " ")
+		fmt.Fprint(statusText, "", cpu.OpCodeMap[emulator.CPURead(emulator.CPU.PC+offset)], " ")
 
 		if inst.Length != 0 {
 			addr, data, _ := inst.AddressMode()
 			if j == 0 {
 				// Display Address
-				switch nes.OpCodeMap[emulator.Bus.CPURead(emulator.Bus.CPU.PC)][1] {
+				switch cpu.OpCodeMap[emulator.CPURead(emulator.CPU.PC)][1] {
 				case "REL":
 					fmt.Fprintf(statusText,"$%04X", addr)
 				case "ABS":
@@ -382,23 +383,23 @@ func DrawCode(statusText *text.Text, emulator *Emulator) {
 				case "IMM":
 					fmt.Fprintf(statusText,"#$%02X", data)
 				case "ZPX":
-					fmt.Fprintf(statusText,"$%02X,X @ %02X = %02X", emulator.Bus.CPURead(emulator.Bus.CPU.PC + 1), addr, data)
+					fmt.Fprintf(statusText,"$%02X,X @ %02X = %02X", emulator.CPURead(emulator.CPU.PC + 1), addr, data)
 				case "ZPY":
-					fmt.Fprintf(statusText,"$%02X,Y @ %02X = %02X", emulator.Bus.CPURead(emulator.Bus.CPU.PC + 1), addr, data)
+					fmt.Fprintf(statusText,"$%02X,Y @ %02X = %02X", emulator.CPURead(emulator.CPU.PC + 1), addr, data)
 				case "ZP0":
 					fmt.Fprintf(statusText,"$%02X = %02X", addr & 0x00FF, data)
 				case "IDX":
 					// Second byte is added to register X -> result is a zero page address where the actual memory location is stored.
-					fmt.Fprintf(statusText,"($%02X,X) @ %02X = %04X = %02X", emulator.Bus.CPURead(emulator.Bus.CPU.PC + 1), emulator.Bus.CPURead(emulator.Bus.CPU.PC + 1) + emulator.Bus.CPU.X, addr, data)
+					fmt.Fprintf(statusText,"($%02X,X) @ %02X = %04X = %02X", emulator.CPURead(emulator.CPU.PC + 1), emulator.CPURead(emulator.CPU.PC + 1) + emulator.CPU.X, addr, data)
 				case "IZY":
 					// Second byte is added to register X -> result is a zero page address where the actual memory location is stored.
-					fmt.Fprintf(statusText,"($%02X),Y = %04X @ %04X = %02X", addr - uint16(emulator.Bus.CPU.Y), addr, data)
+					fmt.Fprintf(statusText,"($%02X),Y = %04X @ %04X = %02X", emulator.CPURead(emulator.CPU.PC + 1), addr - uint16(emulator.CPU.Y), addr, data)
 				case "IND":
-					fmt.Fprintf(statusText,"($%02X%02X) = %04X",emulator.Bus.CPURead(emulator.Bus.CPU.PC + 2), emulator.Bus.CPURead(emulator.Bus.CPU.PC + 1), addr )
+					fmt.Fprintf(statusText,"($%02X%02X) = %04X",emulator.CPURead(emulator.CPU.PC + 2), emulator.CPURead(emulator.CPU.PC + 1), addr )
 				case "ABX":
-					fmt.Fprintf(statusText,"$%02X%02X,X @ %04X = %02X", emulator.Bus.CPURead(emulator.Bus.CPU.PC + 2), emulator.Bus.CPURead(emulator.Bus.CPU.PC + 1), addr, data)
+					fmt.Fprintf(statusText,"$%02X%02X,X @ %04X = %02X", emulator.CPURead(emulator.CPU.PC + 2), emulator.CPURead(emulator.CPU.PC + 1), addr, data)
 				case "ABY":
-					fmt.Fprintf(statusText,"$%02X%02X,Y @ %04X = %02X", emulator.Bus.CPURead(emulator.Bus.CPU.PC + 2), emulator.Bus.CPURead(emulator.Bus.CPU.PC + 1), addr, data)
+					fmt.Fprintf(statusText,"$%02X%02X,Y @ %04X = %02X", emulator.CPURead(emulator.CPU.PC + 2), emulator.CPURead(emulator.CPU.PC + 1), addr, data)
 				}
 			}
 			statusText.Color = colornames.White
@@ -420,7 +421,7 @@ func DrawRAM(statusText *text.Text, emulator *Emulator) {
 		// Check if this "row" of memory has anything other than 0x00 in it
 		var hasContent bool
 		for y := 0; y <= 15; y++ {
-			if emulator.Bus.CPURead(uint16(x+y)) != 0x00 {
+			if emulator.CPURead(uint16(x+y)) != 0x00 {
 				hasContent = true
 				break
 			}
@@ -431,7 +432,7 @@ func DrawRAM(statusText *text.Text, emulator *Emulator) {
 			fmt.Fprintf(statusText, "\n%04X ", uint16(x&0xFFF0))
 			statusText.Color = colornames.White
 			for y := 0; y <= 15; y++ {
-				fmt.Fprintf(statusText, "%02X ", emulator.Bus.CPURead(uint16(x+y)))
+				fmt.Fprintf(statusText, "%02X ", emulator.CPURead(uint16(x+y)))
 			}
 		}
 	}
@@ -451,13 +452,13 @@ func DrawZeroPage(statusText *text.Text, emulator *Emulator) {
 			fmt.Fprintf(statusText, "\n%04X ", uint16(i&0xFFF0))
 		}
 		statusText.Color = colornames.White
-		fmt.Fprintf(statusText, "%02X ", emulator.Bus.CPURead(uint16(i)))
+		fmt.Fprintf(statusText, "%02X ", emulator.CPURead(uint16(i)))
 	}
 }
 
 func DrawStack(statusText *text.Text, emulator *Emulator) {
 	statusText.Color = colornames.White
-	fmt.Fprintf(statusText, "Stack: 0x%02X\n     ", emulator.NES.Bus.CPU.S)
+	fmt.Fprintf(statusText, "Stack: 0x%02X\n     ", emulator.CPU.S)
 	statusText.Color = colornames.Yellow
 	for i := 0; i <= 0xF; i++ {
 		fmt.Fprintf(statusText, "%02X ", uint16(i))
@@ -468,12 +469,12 @@ func DrawStack(statusText *text.Text, emulator *Emulator) {
 			statusText.Color = colornames.Yellow
 			fmt.Fprintf(statusText, "\n%04X ", uint16(i&0xFFF0))
 		}
-		if emulator.Bus.CPU.S == uint8(i) {
+		if emulator.CPU.S == uint8(i) {
 			statusText.Color = colornames.Green
 		} else {
 			statusText.Color = colornames.White
 		}
-		fmt.Fprintf(statusText, "%02X ", emulator.Bus.CPURead(uint16(i)))
+		fmt.Fprintf(statusText, "%02X ", emulator.CPURead(uint16(i)))
 	}
 
 }
@@ -491,7 +492,7 @@ func DrawCHRROM (emulator *Emulator, table int) *pixel.Sprite{
 	//	0HRRRR CCCCPTTT
 	//  |||||| |||||+++- T: Fine Y offset, the row number within a tile
 	//  |||||| ||||+---- P: Bit plane (0: "lower"; 1: "upper")
-	//  |||||| ++++----- C: Tile column
+	//  |||||| ++++----- CPU6502: Tile column
 	//  ||++++---------- R: Tile row
 	//  |+-------------- H: Half of sprite table (0: "left"; 1: "right")
 	//  +--------------- 0: Pattern table is at $0000-$1FFF
@@ -502,8 +503,8 @@ func DrawCHRROM (emulator *Emulator, table int) *pixel.Sprite{
 
 					addressPlane0 := uint16(table<<12 | y<<8 | x<<4 | 0 << 3 | tileY)
 					addressPlane1 := uint16(table<<12 | y<<8 | x<<4 | 1 << 3 | tileY)
-					plane0 := emulator.Bus.PPURead(addressPlane0)
-					plane1 := emulator.Bus.PPURead(addressPlane1)
+					plane0 := emulator.PPURead(addressPlane0)
+					plane1 := emulator.PPURead(addressPlane1)
 
 					for tileX := 0; tileX < 8; tileX++ {
 
