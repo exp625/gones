@@ -10,7 +10,7 @@ bin
 *.dylib
 *.o
 *.s
-*.nes
+
 # Test binary, built with `go test -c`
 *.test
 
@@ -23,3 +23,4 @@ bin
 *.pem
 /log
 *.log
+*.nes

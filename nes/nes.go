@@ -8,6 +8,7 @@ import (
 	"github.com/exp625/gones/nes/ppu"
 	"github.com/exp625/gones/nes/ram"
 	"os"
+	"strings"
 )
 
 // NES struct
@@ -103,7 +104,7 @@ func (nes *NES) CPURead(location uint16) uint8 {
 		return data
 	case 0x4000 <= location && location <= 0x4017:
 		// TODO: APU and I/O Registers
-		return 0
+		return 0xFF
 	case 0x4018 <= location && location <= 0x401F:
 		// TODO: APU and I/O functionality that is normally disabled
 		return 0
@@ -166,15 +167,20 @@ func (nes *NES) Log() {
 		for ; i < 3; i++ {
 			logLine += "   "
 		}
-		logLine += fmt.Sprint(" ", cpu.OpCodeMap[nes.CPU.Bus.CPURead(nes.CPU.PC)][0], " ")
+		opCode := cpu.OpCodeMap[nes.CPU.Bus.CPURead(nes.CPU.PC)]
+		if cpu.IsIllegalOpcode(opCode[0]) {
+			logLine += fmt.Sprint("*", strings.Replace(strings.Replace(strings.Replace(opCode[0], "ILL", "", 1), "USBC", "SBC", 1), "ISC", "ISB", 1), " ")
+		} else {
+			logLine += fmt.Sprint(" ", opCode[0], " ")
+		}
 		addr, data, _ := inst.AddressMode()
 		// Display Address
-		opCode := cpu.OpCodeMap[nes.CPU.Bus.CPURead(nes.CPU.PC)]
+
 		switch opCode[1] {
 		case "REL":
 			logLine += fmt.Sprintf("$%04X                       ", addr)
 		case "ABS":
-			if addr <= 0x1FFF {
+			if addr <= 0x4020 || cpu.IsIllegalOpcode(opCode[0]) {
 				logLine += fmt.Sprintf("$%04X = %02X                  ", addr, data)
 			} else {
 				logLine += fmt.Sprintf("$%04X                       ", addr)

@@ -14,6 +14,19 @@ const (
 	IRQVector   uint16 = 0xFFFE
 )
 
+type AddressModeFunc func() (uint16, uint8, uint8) // location, data, additional cycles
+type ExecuteFunc func(uint16, uint8, uint16)
+
+type Instruction struct {
+	AddressMode AddressModeFunc
+	Execute     ExecuteFunc
+	Length      uint16
+	ClockCycles int
+}
+
+var Instructions [256]Instruction
+var OpCodeMap map[uint8][2]string
+
 func init() {
 	CPU = &CPU6502{}
 }

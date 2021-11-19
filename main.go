@@ -269,14 +269,6 @@ func handleInput(win *pixelgl.Window, emulator *Emulator) {
 	}
 }
 
-func intbool(b bool) int {
-	if b {
-		return 1
-	} else {
-		return 0
-	}
-}
-
 // Audio Streamer
 func Audio(emulator *Emulator) beep.Streamer {
 	// The function gets called if the audio hardware request new audio samples. The length of the sample array indicates how many sample are requested.
@@ -520,7 +512,7 @@ func DrawCHRROM(emulator *Emulator, table int) *pixel.Sprite {
 }
 
 func StartLogging(emulator *Emulator) {
-	name := time.Now().Format("log/2006-01-02_15-01-05_nes.log")
+	name := time.Now().Format("log/2006-01-02_15-04-05_nes.log")
 	ensureLogDir(name)
 	fo, err := os.Create(name)
 	if err != nil {
