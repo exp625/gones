@@ -10,10 +10,10 @@ type Mapper000 struct {
 	prgRam    [0x2000]uint8
 }
 
-func NewMapper000 (c *Cartridge) *Mapper000 {
+func NewMapper000(c *Cartridge) *Mapper000 {
 	return &Mapper000{
 		cartridge: c,
-		prgRam: [0x2000]uint8{},
+		prgRam:    [0x2000]uint8{},
 	}
 }
 
@@ -36,16 +36,16 @@ func NewMapper000 (c *Cartridge) *Mapper000 {
 func (m *Mapper000) CPURead(location uint16) (bool, uint8) {
 	if location >= 0x6000 && location <= 0x7FFF {
 		// Read to 0x6001 should result in array index 1
-		return true, m.prgRam[location - 0x6000]
+		return true, m.prgRam[location-0x6000]
 	}
 	if location >= 0x8000 {
 		// If prgRomSize == 1, we need to mirror the last 16 KB
 		if m.cartridge.PrgRomSize == 1 {
 			// A read to 0xC001 should result in prgRom index 1
 			// (0xC001 - 0x8000) % 0x4000 = 0x0001
-			return true, m.cartridge.PrgRom[(location - 0x8000) % 0x4000]
+			return true, m.cartridge.PrgRom[(location-0x8000)%0x4000]
 		} else {
-			return  true, m.cartridge.PrgRom[location - 0x8000]
+			return true, m.cartridge.PrgRom[location-0x8000]
 		}
 	}
 	// Mapper was no responsible for the location
@@ -56,7 +56,7 @@ func (m *Mapper000) CPURead(location uint16) (bool, uint8) {
 func (m *Mapper000) CPUWrite(location uint16, data uint8) bool {
 	if location >= 0x6000 && location <= 0x7FFF {
 		// Write to 0x6001 should result in array index 1
-		m.prgRam[location - 0x6000] = data
+		m.prgRam[location-0x6000] = data
 		return true
 	}
 	// Beside RAM, this card does not write to anything
@@ -81,11 +81,11 @@ func (m *Mapper000) PPUWrite(location uint16, data uint8) bool {
 	return false
 }
 
-func (m *Mapper000) Mirroring () bool {
+func (m *Mapper000) Mirroring() bool {
 	return m.cartridge.MirrorBit
 }
 
-func (m *Mapper000) Reset()  {
+func (m *Mapper000) Reset() {
 
 }
 

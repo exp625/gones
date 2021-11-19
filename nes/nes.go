@@ -17,7 +17,7 @@ type NES struct {
 	AudioSampleTime  float64
 	EmulatedTime     float64
 
-	Logger			 *os.File
+	Logger *os.File
 
 	RAM       *ram.RAM
 	CPU       *cpu.CPU6502
@@ -89,7 +89,7 @@ func (nes *NES) Clock() bool {
 	return audioSampleReady
 }
 
-func (nes *NES) InsertCartridge(cat *cartridge.Cartridge)  {
+func (nes *NES) InsertCartridge(cat *cartridge.Cartridge) {
 	nes.Cartridge = cat
 }
 
@@ -99,7 +99,7 @@ func (nes *NES) CPURead(location uint16) uint8 {
 		_, data := nes.RAM.Read(location % 0x0800)
 		return data
 	case 0x2000 <= location && location <= 0x3FFF:
-		_, data :=  nes.PPU.Read(0x2000 + location%0x0008)
+		_, data := nes.PPU.Read(0x2000 + location%0x0008)
 		return data
 	case 0x4000 <= location && location <= 0x4017:
 		// TODO: APU and I/O Registers
@@ -108,7 +108,7 @@ func (nes *NES) CPURead(location uint16) uint8 {
 		// TODO: APU and I/O functionality that is normally disabled
 		return 0
 	case 0x4020 <= location:
-		_, data :=  nes.Cartridge.CPURead(location)
+		_, data := nes.Cartridge.CPURead(location)
 		return data
 	default:
 		panic("go is wrong")
@@ -149,9 +149,8 @@ func (nes *NES) PPUWrite(location uint16, data uint8) {
 
 }
 
-
-func (nes *NES) Log () {
-	if nes.Logger != nil{
+func (nes *NES) Log() {
+	if nes.Logger != nil {
 		// Build log line
 		opcode := nes.CPURead(nes.CPU.PC)
 		inst := cpu.Instructions[opcode]
@@ -159,7 +158,7 @@ func (nes *NES) Log () {
 			return
 		}
 		logLine := fmt.Sprintf("%04X  ", nes.CPU.PC)
-		logLine += fmt.Sprintf( "%02X ", nes.CPU.Bus.CPURead(nes.CPU.PC))
+		logLine += fmt.Sprintf("%02X ", nes.CPU.Bus.CPURead(nes.CPU.PC))
 		i := 1
 		for ; i < int(inst.Length); i++ {
 			logLine += fmt.Sprintf("%02X ", nes.CPU.Bus.CPURead(nes.CPU.PC+uint16(i)))
@@ -167,7 +166,7 @@ func (nes *NES) Log () {
 		for ; i < 3; i++ {
 			logLine += "   "
 		}
-		logLine += fmt.Sprint( " ", cpu.OpCodeMap[nes.CPU.Bus.CPURead(nes.CPU.PC)][0], " ")
+		logLine += fmt.Sprint(" ", cpu.OpCodeMap[nes.CPU.Bus.CPURead(nes.CPU.PC)][0], " ")
 		addr, data, _ := inst.AddressMode()
 		// Display Address
 		opCode := cpu.OpCodeMap[nes.CPU.Bus.CPURead(nes.CPU.PC)]
@@ -187,23 +186,23 @@ func (nes *NES) Log () {
 		case "ACC":
 			logLine += fmt.Sprint("A                           ")
 		case "ZPX":
-			logLine += fmt.Sprintf("$%02X,X @ %02X = %02X             ", nes.CPU.Bus.CPURead(nes.CPU.PC + 1), addr, data)
+			logLine += fmt.Sprintf("$%02X,X @ %02X = %02X             ", nes.CPU.Bus.CPURead(nes.CPU.PC+1), addr, data)
 		case "ZPY":
-			logLine += fmt.Sprintf("$%02X,Y @ %02X = %02X             ", nes.CPU.Bus.CPURead(nes.CPU.PC + 1), addr, data)
+			logLine += fmt.Sprintf("$%02X,Y @ %02X = %02X             ", nes.CPU.Bus.CPURead(nes.CPU.PC+1), addr, data)
 		case "ZP0":
-			logLine += fmt.Sprintf("$%02X = %02X                    ", addr & 0x00FF, data)
+			logLine += fmt.Sprintf("$%02X = %02X                    ", addr&0x00FF, data)
 		case "IDX":
 			// Second byte is added to register X -> result is a zero page address where the actual memory location is stored.
-			logLine += fmt.Sprintf("($%02X,X) @ %02X = %04X = %02X    ", nes.CPU.Bus.CPURead(nes.CPU.PC + 1), nes.CPU.Bus.CPURead(nes.CPU.PC + 1) + nes.CPU.X, addr, data)
+			logLine += fmt.Sprintf("($%02X,X) @ %02X = %04X = %02X    ", nes.CPU.Bus.CPURead(nes.CPU.PC+1), nes.CPU.Bus.CPURead(nes.CPU.PC+1)+nes.CPU.X, addr, data)
 		case "IZY":
 			// The second byte of the instruction points to a memory location in zero page -> content is added to Y register -> result is low order byte of the effective address
-			logLine += fmt.Sprintf("($%02X),Y = %04X @ %04X = %02X  ", nes.CPU.Bus.CPURead(nes.CPU.PC + 1), addr - uint16(nes.CPU.Y), addr, data)
+			logLine += fmt.Sprintf("($%02X),Y = %04X @ %04X = %02X  ", nes.CPU.Bus.CPURead(nes.CPU.PC+1), addr-uint16(nes.CPU.Y), addr, data)
 		case "IND":
-			logLine += fmt.Sprintf("($%02X%02X) = %04X              ",nes.CPU.Bus.CPURead(nes.CPU.PC + 2), nes.CPU.Bus.CPURead(nes.CPU.PC + 1), addr )
+			logLine += fmt.Sprintf("($%02X%02X) = %04X              ", nes.CPU.Bus.CPURead(nes.CPU.PC+2), nes.CPU.Bus.CPURead(nes.CPU.PC+1), addr)
 		case "ABX":
-			logLine += fmt.Sprintf("$%02X%02X,X @ %04X = %02X         ", nes.CPU.Bus.CPURead(nes.CPU.PC + 2), nes.CPU.Bus.CPURead(nes.CPU.PC + 1), addr, data)
+			logLine += fmt.Sprintf("$%02X%02X,X @ %04X = %02X         ", nes.CPU.Bus.CPURead(nes.CPU.PC+2), nes.CPU.Bus.CPURead(nes.CPU.PC+1), addr, data)
 		case "ABY":
-			logLine += fmt.Sprintf("$%02X%02X,Y @ %04X = %02X         ", nes.CPU.Bus.CPURead(nes.CPU.PC + 2), nes.CPU.Bus.CPURead(nes.CPU.PC + 1), addr, data)
+			logLine += fmt.Sprintf("$%02X%02X,Y @ %04X = %02X         ", nes.CPU.Bus.CPURead(nes.CPU.PC+2), nes.CPU.Bus.CPURead(nes.CPU.PC+1), addr, data)
 		default:
 			logLine += fmt.Sprint("                            ")
 		}

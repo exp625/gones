@@ -68,7 +68,7 @@ func run() {
 	cfg := pixelgl.WindowConfig{
 		Title:  "GoNes",
 		Bounds: pixel.R(0, 0, Width, Height),
-		VSync: true,
+		VSync:  true,
 	}
 	win, err := pixelgl.NewWindow(cfg)
 	if err != nil {
@@ -89,7 +89,6 @@ func run() {
 	emulator.hidePatternTables = true
 
 	emulator.InsertCartridge(cat)
-
 
 	emulator.Reset()
 
@@ -139,11 +138,9 @@ func run() {
 		}
 
 		if !emulator.hidePatternTables {
-			DrawCHRROM(emulator, 0).Draw(win, pixel.IM.Moved(pixel.V(256 + 5, 256 + 5)).Scaled(pixel.V(256 + 5, 256 + 5), 4))
-			DrawCHRROM(emulator, 1).Draw(win, pixel.IM.Moved(pixel.V(256*3 + 10, 256 + 5)).Scaled(pixel.V(256*3 + 10, 256 + 5), 4))
+			DrawCHRROM(emulator, 0).Draw(win, pixel.IM.Moved(pixel.V(256+5, 256+5)).Scaled(pixel.V(256+5, 256+5), 4))
+			DrawCHRROM(emulator, 1).Draw(win, pixel.IM.Moved(pixel.V(256*3+10, 256+5)).Scaled(pixel.V(256*3+10, 256+5), 4))
 		}
-
-
 
 		// Update Frame
 		win.Update()
@@ -233,39 +230,38 @@ func handleInput(win *pixelgl.Window, emulator *Emulator) {
 	}
 
 	if win.JustPressed(pixelgl.KeyKP0) {
-		emulator.requestedSteps = emulator.requestedSteps * 10 + 0
+		emulator.requestedSteps = emulator.requestedSteps*10 + 0
 	}
 	if win.JustPressed(pixelgl.KeyKP1) {
-		emulator.requestedSteps = emulator.requestedSteps * 10 + 1
+		emulator.requestedSteps = emulator.requestedSteps*10 + 1
 	}
 	if win.JustPressed(pixelgl.KeyKP2) {
-		emulator.requestedSteps = emulator.requestedSteps * 10 + 2
+		emulator.requestedSteps = emulator.requestedSteps*10 + 2
 	}
 	if win.JustPressed(pixelgl.KeyKP3) {
-		emulator.requestedSteps = emulator.requestedSteps * 10 + 3
+		emulator.requestedSteps = emulator.requestedSteps*10 + 3
 	}
 	if win.JustPressed(pixelgl.KeyKP4) {
-		emulator.requestedSteps = emulator.requestedSteps * 10 + 4
+		emulator.requestedSteps = emulator.requestedSteps*10 + 4
 	}
 	if win.JustPressed(pixelgl.KeyKP5) {
-		emulator.requestedSteps = emulator.requestedSteps * 10 + 5
+		emulator.requestedSteps = emulator.requestedSteps*10 + 5
 	}
 	if win.JustPressed(pixelgl.KeyKP6) {
-		emulator.requestedSteps = emulator.requestedSteps * 10 + 6
+		emulator.requestedSteps = emulator.requestedSteps*10 + 6
 	}
 	if win.JustPressed(pixelgl.KeyKP7) {
-		emulator.requestedSteps = emulator.requestedSteps * 10 + 7
+		emulator.requestedSteps = emulator.requestedSteps*10 + 7
 	}
 	if win.JustPressed(pixelgl.KeyKP8) {
-		emulator.requestedSteps = emulator.requestedSteps * 10 + 8
+		emulator.requestedSteps = emulator.requestedSteps*10 + 8
 	}
 	if win.JustPressed(pixelgl.KeyKP9) {
-		emulator.requestedSteps = emulator.requestedSteps * 10 + 9
+		emulator.requestedSteps = emulator.requestedSteps*10 + 9
 	}
 	if win.JustPressed(pixelgl.KeyEscape) {
 		emulator.requestedSteps = 0
 	}
-
 
 	// R Key will reset the emulator
 	if win.JustPressed(pixelgl.KeyR) {
@@ -347,7 +343,7 @@ func DrawCode(statusText *text.Text, emulator *Emulator) {
 			statusText.Color = colornames.Yellow
 		}
 		if emulator.displayRamPC {
-			fmt.Fprintf(statusText, "%04X ", (emulator.CPU.PC+offset - 0x8000) % 0x4000 * uint16(emulator.Cartridge.PrgRomSize) + 0x0010)
+			fmt.Fprintf(statusText, "%04X ", (emulator.CPU.PC+offset-0x8000)%0x4000*uint16(emulator.Cartridge.PrgRomSize)+0x0010)
 		} else {
 			fmt.Fprintf(statusText, "%04X ", emulator.CPU.PC+offset)
 		}
@@ -357,7 +353,7 @@ func DrawCode(statusText *text.Text, emulator *Emulator) {
 			fmt.Fprintf(statusText, "%02X ", emulator.CPURead(emulator.CPU.PC+offset+uint16(i)))
 		}
 		for ; i < 3; i++ {
-			fmt.Fprint(statusText,"   ")
+			fmt.Fprint(statusText, "   ")
 		}
 		fmt.Fprint(statusText, "", cpu.OpCodeMap[emulator.CPURead(emulator.CPU.PC+offset)], " ")
 
@@ -367,35 +363,35 @@ func DrawCode(statusText *text.Text, emulator *Emulator) {
 				// Display Address
 				switch cpu.OpCodeMap[emulator.CPURead(emulator.CPU.PC)][1] {
 				case "REL":
-					fmt.Fprintf(statusText,"$%04X", addr)
+					fmt.Fprintf(statusText, "$%04X", addr)
 				case "ABS":
 					if addr <= 0x1FFF {
-						fmt.Fprintf(statusText,"$%04X = %02X                  ", addr, data)
+						fmt.Fprintf(statusText, "$%04X = %02X                  ", addr, data)
 					} else {
-						fmt.Fprintf(statusText,"$%04X                       ", addr)
+						fmt.Fprintf(statusText, "$%04X                       ", addr)
 					}
 				case "ACC":
-					fmt.Fprint(statusText,"A")
+					fmt.Fprint(statusText, "A")
 				case "IMM":
-					fmt.Fprintf(statusText,"#$%02X", data)
+					fmt.Fprintf(statusText, "#$%02X", data)
 				case "ZPX":
-					fmt.Fprintf(statusText,"$%02X,X @ %02X = %02X", emulator.CPURead(emulator.CPU.PC + 1), addr, data)
+					fmt.Fprintf(statusText, "$%02X,X @ %02X = %02X", emulator.CPURead(emulator.CPU.PC+1), addr, data)
 				case "ZPY":
-					fmt.Fprintf(statusText,"$%02X,Y @ %02X = %02X", emulator.CPURead(emulator.CPU.PC + 1), addr, data)
+					fmt.Fprintf(statusText, "$%02X,Y @ %02X = %02X", emulator.CPURead(emulator.CPU.PC+1), addr, data)
 				case "ZP0":
-					fmt.Fprintf(statusText,"$%02X = %02X", addr & 0x00FF, data)
+					fmt.Fprintf(statusText, "$%02X = %02X", addr&0x00FF, data)
 				case "IDX":
 					// Second byte is added to register X -> result is a zero page address where the actual memory location is stored.
-					fmt.Fprintf(statusText,"($%02X,X) @ %02X = %04X = %02X", emulator.CPURead(emulator.CPU.PC + 1), emulator.CPURead(emulator.CPU.PC + 1) + emulator.CPU.X, addr, data)
+					fmt.Fprintf(statusText, "($%02X,X) @ %02X = %04X = %02X", emulator.CPURead(emulator.CPU.PC+1), emulator.CPURead(emulator.CPU.PC+1)+emulator.CPU.X, addr, data)
 				case "IZY":
 					// Second byte is added to register X -> result is a zero page address where the actual memory location is stored.
-					fmt.Fprintf(statusText,"($%02X),Y = %04X @ %04X = %02X", emulator.CPURead(emulator.CPU.PC + 1), addr - uint16(emulator.CPU.Y), addr, data)
+					fmt.Fprintf(statusText, "($%02X),Y = %04X @ %04X = %02X", emulator.CPURead(emulator.CPU.PC+1), addr-uint16(emulator.CPU.Y), addr, data)
 				case "IND":
-					fmt.Fprintf(statusText,"($%02X%02X) = %04X",emulator.CPURead(emulator.CPU.PC + 2), emulator.CPURead(emulator.CPU.PC + 1), addr )
+					fmt.Fprintf(statusText, "($%02X%02X) = %04X", emulator.CPURead(emulator.CPU.PC+2), emulator.CPURead(emulator.CPU.PC+1), addr)
 				case "ABX":
-					fmt.Fprintf(statusText,"$%02X%02X,X @ %04X = %02X", emulator.CPURead(emulator.CPU.PC + 2), emulator.CPURead(emulator.CPU.PC + 1), addr, data)
+					fmt.Fprintf(statusText, "$%02X%02X,X @ %04X = %02X", emulator.CPURead(emulator.CPU.PC+2), emulator.CPURead(emulator.CPU.PC+1), addr, data)
 				case "ABY":
-					fmt.Fprintf(statusText,"$%02X%02X,Y @ %04X = %02X", emulator.CPURead(emulator.CPU.PC + 2), emulator.CPURead(emulator.CPU.PC + 1), addr, data)
+					fmt.Fprintf(statusText, "$%02X%02X,Y @ %04X = %02X", emulator.CPURead(emulator.CPU.PC+2), emulator.CPURead(emulator.CPU.PC+1), addr, data)
 				}
 			}
 			statusText.Color = colornames.White
@@ -475,7 +471,7 @@ func DrawStack(statusText *text.Text, emulator *Emulator) {
 
 }
 
-func DrawCHRROM (emulator *Emulator, table int) *pixel.Sprite{
+func DrawCHRROM(emulator *Emulator, table int) *pixel.Sprite {
 	width := 128
 	height := 128
 
@@ -495,36 +491,35 @@ func DrawCHRROM (emulator *Emulator, table int) *pixel.Sprite{
 
 	for y := 0; y < 16; y++ {
 		for x := 0; x < 16; x++ {
-				for tileY := 0; tileY < 8; tileY++ {
+			for tileY := 0; tileY < 8; tileY++ {
 
-					addressPlane0 := uint16(table<<12 | y<<8 | x<<4 | 0 << 3 | tileY)
-					addressPlane1 := uint16(table<<12 | y<<8 | x<<4 | 1 << 3 | tileY)
-					plane0 := emulator.PPURead(addressPlane0)
-					plane1 := emulator.PPURead(addressPlane1)
+				addressPlane0 := uint16(table<<12 | y<<8 | x<<4 | 0<<3 | tileY)
+				addressPlane1 := uint16(table<<12 | y<<8 | x<<4 | 1<<3 | tileY)
+				plane0 := emulator.PPURead(addressPlane0)
+				plane1 := emulator.PPURead(addressPlane1)
 
-					for tileX := 0; tileX < 8; tileX++ {
+				for tileX := 0; tileX < 8; tileX++ {
 
-						if (plane0 >> (7 - tileX)) & 0x01 == 1 && (plane1 >> (7 - tileX)) & 0x01 ==1 {
-							img.Set(x * 8 + tileX, y * 8 + tileY, color.White)
-						} else if (plane1 >> (7 - tileX)) & 0x01 ==1 {
-							img.Set(x * 8 + tileX, y * 8 + tileY, color.Gray16{0xAAAA})
-						} else if (plane0 >> (7 - tileX)) & 0x01 ==1 {
-							img.Set(x * 8 + tileX, y * 8 + tileY, color.Gray16{0x5555})
-						} else {
-							img.Set(x * 8 + tileX, y * 8 + tileY, color.Gray16{0x1111})
-						}
-
+					if (plane0>>(7-tileX))&0x01 == 1 && (plane1>>(7-tileX))&0x01 == 1 {
+						img.Set(x*8+tileX, y*8+tileY, color.White)
+					} else if (plane1>>(7-tileX))&0x01 == 1 {
+						img.Set(x*8+tileX, y*8+tileY, color.Gray16{0xAAAA})
+					} else if (plane0>>(7-tileX))&0x01 == 1 {
+						img.Set(x*8+tileX, y*8+tileY, color.Gray16{0x5555})
+					} else {
+						img.Set(x*8+tileX, y*8+tileY, color.Gray16{0x1111})
 					}
+
 				}
 			}
 		}
+	}
 	pic := pixel.PictureDataFromImage(img)
 	return pixel.NewSprite(pic, pic.Bounds())
 
 }
 
-
-func StartLogging (emulator *Emulator) {
+func StartLogging(emulator *Emulator) {
 	name := time.Now().Format("log/2006-01-02_15-01-05_nes.log")
 	ensureLogDir(name)
 	fo, err := os.Create(name)
@@ -534,7 +529,7 @@ func StartLogging (emulator *Emulator) {
 	}
 	defer fo.Close()
 
-	f, err := os.OpenFile(name, os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+	f, err := os.OpenFile(name, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		log.Fatalf("error opening file: %v", err)
 		return
@@ -543,7 +538,7 @@ func StartLogging (emulator *Emulator) {
 	log.SetOutput(f)
 }
 
-func StopLogging (emulator *Emulator) {
+func StopLogging(emulator *Emulator) {
 	log.SetOutput(os.Stdout)
 	emulator.NES.Logger.Close()
 	emulator.NES.Logger = nil

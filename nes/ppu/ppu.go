@@ -1,8 +1,8 @@
 package ppu
 
 type PPU struct {
-	ScanLine uint16
-	Position uint16
+	ScanLine   uint16
+	Position   uint16
 	FrameCount uint64
 }
 
@@ -19,7 +19,7 @@ func (ppu *PPU) Clock() {
 		ppu.Position = 0
 		ppu.ScanLine = 0
 		ppu.FrameCount++
-		if ppu.FrameCount % 2 != 0 {
+		if ppu.FrameCount%2 != 0 {
 			ppu.Position++
 		}
 	}

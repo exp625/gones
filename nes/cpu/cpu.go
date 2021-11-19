@@ -7,11 +7,11 @@ import (
 var CPU *CPU6502
 
 const (
-	ZeroPage uint16 = 0x0000
-	StackPage uint16 = 0x0100
-	NMIVector uint16 = 0xFFFA
+	ZeroPage    uint16 = 0x0000
+	StackPage   uint16 = 0x0100
+	NMIVector   uint16 = 0xFFFA
 	ResetVector uint16 = 0xFFFC
-	IRQVector uint16 = 0xFFFE
+	IRQVector   uint16 = 0xFFFE
 )
 
 func init() {
@@ -32,14 +32,14 @@ type CPU6502 struct {
 	// Status Register
 	P uint8
 
-	Bus                bus.Bus
-	ClockCount         int64
-	CycleCount         int
+	Bus        bus.Bus
+	ClockCount int64
+	CycleCount int
 }
 
 func (cpu *CPU6502) Clock() {
 	cpu.ClockCount++
-	if cpu.CycleCount == 0  {
+	if cpu.CycleCount == 0 {
 		opcode := cpu.Bus.CPURead(cpu.PC)
 		inst := Instructions[opcode]
 		if inst.Length != 0 {

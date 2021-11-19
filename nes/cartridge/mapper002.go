@@ -6,11 +6,11 @@ import (
 )
 
 type Mapper002 struct {
-	cartridge *Cartridge
+	cartridge  *Cartridge
 	bankSelect uint8
 }
 
-func NewMapper002 (c *Cartridge) *Mapper002 {
+func NewMapper002(c *Cartridge) *Mapper002 {
 	return &Mapper002{
 		cartridge: c,
 	}
@@ -28,7 +28,7 @@ func (m *Mapper002) CPURead(location uint16) (bool, uint8) {
 		// Switchable ROM Bank
 
 		// Example: Selected bank is 1. A read to 0x8001 should read from prgRom location 0x4001
-		return true, m.cartridge.PrgRom[uint32(location - 0x8000) + uint32(0x4000) * uint32(m.bankSelect)]
+		return true, m.cartridge.PrgRom[uint32(location-0x8000)+uint32(0x4000)*uint32(m.bankSelect)]
 
 	}
 
@@ -39,7 +39,7 @@ func (m *Mapper002) CPURead(location uint16) (bool, uint8) {
 		// 0xFFFF - 0xC000 + 0x4000 * 15 = 0x3FFFF
 
 		// Cast to uint32 because games can get quite big (4096K)
-		return true, m.cartridge.PrgRom[uint32(location - 0xC000) + uint32(0x4000) * uint32(m.cartridge.PrgRomSize - 1)]
+		return true, m.cartridge.PrgRom[uint32(location-0xC000)+uint32(0x4000)*uint32(m.cartridge.PrgRomSize-1)]
 	}
 	// Mapper was no responsible for the location
 	return false, 0
@@ -82,15 +82,15 @@ func (m *Mapper002) PPUWrite(location uint16, data uint8) bool {
 	return false
 }
 
-func (m *Mapper002) Mirroring () bool {
+func (m *Mapper002) Mirroring() bool {
 	return m.cartridge.MirrorBit
 }
 
-func (m *Mapper002) Reset()  {
+func (m *Mapper002) Reset() {
 
 }
 
-func (m *Mapper002) DebugDisplay (text *text.Text) {
+func (m *Mapper002) DebugDisplay(text *text.Text) {
 	fmt.Fprint(text, "Cartridge with Mapper 002\n")
 	fmt.Fprintf(text, "PRG ROM Size: %d * 16 KB\n", m.cartridge.PrgRomSize)
 	fmt.Fprintf(text, "PRG BANK    : %d \n", m.bankSelect)

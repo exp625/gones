@@ -54,7 +54,7 @@ func ABX() (uint16, uint8, uint8) {
 
 	// high bits increased due to x offset
 	// Only if instruction normally takes 4 clock cycles, this page cross adds another cycle
-	if location&0xFF00 != (high << 8) && Instructions[CPU.Bus.CPURead(CPU.PC)].ClockCycles == 4 {
+	if location&0xFF00 != (high<<8) && Instructions[CPU.Bus.CPURead(CPU.PC)].ClockCycles == 4 {
 		return location, CPU.Bus.CPURead(location), 1
 	}
 	return location, CPU.Bus.CPURead(location), 0
@@ -71,7 +71,7 @@ func ABY() (uint16, uint8, uint8) {
 
 	// high bits increased due to x offset
 	// Only if instruction normally takes 4 clock cycles, this page cross adds another cycle
-	if location&0xFF00 != (high << 8) && Instructions[CPU.Bus.CPURead(CPU.PC)].ClockCycles == 4 {
+	if location&0xFF00 != (high<<8) && Instructions[CPU.Bus.CPURead(CPU.PC)].ClockCycles == 4 {
 		return location, CPU.Bus.CPURead(location), 1
 	}
 	return location, CPU.Bus.CPURead(location), 0
@@ -95,12 +95,12 @@ func IDX() (uint16, uint8, uint8) {
 	offset := uint16(CPU.Bus.CPURead(CPU.PC + 1))
 
 	// Build location from high and low bits
-	low := uint16(CPU.Bus.CPURead(ZeroPage | (offset + uint16(CPU.X)) & 0x00FF))
-	if offset & 0x00FF == 0x00FF {
+	low := uint16(CPU.Bus.CPURead(ZeroPage | (offset+uint16(CPU.X))&0x00FF))
+	if offset&0x00FF == 0x00FF {
 		// offset + 1 is on next page. However, we want low to wrap around and disallow page turn
 		offset -= 0x0100
 	}
-	high := uint16(CPU.Bus.CPURead(ZeroPage | (offset + uint16(CPU.X) + 1) & 0x00FF))
+	high := uint16(CPU.Bus.CPURead(ZeroPage | (offset+uint16(CPU.X)+1)&0x00FF))
 
 	location := (high << 8) | low
 
@@ -113,11 +113,11 @@ func IZY() (uint16, uint8, uint8) {
 
 	// Build location from high and low bits
 	low := uint16(CPU.Bus.CPURead(offset & 0x00FF))
-	if offset & 0x00FF == 0x00FF {
+	if offset&0x00FF == 0x00FF {
 		// offset + 1 is on next page. However, we want low to wrap around and disallow page turn
 		offset -= 0x0100
 	}
-	high := uint16(CPU.Bus.CPURead(offset + 1 & 0x00FF))
+	high := uint16(CPU.Bus.CPURead(offset + 1&0x00FF))
 
 	location := (high << 8) | low
 	location += uint16(CPU.Y)
@@ -137,12 +137,11 @@ func IND() (uint16, uint8, uint8) {
 
 	// Build location from high and low bits
 	low = uint16(CPU.Bus.CPURead(pointer))
-	if pointer & 0x00FF == 0x00FF {
+	if pointer&0x00FF == 0x00FF {
 		// pointer + 1 is on next page. However, we want low to wrap around and disallow page turn
 		pointer -= 0x0100
 	}
 	high = uint16(CPU.Bus.CPURead(pointer + 1))
-
 
 	location := (high << 8) | low
 	return location, CPU.Bus.CPURead(location), 0

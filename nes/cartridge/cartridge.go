@@ -7,10 +7,9 @@ type Cartridge struct {
 	PrgRom     []uint8
 	ChrRomSize uint8
 	ChrRom     []uint8
-	ChrRam bool
+	ChrRam     bool
 	MirrorBit  bool
 	Mapper
-
 }
 
 //An iNES file consists of the following sections, in order:
@@ -34,7 +33,7 @@ type Cartridge struct {
 //10: Flags 10 - TV system, PRG-RAM presence (unofficial, rarely used extension)
 //11-15: Unused padding (should be filled with zero, but some rippers put their name across bytes 7-15)
 
-func LoadCartridge (rom []byte) *Cartridge {
+func LoadCartridge(rom []byte) *Cartridge {
 	prgRomSize := rom[4]
 	chrRomSize := rom[5]
 	chrRam := false
@@ -43,38 +42,36 @@ func LoadCartridge (rom []byte) *Cartridge {
 		chrRam = true
 	}
 	mapperNumber := rom[6] & 0xF0 >> 4
-	trainerPresent := rom[6] & 0b00000100 >> 2 == 1
-	mirrowBit := rom[6] & 0b00000001 == 1
+	trainerPresent := rom[6]&0b00000100>>2 == 1
+	mirrowBit := rom[6]&0b00000001 == 1
 
-	prgRom :=  make([]uint8, int(prgRomSize) * 0x4000)
-	chrRom :=  make([]uint8, int(chrRomSize) * 0x2000)
+	prgRom := make([]uint8, int(prgRomSize)*0x4000)
+	chrRom := make([]uint8, int(chrRomSize)*0x2000)
 
 	ptr := 0x10
 	if trainerPresent {
 		log.Println("Trainer present!")
 		ptr += 0x200
 	}
-	for i := 0; i < int(prgRomSize) * 0x4000; i++ {
+	for i := 0; i < int(prgRomSize)*0x4000; i++ {
 		prgRom[i] = rom[ptr]
 		ptr++
 	}
 	if !chrRam {
-		for i := 0; i < int(chrRomSize) * 0x2000; i++ {
+		for i := 0; i < int(chrRomSize)*0x2000; i++ {
 			chrRom[i] = rom[ptr]
 			ptr++
 		}
 	}
 
-
-
 	cartridge := &Cartridge{
 		PrgRomSize: prgRomSize,
-		PrgRom: prgRom,
+		PrgRom:     prgRom,
 		ChrRomSize: chrRomSize,
-		ChrRom: chrRom,
-		ChrRam: chrRam,
+		ChrRom:     chrRom,
+		ChrRam:     chrRam,
 		Mapper:     nil,
-		MirrorBit: mirrowBit,
+		MirrorBit:  mirrowBit,
 	}
 
 	switch mapperNumber {
@@ -87,7 +84,6 @@ func LoadCartridge (rom []byte) *Cartridge {
 	default:
 		log.Panic("Unsupported ROM File")
 	}
-
 
 	return cartridge
 }
