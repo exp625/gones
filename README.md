@@ -1,7 +1,7 @@
-# Gones - An attempt to program a NES emulator
+# GoNES - An attempt to program a NES emulator
 
 The following resources were used for the project: 
-- The great work on [wiki.nesdev.org](wiki.nesdev.org)
+- The great work on [wiki.nesdev.org](https://wiki.nesdev.org)
 - R650X and R651X Datasheet [http://www.6502.org/documents/datasheets/rockwell/rockwell_r650x_r651x.pdf](http://www.6502.org/documents/datasheets/rockwell/rockwell_r650x_r651x.pdf)
 - Reset behaviour description [https://www.pagetable.com/?p=410](https://www.pagetable.com/?p=410)
 - The [cc65 assembler ](https://cc65.github.io/index.html)

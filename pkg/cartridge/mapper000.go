@@ -2,6 +2,7 @@ package cartridge
 
 import (
 	"fmt"
+	"github.com/exp625/gones/pkg/plz"
 	"github.com/faiface/pixel/text"
 )
 
@@ -19,19 +20,19 @@ func NewMapper000(c *Cartridge) *Mapper000 {
 
 // From NES DEV WIKI https://wiki.nesdev.org/w/index.php?title=NROM
 
-//PRG ROM size: 16 KiB for NROM-128, 32 KiB for NROM-256 (DIP-28 standard pinout)
-//PRG ROM bank size: Not bankswitched
-//PRG RAM: 2 or 4 KiB, not bankswitched, only in Family Basic (but most emulators provide 8)
-//CHR capacity: 8 KiB ROM (DIP-28 standard pinout) but most emulators support RAM
-//CHR bank size: Not bankswitched, see CNROM
-//Nametable mirroring: Solder pads select vertical or horizontal mirroring
-//Subject to bus conflicts: Yes, but irrelevant
+// PRG ROM size: 16 KiB for NROM-128, 32 KiB for NROM-256 (DIP-28 standard pinout)
+// PRG ROM bank size: Not bankswitched
+// PRG RAM: 2 or 4 KiB, not bankswitched, only in Family Basic (but most emulators provide 8)
+// CHR capacity: 8 KiB ROM (DIP-28 standard pinout) but most emulators support RAM
+// CHR bank size: Not bankswitched, see CNROM
+// Nametable mirroring: Solder pads select vertical or horizontal mirroring
+// Subject to bus conflicts: Yes, but irrelevant
 
-//All Banks are fixed,
+// All Banks are fixed,
 //
-//CPU $6000-$7FFF: Family Basic only: PRG RAM, mirrored as necessary to fill entire 8 KiB window, write protectable with an external switch
-//CPU $8000-$BFFF: First 16 KB of ROM.
-//CPU $C000-$FFFF: Last 16 KB of ROM (NROM-256) or mirror of $8000-$BFFF (NROM-128).
+// CPU $6000-$7FFF: Family Basic only: PRG RAM, mirrored as necessary to fill entire 8 KiB window, write protectable with an external switch
+// CPU $8000-$BFFF: First 16 KB of ROM.
+// CPU $C000-$FFFF: Last 16 KB of ROM (NROM-256) or mirror of $8000-$BFFF (NROM-128).
 
 func (m *Mapper000) CPURead(location uint16) (bool, uint8) {
 	if location >= 0x6000 && location <= 0x7FFF {
@@ -86,18 +87,17 @@ func (m *Mapper000) Mirroring() bool {
 }
 
 func (m *Mapper000) Reset() {
-
 }
 
 func (m *Mapper000) DebugDisplay(text *text.Text) {
 	// If I understand the wiki correctly, the ram is only use by some weird type of nes.
 	// No other game has ram on the cartridge
-	fmt.Fprint(text, "Cartridge with Mapper 000\n")
-	fmt.Fprintf(text, "PRG ROM Size: %d * 16 KB\n", m.cartridge.PrgRomSize)
-	fmt.Fprintf(text, "CHR ROM Size: %d * 8 KB\n", m.cartridge.ChrRomSize)
+	plz.Just(fmt.Fprint(text, "Cartridge with Mapper 000\n"))
+	plz.Just(fmt.Fprintf(text, "PRG ROM Size: %d * 16 KB\n", m.cartridge.PrgRomSize))
+	plz.Just(fmt.Fprintf(text, "CHR ROM Size: %d * 8 KB\n", m.cartridge.ChrRomSize))
 	str := "Horizontal "
 	if m.Mirroring() {
 		str = "Vertical "
 	}
-	fmt.Fprint(text, "Mirror Mode : ", str, "\n")
+	plz.Just(fmt.Fprint(text, "Mirror Mode : ", str, "\n"))
 }

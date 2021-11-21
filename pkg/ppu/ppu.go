@@ -7,7 +7,6 @@ type PPU struct {
 }
 
 func (ppu *PPU) Clock() {
-
 	if ppu.ScanLine < 261 {
 		if ppu.Position < 340 {
 			ppu.Position++
@@ -23,7 +22,6 @@ func (ppu *PPU) Clock() {
 			ppu.Position++
 		}
 	}
-
 }
 
 func (ppu *PPU) Reset() {
@@ -37,5 +35,4 @@ func (ppu *PPU) Read(location uint16) (bool, uint8) {
 }
 
 func (ppu *PPU) Write(location uint16, data uint8) {
-
 }

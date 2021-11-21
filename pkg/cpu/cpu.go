@@ -1,37 +1,10 @@
 package cpu
 
 import (
-	"github.com/exp625/gones/nes/bus"
+	"github.com/exp625/gones/pkg/bus"
 )
 
-var CPU *CPU6502
-
-const (
-	ZeroPage    uint16 = 0x0000
-	StackPage   uint16 = 0x0100
-	NMIVector   uint16 = 0xFFFA
-	ResetVector uint16 = 0xFFFC
-	IRQVector   uint16 = 0xFFFE
-)
-
-type AddressModeFunc func() (uint16, uint8, uint8) // location, data, additional cycles
-type ExecuteFunc func(uint16, uint8, uint16)
-
-type Instruction struct {
-	AddressMode AddressModeFunc
-	Execute     ExecuteFunc
-	Length      uint16
-	ClockCycles int
-}
-
-var Instructions [256]Instruction
-var OpCodeMap map[uint8][2]string
-
-func init() {
-	CPU = &CPU6502{}
-}
-
-type CPU6502 struct {
+type CPU struct {
 	// Accumulator
 	A uint8
 	// Index X
@@ -45,16 +18,34 @@ type CPU6502 struct {
 	// Status Register
 	P uint8
 
-	Bus        bus.Bus
+	Bus bus.Bus
+
+	Instructions [256]Instruction
+	Mnemonics    map[uint8][2]string
+
 	ClockCount int64
 	CycleCount int
 }
 
-func (cpu *CPU6502) Clock() {
+func New() *CPU {
+	c := &CPU{}
+	c.generateInstructions()
+	return c
+}
+
+const (
+	ZeroPage    uint16 = 0x0000
+	StackPage          = 0x0100
+	NMIVector          = 0xFFFA
+	ResetVector        = 0xFFFC
+	IRQVector          = 0xFFFE
+)
+
+func (cpu *CPU) Clock() {
 	cpu.ClockCount++
 	if cpu.CycleCount == 0 {
 		opcode := cpu.Bus.CPURead(cpu.PC)
-		inst := Instructions[opcode]
+		inst := cpu.Instructions[opcode]
 		if inst.Length != 0 {
 			cpu.Bus.Log()
 			loc, data, addCycle := inst.AddressMode()
@@ -65,7 +56,7 @@ func (cpu *CPU6502) Clock() {
 	cpu.CycleCount--
 }
 
-func (cpu *CPU6502) Reset() {
+func (cpu *CPU) Reset() {
 	// Reset takes 6 clock cycles
 	cpu.ClockCount = 0
 	cpu.CycleCount = 6
@@ -83,10 +74,8 @@ func (cpu *CPU6502) Reset() {
 	cpu.PC = (high << 8) | low
 }
 
-func (cpu *CPU6502) IRQ() {
-
+func (cpu *CPU) IRQ() {
 }
 
-func (cpu *CPU6502) NMI() {
-
+func (cpu *CPU) NMI() {
 }
