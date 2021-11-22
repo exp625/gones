@@ -3,13 +3,14 @@ package emulator
 import (
 	"github.com/exp625/gones/pkg/cartridge"
 	"github.com/exp625/gones/pkg/nes"
-	"github.com/faiface/beep"
-	"github.com/faiface/beep/speaker"
-	"github.com/faiface/pixel"
-	"github.com/faiface/pixel/pixelgl"
-	"github.com/faiface/pixel/text"
-	"golang.org/x/image/colornames"
-	"golang.org/x/image/font/basicfont"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/audio"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
+	"image/color"
 	"io/ioutil"
 	"log"
 	"time"
@@ -25,11 +26,31 @@ const (
 	WindowHeight = 1000
 )
 
+var (
+	normalFont font.Face
+	top        int
+)
+
+func init() {
+	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	const dpi = 72
+	normalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+		Size:    24,
+		DPI:     dpi,
+		Hinting: font.HintingFull,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
 // Emulator struct
 type Emulator struct {
 	*nes.NES
-
-	Window *pixelgl.Window
 
 	autoRunEnabled bool
 	LoggingEnabled bool
@@ -44,6 +65,10 @@ type Emulator struct {
 
 	nanoSecondsSpentInAutoRun time.Duration
 	autoRunStarted            time.Time
+
+	audioContext     *audio.Context
+	player           *audio.Player
+	remainingSamples []byte
 }
 
 func New(romFile string, debug bool) (*Emulator, error) {
@@ -64,119 +89,114 @@ func New(romFile string, debug bool) (*Emulator, error) {
 	return e, nil
 }
 
-func (e *Emulator) Run() {
-	// Create Window
-	cfg := pixelgl.WindowConfig{
-		Title:  "GoNES",
-		Bounds: pixel.R(0, 0, WindowWidth, WindowHeight),
-		VSync:  true,
-	}
-	window, err := pixelgl.NewWindow(cfg)
-	if err != nil {
-		log.Fatal(err)
-	}
-	e.Window = window
+func (e *Emulator) Init() error {
 
-	// Set up text atlas
-	atlas := text.NewAtlas(basicfont.Face7x13, text.ASCII)
-	top := WindowHeight - atlas.LineHeight()*2
+	// Setup Audio
+	if e.audioContext == nil {
+		e.audioContext = audio.NewContext(AudioSampleRate)
+	}
+	if e.player == nil {
+		// Pass the (infinite) stream to NewPlayer.
+		// After calling Play, the stream never ends as long as the player object lives.
+		var err error
+		e.player, err = e.audioContext.NewPlayer(e)
+		if err != nil {
+			return err
+		}
+		e.player.Play()
+	}
+
+	top = 0
 
 	// Set up text displays
-	cpuText := text.New(pixel.V(0, top), atlas)
-	instructionsText := text.New(pixel.V(0, top-200), atlas)
-	cartridgeText := text.New(pixel.V(800, top-200), atlas)
-	zeroPageText := text.New(pixel.V(0, top-370), atlas)
-	stackText := text.New(pixel.V(400, top-370), atlas)
-	ramText := text.New(pixel.V(0, top-620), atlas)
+	/*
+		cpuText := text.New(pixel.V(0, top), atlas)
+		instructionsText := text.New(pixel.V(0, top-200), atlas)
+		cartridgeText := text.New(pixel.V(800, top-200), atlas)
+		zeroPageText := text.New(pixel.V(0, top-370), atlas)
+		stackText := text.New(pixel.V(400, top-370), atlas)
+		ramText := text.New(pixel.V(0, top-620), atlas)
+	*/
+	return nil
 
-	// Set up sound
-	sampleRate := beep.SampleRate(AudioSampleRate)
-	if err = speaker.Init(sampleRate, sampleRate.N(time.Second/10)); err != nil {
-		log.Fatal(err)
+}
+
+func (e *Emulator) Update() error {
+
+	// Handle input
+	e.HandleInput()
+
+	// Measure time spent in auto run mode
+	if e.autoRunEnabled {
+		e.nanoSecondsSpentInAutoRun += time.Now().Sub(e.autoRunStarted)
 	}
-	defer speaker.Close()
-	speaker.Play(e.Audio())
+	e.autoRunStarted = time.Now()
 
-	// Render Loop
-	for !e.Window.Closed() {
-		e.Window.Clear(colornames.Black)
+	// Handle user input
+	e.HandleInput()
 
-		// Measure time spent in auto run mode
-		if e.autoRunEnabled {
-			e.nanoSecondsSpentInAutoRun += time.Now().Sub(e.autoRunStarted)
+	return nil
+}
+
+func (e *Emulator) Draw(screen *ebiten.Image) {
+
+	// Show debug info
+	if e.showsInfo {
+		text.Draw(screen, e.DrawCPU(), normalFont, 0, 0, color.White)
+	}
+	if e.showsDebug {
+		if !e.showsInfo {
+			top = 200
+		} else {
+			top = 0
 		}
-		e.autoRunStarted = time.Now()
+		text.Draw(screen, e.DrawInstructions(), normalFont, 0, 200-top, color.White)
+		text.Draw(screen, e.DrawZeroPage(), normalFont, 0, 370-top, color.White)
+		text.Draw(screen, e.DrawStack(), normalFont, 400, 370-top, color.White)
+		text.Draw(screen, e.DrawRAM(), normalFont, 0, 620-top, color.White)
+		text.Draw(screen, e.DrawCartridge(), normalFont, 800, 200-top, color.White)
 
-		// Handle user input
-		e.HandleInput()
-
-		// Show debug info
-		if e.showsInfo {
-			cpuText.Clear()
-			e.DrawCPU(cpuText)
-			cpuText.Draw(e.Window, pixel.IM.Scaled(cpuText.Orig, 2))
-		}
-		if e.showsDebug {
-			instructionsText.Clear()
-			zeroPageText.Clear()
-			stackText.Clear()
-			ramText.Clear()
-			cartridgeText.Clear()
-
-			e.DrawInstructions(instructionsText)
-			e.DrawZeroPage(zeroPageText)
-			e.DrawStack(stackText)
-			e.DrawRAM(ramText)
-			e.DrawCartridge(cartridgeText)
-
-			moved := pixel.IM
-			if !e.showsInfo {
-				moved = moved.Moved(pixel.V(0, 200))
-			}
-			instructionsText.Draw(e.Window, pixel.IM.Scaled(instructionsText.Orig, 2).Chained(moved))
-			cartridgeText.Draw(e.Window, pixel.IM.Scaled(cartridgeText.Orig, 2).Chained(moved))
-			zeroPageText.Draw(e.Window, moved)
-			stackText.Draw(e.Window, moved)
-			ramText.Draw(e.Window, moved)
-		}
+	}
+	/*
 		if e.showsPatternTables {
 			e.DrawCHRROM(0).Draw(e.Window, pixel.IM.Moved(pixel.V(256+5, 256+5)).Scaled(pixel.V(256+5, 256+5), 4))
 			e.DrawCHRROM(1).Draw(e.Window, pixel.IM.Moved(pixel.V(256*3+10, 256+5)).Scaled(pixel.V(256*3+10, 256+5), 4))
 		}
+	*/
+}
 
-		// Update frame
-		e.Window.Update()
-	}
+func (e *Emulator) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
+	return WindowWidth, WindowHeight
 }
 
 func (e *Emulator) HandleInput() {
 	// 'R' resets the emulator
-	if e.Window.JustPressed(pixelgl.KeyR) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
 		e.Reset()
 	}
 
 	// 'D' toggles the display of debug info
-	if e.Window.JustPressed(pixelgl.KeyD) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyD) {
 		e.showsDebug = !e.showsDebug
 	}
 
 	// 'I' toggles the display of info
-	if e.Window.JustPressed(pixelgl.KeyI) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyI) {
 		e.showsInfo = !e.showsInfo
 	}
 
 	// 'P' toggles the display of pattern tables
-	if e.Window.JustPressed(pixelgl.KeyP) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
 		e.showsPatternTables = !e.showsPatternTables
 	}
 
 	// 'X' toggles the RAM program counter (TODO: ???)
-	if e.Window.JustPressed(pixelgl.KeyX) && !e.autoRunEnabled {
+	if inpututil.IsKeyJustPressed(ebiten.KeyX) && !e.autoRunEnabled {
 		e.showsRAMPC = !e.showsRAMPC
 	}
 
 	// 'L' toggles logging
-	if e.Window.JustPressed(pixelgl.KeyL) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyL) {
 		if e.LoggingEnabled {
 			e.StopLogging()
 		} else {
@@ -185,7 +205,7 @@ func (e *Emulator) HandleInput() {
 	}
 
 	// 'Enter' executes one CPU instruction if auto run is disabled
-	if e.Window.JustPressed(pixelgl.KeyEnter) && !e.autoRunEnabled {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) && !e.autoRunEnabled {
 		if e.requestedSteps == 0 {
 			e.requestedSteps = 1
 		}
@@ -204,61 +224,61 @@ func (e *Emulator) HandleInput() {
 	}
 
 	// 'Space' toggles the auto run mode
-	if e.Window.JustPressed(pixelgl.KeySpace) {
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
 		e.autoRunEnabled = !e.autoRunEnabled
 	}
 
 	// 'Right Arrow' issues one Master Clock
-	if e.Window.JustPressed(pixelgl.KeyRight) && !e.autoRunEnabled {
+	if inpututil.IsKeyJustPressed(ebiten.KeyRight) && !e.autoRunEnabled {
 		e.Clock()
 	}
 
 	// 'Up Arrow' issues three Master Clocks e.g. one CPU clock
-	if e.Window.JustPressed(pixelgl.KeyUp) && !e.autoRunEnabled {
+	if inpututil.IsKeyJustPressed(ebiten.KeyUp) && !e.autoRunEnabled {
 		e.Clock()
 		e.Clock()
 		e.Clock()
 	}
 
 	// The numpad number keys add the requested digit to the end of the number of steps that will be requested
-	if e.Window.JustPressed(pixelgl.KeyKP0) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyKP0) {
 		e.requestedSteps = e.requestedSteps*10 + 0
 	}
-	if e.Window.JustPressed(pixelgl.KeyKP1) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyKP1) {
 		e.requestedSteps = e.requestedSteps*10 + 1
 	}
-	if e.Window.JustPressed(pixelgl.KeyKP2) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyKP2) {
 		e.requestedSteps = e.requestedSteps*10 + 2
 	}
-	if e.Window.JustPressed(pixelgl.KeyKP3) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyKP3) {
 		e.requestedSteps = e.requestedSteps*10 + 3
 	}
-	if e.Window.JustPressed(pixelgl.KeyKP4) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyKP4) {
 		e.requestedSteps = e.requestedSteps*10 + 4
 	}
-	if e.Window.JustPressed(pixelgl.KeyKP5) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyKP5) {
 		e.requestedSteps = e.requestedSteps*10 + 5
 	}
-	if e.Window.JustPressed(pixelgl.KeyKP6) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyKP6) {
 		e.requestedSteps = e.requestedSteps*10 + 6
 	}
-	if e.Window.JustPressed(pixelgl.KeyKP7) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyKP7) {
 		e.requestedSteps = e.requestedSteps*10 + 7
 	}
-	if e.Window.JustPressed(pixelgl.KeyKP8) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyKP8) {
 		e.requestedSteps = e.requestedSteps*10 + 8
 	}
-	if e.Window.JustPressed(pixelgl.KeyKP9) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyKP9) {
 		e.requestedSteps = e.requestedSteps*10 + 9
 	}
 
 	// 'Escape' clears the number of requested steps
-	if e.Window.JustPressed(pixelgl.KeyEscape) {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		e.requestedSteps = 0
 	}
 
 	// 'Q' sets the program counter to 0x4000
-	if e.Window.JustPressed(pixelgl.KeyQ) && !e.autoRunEnabled {
+	if inpututil.IsKeyJustPressed(ebiten.KeyQ) && !e.autoRunEnabled {
 		e.Reset()
 		e.CPU.PC = 0xC000
 		e.CPU.P = 0x24
@@ -266,27 +286,52 @@ func (e *Emulator) HandleInput() {
 }
 
 // Audio Streamer
-func (e *Emulator) Audio() beep.Streamer {
+func (e *Emulator) Read(buf []byte) (int, error) {
 	// The function gets called if the audio hardware request new audio samples.
 	// The length of the sample array indicates how many sample are requested.
-	return beep.StreamerFunc(func(samples [][2]float64) (n int, ok bool) {
-		for i := range samples {
-			// If the emulator is set to auto run:
-			// Run the emulation until the time of one audio sample passed.
-			if e.autoRunEnabled {
-				for !e.Clock() {
-					e.autoRunCycles++
-				}
 
-				// Get the audio sample for the APU
-				sample := e.APU.GetAudioSample()
-				samples[i][0] = sample
-				samples[i][1] = sample
-			} else {
-				// No sound when auto run is false
-				samples[i] = [2]float64{}
+	if len(e.remainingSamples) > 0 {
+		n := copy(buf, e.remainingSamples)
+		e.remainingSamples = e.remainingSamples[n:]
+		return n, nil
+	}
+
+	var origBuf []byte
+	if len(buf)%4 > 0 {
+		origBuf = buf
+		buf = make([]byte, len(origBuf)+4-len(origBuf)%4)
+	}
+
+	for i := 0; i < len(buf)/4; i++ {
+		if e.autoRunEnabled {
+			for !e.Clock() {
+				e.autoRunCycles++
 			}
+
+			// Get the audio sample for the APU
+			sample := e.APU.GetAudioSample()
+			buf[4*i] = byte(sample)
+			buf[4*i+1] = byte(sample >> 8)
+			buf[4*i+2] = byte(sample)
+			buf[4*i+3] = byte(sample >> 8)
+		} else {
+			// No sound when auto run is false
+			sample := 0
+			buf[4*i] = byte(sample)
+			buf[4*i+1] = byte(sample >> 8)
+			buf[4*i+2] = byte(sample)
+			buf[4*i+3] = byte(sample >> 8)
 		}
-		return len(samples), true
-	})
+	}
+
+	if origBuf != nil {
+		n := copy(origBuf, buf)
+		e.remainingSamples = buf[n:]
+		return n, nil
+	}
+	return len(buf), nil
+}
+
+func (e *Emulator) Close() error {
+	return nil
 }

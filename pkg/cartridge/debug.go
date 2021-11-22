@@ -1,7 +1,7 @@
 package cartridge
 
-import "github.com/faiface/pixel/text"
+import "strings"
 
 type Debugger interface {
-	DebugDisplay(*text.Text)
+	DebugDisplay(*strings.Builder)
 }

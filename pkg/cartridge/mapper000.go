@@ -3,7 +3,7 @@ package cartridge
 import (
 	"fmt"
 	"github.com/exp625/gones/pkg/plz"
-	"github.com/faiface/pixel/text"
+	"strings"
 )
 
 type Mapper000 struct {
@@ -89,7 +89,7 @@ func (m *Mapper000) Mirroring() bool {
 func (m *Mapper000) Reset() {
 }
 
-func (m *Mapper000) DebugDisplay(text *text.Text) {
+func (m *Mapper000) DebugDisplay(text *strings.Builder) {
 	// If I understand the wiki correctly, the ram is only use by some weird type of nes.
 	// No other game has ram on the cartridge
 	plz.Just(fmt.Fprint(text, "Cartridge with Mapper 000\n"))
