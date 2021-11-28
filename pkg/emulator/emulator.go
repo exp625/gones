@@ -169,7 +169,6 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 		op.GeoM.Translate(128*4+5, 1000-(128*4))
 		screen.DrawImage(e.DrawCHRROM(1), op)
 	}
-	*/
 }
 
 func (e *Emulator) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -296,6 +295,9 @@ func (e *Emulator) HandleInput() {
 func (e *Emulator) Read(buf []byte) (int, error) {
 	// The function gets called if the audio hardware request new audio samples.
 	// The length of the sample array indicates how many sample are requested.
+
+	// Force the maximum sample time to be 0,016 s = 1/60
+	buf = make([]byte, AudioSampleRate*4/60)
 
 	if len(e.remainingSamples) > 0 {
 		n := copy(buf, e.remainingSamples)
