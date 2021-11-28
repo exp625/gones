@@ -277,7 +277,7 @@ func (cpu *CPU) generateInstructions() {
 	cpu.Instructions[0xFE] = Instruction{"ABX", "INC", cpu.ABX, cpu.INC, 3, 7, true}
 	cpu.Instructions[0xFF] = Instruction{"ABX", "ISB", cpu.ABX, cpu.ISC, 3, 7, false}
 
-	for i := 0; i < 0xFF; i++ {
+	for i := 0; i <= 0xFF; i++ {
 		cpu.Mnemonics[uint8(i)] = [2]string{cpu.Instructions[i].ExecuteMnemonic, cpu.Instructions[i].AddressModeMnemonic}
 	}
 }

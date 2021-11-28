@@ -45,6 +45,7 @@ func (e *Emulator) DrawInstructions(t *textutil.Text) {
 	offset := uint16(0)
 	if e.CPU.CycleCount < 0 {
 		plz.Just(fmt.Fprint(t, "ERR"))
+		return
 	}
 	for j := 0; j <= 5; j++ {
 		if j == 0 {
