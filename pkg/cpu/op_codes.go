@@ -3,6 +3,7 @@ package cpu
 // Op Code Matrix taken from http://www.6502.org/documents/datasheets/rockwell/rockwell_r650x_r651x.pdf
 func (cpu *CPU) generateInstructions() {
 	cpu.Instructions = [256]Instruction{}
+	cpu.Mnemonics = make(map[uint8][2]string, 256)
 
 	cpu.Instructions[0x00] = Instruction{"IMP", "BRK", cpu.IMP, cpu.BRK, 1, 7, true}
 	cpu.Instructions[0x01] = Instruction{"IDX", "ORA", cpu.IDX, cpu.ORA, 2, 6, true}
@@ -275,4 +276,8 @@ func (cpu *CPU) generateInstructions() {
 	cpu.Instructions[0xFD] = Instruction{"ABX", "SBC", cpu.ABX, cpu.SBC, 3, 4, true}
 	cpu.Instructions[0xFE] = Instruction{"ABX", "INC", cpu.ABX, cpu.INC, 3, 7, true}
 	cpu.Instructions[0xFF] = Instruction{"ABX", "ISB", cpu.ABX, cpu.ISC, 3, 7, false}
+
+	for i := 0; i < 0xFF; i++ {
+		cpu.Mnemonics[uint8(i)] = [2]string{cpu.Instructions[i].ExecuteMnemonic, cpu.Instructions[i].AddressModeMnemonic}
+	}
 }

@@ -1,7 +1,9 @@
 package cartridge
 
-import "strings"
+import (
+	"github.com/exp625/gones/internal/textutil"
+)
 
 type Debugger interface {
-	DebugDisplay(*strings.Builder)
+	DebugDisplay(t *textutil.Text)
 }

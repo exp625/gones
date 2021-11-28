@@ -14,6 +14,7 @@ func main() {
 	}
 
 	e, err := emulator.New(romFile, true)
+	e.Init()
 	if err != nil {
 		log.Fatal("failed to set up emulator: ", err)
 	}

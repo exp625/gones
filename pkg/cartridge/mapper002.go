@@ -2,8 +2,8 @@ package cartridge
 
 import (
 	"fmt"
+	"github.com/exp625/gones/internal/textutil"
 	"github.com/exp625/gones/pkg/plz"
-	"strings"
 )
 
 type Mapper002 struct {
@@ -87,7 +87,7 @@ func (m *Mapper002) Mirroring() bool {
 func (m *Mapper002) Reset() {
 }
 
-func (m *Mapper002) DebugDisplay(text *strings.Builder) {
+func (m *Mapper002) DebugDisplay(text *textutil.Text) {
 	plz.Just(fmt.Fprint(text, "Cartridge with Mapper 002\n"))
 	plz.Just(fmt.Fprintf(text, "PRG ROM Size: %d * 16 KB\n", m.cartridge.PrgRomSize))
 	plz.Just(fmt.Fprintf(text, "PRG BANK    : %d \n", m.bankSelect))

@@ -1,16 +1,13 @@
 package emulator
 
 import (
+	"github.com/exp625/gones/internal/textutil"
 	"github.com/exp625/gones/pkg/cartridge"
 	"github.com/exp625/gones/pkg/nes"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
-	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-	"github.com/hajimehoshi/ebiten/v2/text"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/opentype"
-	"image/color"
+	"golang.org/x/image/font/basicfont"
 	"io/ioutil"
 	"log"
 	"time"
@@ -27,26 +24,14 @@ const (
 )
 
 var (
-	normalFont font.Face
-	top        int
+	top              int
+	cpuText          *textutil.Text
+	instructionsText *textutil.Text
+	cartridgeText    *textutil.Text
+	zeroPageText     *textutil.Text
+	stackText        *textutil.Text
+	ramText          *textutil.Text
 )
-
-func init() {
-	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	const dpi = 72
-	normalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
-		Size:    24,
-		DPI:     dpi,
-		Hinting: font.HintingFull,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-}
 
 // Emulator struct
 type Emulator struct {
@@ -82,10 +67,13 @@ func New(romFile string, debug bool) (*Emulator, error) {
 		NES:        nes.New(NESClockTime, NESAudioSampleTime),
 		showsDebug: debug,
 		showsInfo:  debug,
-		showsRAMPC: debug,
+		showsRAMPC: false,
 	}
 	e.InsertCartridge(c)
-
+	err = e.Init()
+	if err != nil {
+		log.Fatal(err)
+	}
 	return e, nil
 }
 
@@ -106,23 +94,19 @@ func (e *Emulator) Init() error {
 		e.player.Play()
 	}
 
-	top = 0
-
 	// Set up text displays
-	/*
-		cpuText := text.New(pixel.V(0, top), atlas)
-		instructionsText := text.New(pixel.V(0, top-200), atlas)
-		cartridgeText := text.New(pixel.V(800, top-200), atlas)
-		zeroPageText := text.New(pixel.V(0, top-370), atlas)
-		stackText := text.New(pixel.V(400, top-370), atlas)
-		ramText := text.New(pixel.V(0, top-620), atlas)
-	*/
-	return nil
+	cpuText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 0, 0, 2)
+	instructionsText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, -17, 200, 2)
+	cartridgeText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 800-17, 200, 2)
+	zeroPageText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 0-17, 370, 1)
+	stackText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 400-17, 370, 1)
+	ramText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 0-17, 620, 1)
 
+	return nil
 }
 
 func (e *Emulator) Update() error {
-
+	textutil.Update()
 	// Handle input
 	e.HandleInput()
 
@@ -132,30 +116,47 @@ func (e *Emulator) Update() error {
 	}
 	e.autoRunStarted = time.Now()
 
-	// Handle user input
-	e.HandleInput()
-
 	return nil
 }
 
 func (e *Emulator) Draw(screen *ebiten.Image) {
+	// Clear Text
+	cpuText.Clear()
+	instructionsText.Clear()
+	zeroPageText.Clear()
+	stackText.Clear()
+	ramText.Clear()
+	cartridgeText.Clear()
 
 	// Show debug info
 	if e.showsInfo {
-		text.Draw(screen, e.DrawCPU(), normalFont, 0, 0, color.White)
+		e.DrawCPU(cpuText)
+		cpuText.Draw(screen)
 	}
 	if e.showsDebug {
 		if !e.showsInfo {
-			top = 200
+			instructionsText.Position(0, 0)
+			zeroPageText.Position(0, 170)
+			stackText.Position(400, 170)
+			ramText.Position(0, 420)
+			cartridgeText.Position(800, 0)
 		} else {
-			top = 0
+			instructionsText.Position(0, 200)
+			zeroPageText.Position(0, 370)
+			stackText.Position(400, 370)
+			ramText.Position(0, 620)
+			cartridgeText.Position(800, 200)
 		}
-		text.Draw(screen, e.DrawInstructions(), normalFont, 0, 200-top, color.White)
-		text.Draw(screen, e.DrawZeroPage(), normalFont, 0, 370-top, color.White)
-		text.Draw(screen, e.DrawStack(), normalFont, 400, 370-top, color.White)
-		text.Draw(screen, e.DrawRAM(), normalFont, 0, 620-top, color.White)
-		text.Draw(screen, e.DrawCartridge(), normalFont, 800, 200-top, color.White)
-
+		e.DrawInstructions(instructionsText)
+		instructionsText.Draw(screen)
+		e.DrawZeroPage(zeroPageText)
+		zeroPageText.Draw(screen)
+		e.DrawStack(stackText)
+		stackText.Draw(screen)
+		e.DrawRAM(ramText)
+		ramText.Draw(screen)
+		e.DrawCartridge(cartridgeText)
+		cartridgeText.Draw(screen)
 	}
 	/*
 		if e.showsPatternTables {
