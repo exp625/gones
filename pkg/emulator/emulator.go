@@ -158,11 +158,17 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 		e.DrawCartridge(cartridgeText)
 		cartridgeText.Draw(screen)
 	}
-	/*
-		if e.showsPatternTables {
-			e.DrawCHRROM(0).Draw(e.Window, pixel.IM.Moved(pixel.V(256+5, 256+5)).Scaled(pixel.V(256+5, 256+5), 4))
-			e.DrawCHRROM(1).Draw(e.Window, pixel.IM.Moved(pixel.V(256*3+10, 256+5)).Scaled(pixel.V(256*3+10, 256+5), 4))
-		}
+
+	if e.showsPatternTables {
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Scale(4, 4)
+		op.GeoM.Translate(0, 1000-(128*4))
+		screen.DrawImage(e.DrawCHRROM(0), op)
+		op.GeoM.Reset()
+		op.GeoM.Scale(4, 4)
+		op.GeoM.Translate(128*4+5, 1000-(128*4))
+		screen.DrawImage(e.DrawCHRROM(1), op)
+	}
 	*/
 }
 

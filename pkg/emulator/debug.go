@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/exp625/gones/internal/textutil"
 	"github.com/exp625/gones/pkg/plz"
-	"github.com/faiface/pixel"
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/colornames"
 	"image"
@@ -185,7 +184,7 @@ func (e *Emulator) DrawCartridge(t *textutil.Text) {
 	e.Cartridge.Mapper.DebugDisplay(t)
 }
 
-func (e *Emulator) DrawCHRROM(table int) *pixel.Sprite {
+func (e *Emulator) DrawCHRROM(table int) *ebiten.Image {
 	width := 128
 	height := 128
 
@@ -225,6 +224,5 @@ func (e *Emulator) DrawCHRROM(table int) *pixel.Sprite {
 			}
 		}
 	}
-	pic := pixel.PictureDataFromImage(img)
-	return pixel.NewSprite(pic, pic.Bounds())
+	return ebiten.NewImageFromImage(img)
 }
