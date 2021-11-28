@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/exp625/gones/pkg/emulator"
-	"github.com/faiface/pixel/pixelgl"
+	"github.com/hajimehoshi/ebiten/v2"
 	"log"
 	"os"
 )
@@ -14,9 +14,15 @@ func main() {
 	}
 
 	e, err := emulator.New(romFile, true)
+	e.Init()
 	if err != nil {
 		log.Fatal("failed to set up emulator: ", err)
 	}
 
-	pixelgl.Run(e.Run)
+	ebiten.SetWindowSize(1200, 1000)
+	ebiten.SetWindowTitle("GoNES")
+	ebiten.SetFPSMode(ebiten.FPSModeVsyncOn)
+	if err := ebiten.RunGame(e); err != nil {
+		log.Fatal(err)
+	}
 }

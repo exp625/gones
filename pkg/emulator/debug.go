@@ -2,16 +2,17 @@ package emulator
 
 import (
 	"fmt"
+	"github.com/exp625/gones/internal/textutil"
 	"github.com/exp625/gones/pkg/plz"
-	"github.com/faiface/pixel"
-	"github.com/faiface/pixel/text"
+	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/colornames"
 	"image"
 	"image/color"
 )
 
-func (e *Emulator) DrawCPU(t *text.Text) {
-	plz.Just(fmt.Fprintf(t, "Auto Run Mode: \t %t \t Logging Enabled: \t %t \n", e.autoRunEnabled, e.LoggingEnabled))
+func (e *Emulator) DrawCPU(t *textutil.Text) {
+
+	plz.Just(fmt.Fprintf(t, "FPS: %0.2f \t Auto Run Mode: \t %t \t Logging Enabled: \t %t \n", ebiten.CurrentFPS(), e.autoRunEnabled, e.LoggingEnabled))
 	plz.Just(fmt.Fprintf(t, "Master Clock Count: \t %d\n", e.NES.MasterClockCount))
 	plz.Just(fmt.Fprintf(t, "CPU Clock Count: \t %d \t Requested: \t %d \n", e.CPU.ClockCount, e.requestedSteps))
 	plz.Just(fmt.Fprintf(t, "Clock Cycles Per Second (during auto run): %0.2f/s\n",
@@ -24,14 +25,14 @@ func (e *Emulator) DrawCPU(t *text.Text) {
 	arr := "CZIDB-VN"
 	for i := 0; i < 8; i++ {
 		if e.CPU.Get(1 << i) {
-			t.Color = colornames.Green
+			t.Color(colornames.Green)
 		} else {
-			t.Color = colornames.Red
+			t.Color(colornames.Red)
 		}
 		plz.Just(fmt.Fprint(t, string(arr[i])))
 	}
-	t.Color = colornames.White
-	plz.Just(fmt.Fprintf(t, "%02X", e.CPU.P))
+	t.Color(colornames.White)
+	plz.Just(fmt.Fprintf(t, "\t%02X", e.CPU.P))
 	plz.Just(fmt.Fprint(t, "\n"))
 	plz.Just(fmt.Fprintf(t, "PC: 0x%02X\t", e.CPU.PC))
 	plz.Just(fmt.Fprintf(t, "A: 0x%02X\t", e.CPU.A))
@@ -40,7 +41,7 @@ func (e *Emulator) DrawCPU(t *text.Text) {
 	plz.Just(fmt.Fprintf(t, "S: 0x%02X\t\n", e.CPU.S))
 }
 
-func (e *Emulator) DrawInstructions(t *text.Text) {
+func (e *Emulator) DrawInstructions(t *textutil.Text) {
 	offset := uint16(0)
 	if e.CPU.CycleCount < 0 {
 		plz.Just(fmt.Fprint(t, "ERR"))
@@ -48,7 +49,7 @@ func (e *Emulator) DrawInstructions(t *text.Text) {
 	}
 	for j := 0; j <= 5; j++ {
 		if j == 0 {
-			t.Color = colornames.Yellow
+			t.Color(colornames.Yellow)
 		}
 		if e.showsRAMPC {
 			plz.Just(fmt.Fprintf(t, "%04X ", (e.CPU.PC+offset-0x8000)%0x4000*uint16(e.Cartridge.PrgRomSize)+0x0010))
@@ -102,58 +103,59 @@ func (e *Emulator) DrawInstructions(t *text.Text) {
 					plz.Just(fmt.Fprintf(t, "$%02X%02X,Y @ %04X = %02X", e.CPURead(e.CPU.PC+2), e.CPURead(e.CPU.PC+1), addr, data))
 				}
 			}
-			t.Color = colornames.White
+			t.Color(colornames.White)
 			offset += inst.Length
 			plz.Just(fmt.Fprint(t, "\n"))
 		}
 	}
 }
 
-func (e *Emulator) DrawZeroPage(t *text.Text) {
-	t.Color = colornames.White
+func (e *Emulator) DrawZeroPage(t *textutil.Text) {
+
+	t.Color(colornames.White)
 	plz.Just(fmt.Fprint(t, "Zero Page:\n     "))
-	t.Color = colornames.Yellow
+	t.Color(colornames.Yellow)
 	for i := 0; i <= 0xF; i++ {
 		plz.Just(fmt.Fprintf(t, "%02X ", uint16(i)))
 	}
 
 	for i := 0x0000; i <= 0x00FF; i++ {
 		if i%16 == 0 {
-			t.Color = colornames.Yellow
+			t.Color(colornames.Yellow)
 			plz.Just(fmt.Fprintf(t, "\n%04X ", uint16(i&0xFFF0)))
 		}
-		t.Color = colornames.White
+		t.Color(colornames.White)
 		plz.Just(fmt.Fprintf(t, "%02X ", e.CPURead(uint16(i))))
 	}
 }
 
-func (e *Emulator) DrawStack(t *text.Text) {
-	t.Color = colornames.White
+func (e *Emulator) DrawStack(t *textutil.Text) {
+
+	t.Color(colornames.White)
 	plz.Just(fmt.Fprintf(t, "Stack: 0x%02X\n     ", e.CPU.S))
-	t.Color = colornames.Yellow
+	t.Color(colornames.Yellow)
 	for i := 0; i <= 0xF; i++ {
 		plz.Just(fmt.Fprintf(t, "%02X ", uint16(i)))
 	}
 
 	for i := 0x0100; i <= 0x01FF; i++ {
 		if i%16 == 0 {
-			t.Color = colornames.Yellow
+			t.Color(colornames.Yellow)
 			plz.Just(fmt.Fprintf(t, "\n%04X ", uint16(i&0xFFF0)))
 		}
 		if e.CPU.S == uint8(i) {
-			t.Color = colornames.Green
+			t.Color(colornames.Green)
 		} else {
-			t.Color = colornames.White
+			t.Color(colornames.White)
 		}
 		plz.Just(fmt.Fprintf(t, "%02X ", e.CPURead(uint16(i))))
 	}
-
 }
 
-func (e *Emulator) DrawRAM(t *text.Text) {
-	t.Color = colornames.White
+func (e *Emulator) DrawRAM(t *textutil.Text) {
+	t.Color(colornames.White)
 	plz.Just(fmt.Fprint(t, "Ram Content:\n     "))
-	t.Color = colornames.Yellow
+	t.Color(colornames.Yellow)
 	for i := 0; i <= 0xF; i++ {
 		plz.Just(fmt.Fprintf(t, "%02X ", uint16(i)))
 	}
@@ -169,9 +171,9 @@ func (e *Emulator) DrawRAM(t *text.Text) {
 		}
 		// Display the "row" of memory iuf
 		if hasContent {
-			t.Color = colornames.Yellow
+			t.Color(colornames.Yellow)
 			plz.Just(fmt.Fprintf(t, "\n%04X ", uint16(x&0xFFF0)))
-			t.Color = colornames.White
+			t.Color(colornames.White)
 			for y := 0; y <= 15; y++ {
 				plz.Just(fmt.Fprintf(t, "%02X ", e.CPURead(uint16(x+y))))
 			}
@@ -179,11 +181,11 @@ func (e *Emulator) DrawRAM(t *text.Text) {
 	}
 }
 
-func (e *Emulator) DrawCartridge(t *text.Text) {
+func (e *Emulator) DrawCartridge(t *textutil.Text) {
 	e.Cartridge.Mapper.DebugDisplay(t)
 }
 
-func (e *Emulator) DrawCHRROM(table int) *pixel.Sprite {
+func (e *Emulator) DrawCHRROM(table int) *ebiten.Image {
 	width := 128
 	height := 128
 
@@ -223,6 +225,5 @@ func (e *Emulator) DrawCHRROM(table int) *pixel.Sprite {
 			}
 		}
 	}
-	pic := pixel.PictureDataFromImage(img)
-	return pixel.NewSprite(pic, pic.Bounds())
+	return ebiten.NewImageFromImage(img)
 }

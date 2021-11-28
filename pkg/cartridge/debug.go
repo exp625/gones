@@ -1,7 +1,9 @@
 package cartridge
 
-import "github.com/faiface/pixel/text"
+import (
+	"github.com/exp625/gones/internal/textutil"
+)
 
 type Debugger interface {
-	DebugDisplay(*text.Text)
+	DebugDisplay(t *textutil.Text)
 }

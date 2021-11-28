@@ -7,8 +7,7 @@ import (
 	"github.com/exp625/gones/pkg/cpu"
 	"github.com/exp625/gones/pkg/emulator"
 	"github.com/exp625/gones/pkg/plz"
-	"github.com/faiface/beep"
-	"github.com/faiface/beep/speaker"
+
 	"log"
 	"os"
 	"strings"
@@ -33,14 +32,6 @@ func TestCPULogOutput(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer plz.Close(logFile)
-
-	sampleRate := beep.SampleRate(emulator.AudioSampleRate)
-	err = speaker.Init(sampleRate, sampleRate.N(time.Second/10))
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer speaker.Close()
-	speaker.Play(e.Audio())
 
 	// Run same number of instructions as in nestest.log
 	for i := 0; i < 8992; i++ {
