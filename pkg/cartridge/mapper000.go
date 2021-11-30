@@ -34,6 +34,10 @@ func NewMapper000(c *Cartridge) *Mapper000 {
 // CPU $8000-$BFFF: First 16 KB of ROM.
 // CPU $C000-$FFFF: Last 16 KB of ROM (NROM-256) or mirror of $8000-$BFFF (NROM-128).
 
+func (m *Mapper000) CPUMapRead(location uint16) uint16{
+	return location
+}
+
 func (m *Mapper000) CPURead(location uint16) (bool, uint8) {
 	if location >= 0x6000 && location <= 0x7FFF {
 		// Read to 0x6001 should result in array index 1
@@ -54,6 +58,10 @@ func (m *Mapper000) CPURead(location uint16) (bool, uint8) {
 
 }
 
+func (m *Mapper000) CPUMapWrite(location uint16) uint16{
+	return location
+}
+
 func (m *Mapper000) CPUWrite(location uint16, data uint8) bool {
 	if location >= 0x6000 && location <= 0x7FFF {
 		// Write to 0x6001 should result in array index 1
@@ -64,11 +72,19 @@ func (m *Mapper000) CPUWrite(location uint16, data uint8) bool {
 	return false
 }
 
+func (m *Mapper000) PPUMapWrite(location uint16) uint16{
+	return location
+}
+
 func (m *Mapper000) PPURead(location uint16) (bool, uint8) {
 	if location <= 0x1FFF {
 		return true, m.cartridge.ChrRom[location]
 	}
 	return false, 0
+}
+
+func (m *Mapper000) PPUMapRead(location uint16) uint16{
+	return location
 }
 
 func (m *Mapper000) PPUWrite(location uint16, data uint8) bool {

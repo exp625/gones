@@ -161,13 +161,21 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 
 	if e.showsPatternTables {
 		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Scale(4, 4)
-		op.GeoM.Translate(0, 1000-(128*4))
-		screen.DrawImage(e.DrawCHRROM(0), op)
+		op.GeoM.Scale(2, 2)
+		op.GeoM.Translate(0, 1000-(240*4))
+		screen.DrawImage(e.NES.PPU.DrawNametable(0), op)
 		op.GeoM.Reset()
-		op.GeoM.Scale(4, 4)
-		op.GeoM.Translate(128*4+5, 1000-(128*4))
-		screen.DrawImage(e.DrawCHRROM(1), op)
+		op.GeoM.Scale(2, 2)
+		op.GeoM.Translate(256*2, 1000-(240*4))
+		screen.DrawImage(e.NES.PPU.DrawNametable(1), op)
+		op.GeoM.Reset()
+		op.GeoM.Scale(2, 2)
+		op.GeoM.Translate(0, 1000-(240*2))
+		screen.DrawImage(e.NES.PPU.DrawNametable(2), op)
+		op.GeoM.Reset()
+		op.GeoM.Scale(2, 2)
+		op.GeoM.Translate(256*2, 1000-(240*2))
+		screen.DrawImage(e.NES.PPU.DrawNametable(3), op)
 	}
 }
 

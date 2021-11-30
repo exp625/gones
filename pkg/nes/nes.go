@@ -13,10 +13,11 @@ import (
 
 // NES struct
 type NES struct {
-	APU *apu.APU
-	CPU *cpu.CPU
-	PPU *ppu.PPU
-	RAM *ram.RAM
+	APU  *apu.APU
+	CPU  *cpu.CPU
+	PPU  *ppu.PPU
+	RAM  *ram.RAM
+	VRAM *ram.RAM
 
 	Cartridge *cartridge.Cartridge
 
@@ -36,10 +37,12 @@ func New(clockTime float64, audioSampleTime float64) *NES {
 		AudioSampleTime: audioSampleTime,
 		CPU:             cpu.New(),
 		RAM:             &ram.RAM{},
+		VRAM:            &ram.RAM{},
 		PPU:             &ppu.PPU{},
 		APU:             &apu.APU{},
 	}
 	nes.CPU.Bus = nes
+	nes.PPU.Bus = nes
 	return nes
 }
 
@@ -92,21 +95,22 @@ func (nes *NES) InsertCartridge(c *cartridge.Cartridge) {
 }
 
 func (nes *NES) CPURead(location uint16) uint8 {
+	mappedLocation := nes.Cartridge.CPUMapRead(location)
 	switch {
-	case location <= 0x1FFF:
-		_, data := nes.RAM.Read(location % 0x0800)
+	case mappedLocation <= 0x1FFF:
+		_, data := nes.RAM.Read(mappedLocation % 0x0800)
 		return data
-	case 0x2000 <= location && location <= 0x3FFF:
-		_, data := nes.PPU.Read(0x2000 + location%0x0008)
+	case 0x2000 <= mappedLocation && mappedLocation <= 0x3FFF:
+		_, data := nes.PPU.CPURead(mappedLocation)
 		return data
-	case 0x4000 <= location && location <= 0x4017:
+	case 0x4000 <= mappedLocation && mappedLocation <= 0x4017:
 		// TODO: APU and I/O Registers
 		return 0xFF
-	case 0x4018 <= location && location <= 0x401F:
+	case 0x4018 <= mappedLocation && mappedLocation <= 0x401F:
 		// TODO: APU and I/O functionality that is normally disabled
 		return 0
-	case 0x4020 <= location:
-		_, data := nes.Cartridge.CPURead(location)
+	case 0x4020 <= mappedLocation:
+		_, data := nes.Cartridge.CPURead(mappedLocation)
 		return data
 	default:
 		panic("go is wrong")
@@ -114,37 +118,69 @@ func (nes *NES) CPURead(location uint16) uint8 {
 }
 
 func (nes *NES) CPUWrite(location uint16, data uint8) {
+	mappedLocation := nes.Cartridge.CPUMapWrite(location)
 	switch {
-	case location <= 0x1FFF:
-		nes.RAM.Write(location%0x0800, data)
-	case 0x2000 <= location && location <= 0x3FFF:
-		nes.PPU.Write(0x2000+location%0x0008, data)
-	case 0x4000 <= location && location <= 0x4017:
+	case mappedLocation <= 0x1FFF:
+		nes.RAM.Write(mappedLocation%0x0800, data)
+	case 0x2000 <= mappedLocation && mappedLocation <= 0x3FFF:
+		nes.PPU.CPUWrite(mappedLocation, data)
+	case 0x4000 <= mappedLocation && mappedLocation <= 0x4017:
 		// TODO: APU and I/O Registers
-	case 0x4018 <= location && location <= 0x401F:
+	case 0x4018 <= mappedLocation && mappedLocation <= 0x401F:
 		// TODO: APU and I/O functionality that is normally disabled
-	case 0x4020 <= location:
-		nes.Cartridge.CPUWrite(location, data)
+	case 0x4020 <= mappedLocation:
+		nes.Cartridge.CPUWrite(mappedLocation, data)
 	default:
 		panic("go is wrong")
 	}
 }
 
 func (nes *NES) PPURead(location uint16) uint8 {
+	mappedLocation := nes.Cartridge.PPUMapRead(location)
 	switch {
-	case location <= 0x1FFF:
-		_, data := nes.Cartridge.PPURead(location)
+	case mappedLocation <= 0x1FFF:
+		_, data := nes.Cartridge.PPURead(mappedLocation)
 		return data
+	case 0x2000 <= mappedLocation && mappedLocation <= 0x3FFF:
+		if mappedLocation >= 0x3000 {
+			mappedLocation -= 0x1000
+		}
+		if nes.Cartridge.Mirroring() {
+			// 1: vertical (horizontal arrangement) (CIRAM A10 = PPU A10)
+			nes.VRAM.Read((mappedLocation - 0x2000) % 0x800)
+		} else {
+			// 0: horizontal (vertical arrangement) (CIRAM A10 = PPU A11)
+			if mappedLocation-0x2000 <= 0x800 {
+				nes.VRAM.Read((mappedLocation - 0x2000) % 0x400)
+			} else {
+				nes.VRAM.Read((mappedLocation-0x2000)%0x400 + 0x400)
+			}
+		}
 	}
 	return 0
 }
 
 func (nes *NES) PPUWrite(location uint16, data uint8) {
+	mappedLocation := nes.Cartridge.PPUMapRead(location)
 	switch {
-	case location <= 0x1FFF:
-		nes.Cartridge.PPUWrite(location, data)
+	case mappedLocation <= 0x1FFF:
+		nes.Cartridge.PPUWrite(mappedLocation, data)
+	case 0x2000 <= mappedLocation && mappedLocation <= 0x3FFF:
+		if mappedLocation > 0x2FFF {
+			mappedLocation -= 0x1000
+		}
+		if nes.Cartridge.Mirroring() {
+			// 1: vertical (horizontal arrangement) (CIRAM A10 = PPU A10)
+			nes.VRAM.Write((mappedLocation-0x2000)%0x800, data)
+		} else {
+			// 0: horizontal (vertical arrangement) (CIRAM A10 = PPU A11)
+			if mappedLocation-0x2000 <= 0x800 {
+				nes.VRAM.Write((mappedLocation-0x2000)%0x400, data)
+			} else {
+				nes.VRAM.Write((mappedLocation-0x2000)%0x400+0x400, data)
+			}
+		}
 	}
-
 }
 
 func (nes *NES) Log() {

@@ -19,7 +19,11 @@ func NewMapper002(c *Cartridge) *Mapper002 {
 
 // From NES DEV WIKI https://wiki.nesdev.org/w/index.php?title=UxROM
 
-// Required for DUCK TALES!!!
+// Required for DUCK TALES! whooh ooh
+
+func (m *Mapper002) CPUMapRead(location uint16) uint16{
+	return location
+}
 
 // CPU $8000-$BFFF: 16 KB switchable PRG ROM bank
 // CPU $C000-$FFFF: 16 KB PRG ROM bank, fixed to the last bank
@@ -46,6 +50,10 @@ func (m *Mapper002) CPURead(location uint16) (bool, uint8) {
 
 }
 
+func (m *Mapper002) CPUMapWrite(location uint16) uint16{
+	return location
+}
+
 func (m *Mapper002) CPUWrite(location uint16, data uint8) bool {
 	if location >= 0x8000 {
 		// Any write to cartridge address space will change the selected bank
@@ -62,11 +70,19 @@ func (m *Mapper002) CPUWrite(location uint16, data uint8) bool {
 	return false
 }
 
+func (m *Mapper002) PPUMapRead(location uint16) uint16{
+	return location
+}
+
 func (m *Mapper002) PPURead(location uint16) (bool, uint8) {
 	if location <= 0x1FFF {
 		return true, m.cartridge.ChrRom[location]
 	}
 	return false, 0
+}
+
+func (m *Mapper002) PPUMapWrite(location uint16) uint16{
+	return location
 }
 
 func (m *Mapper002) PPUWrite(location uint16, data uint8) bool {
