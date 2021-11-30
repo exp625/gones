@@ -147,13 +147,16 @@ func (nes *NES) PPURead(location uint16) uint8 {
 		}
 		if nes.Cartridge.Mirroring() {
 			// 1: vertical (horizontal arrangement) (CIRAM A10 = PPU A10)
-			nes.VRAM.Read((mappedLocation - 0x2000) % 0x800)
+			_, data := nes.VRAM.Read((mappedLocation - 0x2000) % 0x800)
+			return data
 		} else {
 			// 0: horizontal (vertical arrangement) (CIRAM A10 = PPU A11)
 			if mappedLocation-0x2000 <= 0x800 {
-				nes.VRAM.Read((mappedLocation - 0x2000) % 0x400)
+				_, data := nes.VRAM.Read((mappedLocation - 0x2000) % 0x400)
+				return data
 			} else {
-				nes.VRAM.Read((mappedLocation-0x2000)%0x400 + 0x400)
+				_, data := nes.VRAM.Read((mappedLocation-0x2000)%0x400 + 0x400)
+				return data
 			}
 		}
 	}

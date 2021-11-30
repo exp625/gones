@@ -21,7 +21,7 @@ func NewMapper002(c *Cartridge) *Mapper002 {
 
 // Required for DUCK TALES! whooh ooh
 
-func (m *Mapper002) CPUMapRead(location uint16) uint16{
+func (m *Mapper002) CPUMapRead(location uint16) uint16 {
 	return location
 }
 
@@ -50,7 +50,7 @@ func (m *Mapper002) CPURead(location uint16) (bool, uint8) {
 
 }
 
-func (m *Mapper002) CPUMapWrite(location uint16) uint16{
+func (m *Mapper002) CPUMapWrite(location uint16) uint16 {
 	return location
 }
 
@@ -70,7 +70,7 @@ func (m *Mapper002) CPUWrite(location uint16, data uint8) bool {
 	return false
 }
 
-func (m *Mapper002) PPUMapRead(location uint16) uint16{
+func (m *Mapper002) PPUMapRead(location uint16) uint16 {
 	return location
 }
 
@@ -81,7 +81,7 @@ func (m *Mapper002) PPURead(location uint16) (bool, uint8) {
 	return false, 0
 }
 
-func (m *Mapper002) PPUMapWrite(location uint16) uint16{
+func (m *Mapper002) PPUMapWrite(location uint16) uint16 {
 	return location
 }
 

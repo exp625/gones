@@ -24,7 +24,6 @@ const (
 )
 
 var (
-	top              int
 	cpuText          *textutil.Text
 	instructionsText *textutil.Text
 	cartridgeText    *textutil.Text
@@ -78,7 +77,6 @@ func New(romFile string, debug bool) (*Emulator, error) {
 }
 
 func (e *Emulator) Init() error {
-
 	// Setup Audio
 	if e.audioContext == nil {
 		e.audioContext = audio.NewContext(AudioSampleRate)
@@ -96,7 +94,7 @@ func (e *Emulator) Init() error {
 
 	// Set up text displays
 	cpuText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 0, 0, 2)
-	instructionsText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, -17, 200, 2)
+	instructionsText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 0-17, 200, 2)
 	cartridgeText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 800-17, 200, 2)
 	zeroPageText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 0-17, 370, 1)
 	stackText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 400-17, 370, 1)

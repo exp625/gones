@@ -34,7 +34,7 @@ func NewMapper000(c *Cartridge) *Mapper000 {
 // CPU $8000-$BFFF: First 16 KB of ROM.
 // CPU $C000-$FFFF: Last 16 KB of ROM (NROM-256) or mirror of $8000-$BFFF (NROM-128).
 
-func (m *Mapper000) CPUMapRead(location uint16) uint16{
+func (m *Mapper000) CPUMapRead(location uint16) uint16 {
 	return location
 }
 
@@ -58,7 +58,7 @@ func (m *Mapper000) CPURead(location uint16) (bool, uint8) {
 
 }
 
-func (m *Mapper000) CPUMapWrite(location uint16) uint16{
+func (m *Mapper000) CPUMapWrite(location uint16) uint16 {
 	return location
 }
 
@@ -72,7 +72,7 @@ func (m *Mapper000) CPUWrite(location uint16, data uint8) bool {
 	return false
 }
 
-func (m *Mapper000) PPUMapWrite(location uint16) uint16{
+func (m *Mapper000) PPUMapWrite(location uint16) uint16 {
 	return location
 }
 
@@ -83,7 +83,7 @@ func (m *Mapper000) PPURead(location uint16) (bool, uint8) {
 	return false, 0
 }
 
-func (m *Mapper000) PPUMapRead(location uint16) uint16{
+func (m *Mapper000) PPUMapRead(location uint16) uint16 {
 	return location
 }
 

@@ -11,7 +11,6 @@ import (
 )
 
 func (e *Emulator) DrawCPU(t *textutil.Text) {
-
 	plz.Just(fmt.Fprintf(t, "FPS: %0.2f \t Auto Run Mode: \t %t \t Logging Enabled: \t %t \n", ebiten.CurrentFPS(), e.autoRunEnabled, e.LoggingEnabled))
 	plz.Just(fmt.Fprintf(t, "Master Clock Count: \t %d\n", e.NES.MasterClockCount))
 	plz.Just(fmt.Fprintf(t, "CPU Clock Count: \t %d \t Requested: \t %d \n", e.CPU.ClockCount, e.requestedSteps))
