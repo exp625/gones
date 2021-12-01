@@ -6,4 +6,6 @@ type Bus interface {
 	PPURead(location uint16) uint8
 	PPUWrite(location uint16, data uint8)
 	Log()
+	NMI()
+	IRQ()
 }

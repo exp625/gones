@@ -25,6 +25,8 @@ type CPU struct {
 
 	ClockCount int64
 	CycleCount int
+	RequestNMI bool
+	RequestIRQ bool
 }
 
 func New() *CPU {
@@ -46,11 +48,21 @@ func (cpu *CPU) Clock() {
 	if cpu.CycleCount == 0 {
 		opcode := cpu.Bus.CPURead(cpu.PC)
 		inst := cpu.Instructions[opcode]
-		if inst.Length != 0 {
-			cpu.Bus.Log()
-			loc, data, addCycle := inst.AddressMode()
-			inst.Execute(loc, data, inst.Length)
-			cpu.CycleCount += inst.ClockCycles + int(addCycle)
+		if cpu.RequestNMI {
+			cpu.NMI()
+			cpu.RequestNMI = false
+			cpu.CycleCount += 7
+		} else if cpu.RequestIRQ && !cpu.Get(FlagInterruptDisable) {
+			cpu.IRQ()
+			cpu.RequestIRQ = false
+			cpu.CycleCount += 8
+		} else {
+			if inst.Length != 0 {
+				cpu.Bus.Log()
+				loc, data, addCycle := inst.AddressMode()
+				inst.Execute(loc, data, inst.Length)
+				cpu.CycleCount += inst.ClockCycles + int(addCycle)
+			}
 		}
 	}
 	cpu.CycleCount--
@@ -75,7 +87,47 @@ func (cpu *CPU) Reset() {
 }
 
 func (cpu *CPU) IRQ() {
+	// Get current pc
+	pc := cpu.PC
+	// Store high bytes of pc to stack
+	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), uint8((pc>>8)&0x00FF))
+	cpu.S--
+	// Store low bytes of pc to stack
+	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), uint8(pc&0x00FF))
+	cpu.S--
+	// Set flags and store current pc onto stack
+	// From https://wiki.nesdev.org/w/index.php?title=Status_flags
+	// In the byte pushed, bit 5 is always set to 1, and bit 4 is 1 if from an instruction (PHP or BRK) or 0 if from an interrupt line being pulled low (/IRQ or /NMI).
+	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), cpu.P|FlagInterruptDisable)
+	cpu.S--
+	// Set Interrupt disable flag
+	// We don't want another interrupt inside the interrupt handler
+	cpu.Set(FlagInterruptDisable, true)
+	// Get pc from IRQ/BRK vector and jump to location
+	low := uint16(cpu.Bus.CPURead(IRQVector))
+	high := uint16(cpu.Bus.CPURead(IRQVector + 1))
+	cpu.PC = (high << 8) | low
 }
 
 func (cpu *CPU) NMI() {
+	// Get current pc
+	pc := cpu.PC
+	// Store high bytes of pc to stack
+	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), uint8((pc>>8)&0x00FF))
+	cpu.S--
+	// Store low bytes of pc to stack
+	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), uint8(pc&0x00FF))
+	cpu.S--
+	// Set flags and store current pc onto stack
+	// From https://wiki.nesdev.org/w/index.php?title=Status_flags
+	// In the byte pushed, bit 5 is always set to 1, and bit 4 is 1 if from an instruction (PHP or BRK) or 0 if from an interrupt line being pulled low (/IRQ or /NMI).
+	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), cpu.P|FlagInterruptDisable)
+	cpu.S--
+	// Set Interrupt disable flag
+	// We don't want another interrupt inside the interrupt handler
+	cpu.Set(FlagInterruptDisable, true)
+	// Get pc from NMI vector and jump to location
+	low := uint16(cpu.Bus.CPURead(NMIVector))
+	high := uint16(cpu.Bus.CPURead(NMIVector + 1))
+	cpu.PC = (high << 8) | low
 }

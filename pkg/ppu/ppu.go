@@ -53,6 +53,9 @@ func (ppu *PPU) Clock() {
 
 	if ppu.ScanLine == 241 && ppu.Position == 1 {
 		ppu.ppustatus |= 0b10000000
+		if ppu.ppuctrl >> 7 & 0x1 == 1 {
+			ppu.Bus.NMI()
+		}
 	}
 
 	if ppu.ScanLine == 261 && ppu.Position == 1 {
@@ -161,10 +164,11 @@ func (ppu *PPU) DrawNametable(table int) *ebiten.Image {
 			// Get tile byte
 			const nameTableBaseAddress = 0x2000
 			nameTableOffset := uint16(table * 0x400)
-			tileIndex := uint16(row*32 + tile)
+			tileIndex := row*32 + tile
 			tileByte := uint16(ppu.Bus.PPURead(nameTableBaseAddress + nameTableOffset + tileIndex))
+			// RRRRCCCC
 			// Background pattern table address (0: $0000; 1: $1000)
-			backgroundTable := uint16(ppu.ppuctrl >> 5 & 0x1)
+			backgroundTable := uint16(ppu.ppuctrl >> 4 & 0x1)
 
 			// Get tile byte
 			// DCBA98 76543210
@@ -193,8 +197,8 @@ func (ppu *PPU) DrawNametable(table int) *ebiten.Image {
 					} else {
 						c = color.Gray16{Y: 0x1111}
 					}
-					imgX := int(row*8 + tileX)
-					imgY := int(tile*8 + tileY)
+					imgX := int(tile*8 + tileX)
+					imgY := int(row*8 + tileY)
 					img.Set(imgX, imgY, c)
 				}
 			}

@@ -83,6 +83,7 @@ func (nes *NES) Reset() {
 	nes.CPU.Reset()
 	nes.PPU.Reset()
 	nes.RAM.Reset()
+	nes.VRAM.Reset()
 	nes.Cartridge.Reset()
 	nes.MasterClockCount = 0
 	nes.EmulatedTime = 0
@@ -184,6 +185,14 @@ func (nes *NES) PPUWrite(location uint16, data uint8) {
 			}
 		}
 	}
+}
+
+func (nes *NES) NMI () {
+	nes.CPU.RequestNMI = true
+}
+
+func (nes *NES) IRQ () {
+	nes.CPU.RequestIRQ = true
 }
 
 func (nes *NES) Log() {
