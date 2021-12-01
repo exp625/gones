@@ -14,6 +14,8 @@ type PPU struct {
 	Position   uint16
 	FrameCount uint64
 
+	Pallet [0x40][8]color.Color
+
 	// Registers
 	ppuctrl        uint8
 	ppumask        uint8
@@ -32,6 +34,12 @@ type PPU struct {
 
 	// oam
 	OAM [0xFF]byte
+}
+
+func New() *PPU {
+	p := &PPU{}
+	p.generatePallet()
+	return p
 }
 
 func (ppu *PPU) Clock() {

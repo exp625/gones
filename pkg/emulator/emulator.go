@@ -174,6 +174,10 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 		op.GeoM.Scale(2, 2)
 		op.GeoM.Translate(256*2, 1000-(240*2))
 		screen.DrawImage(e.NES.PPU.DrawNametable(3), op)
+		op.GeoM.Reset()
+		op.GeoM.Scale(32, 32)
+		op.GeoM.Translate(0, 0)
+		screen.DrawImage(e.NES.PPU.DrawPalette(), op)
 	}
 }
 

@@ -22,5 +22,6 @@ bin
 
 *.pem
 /log
+/test
 *.log
 *.nes

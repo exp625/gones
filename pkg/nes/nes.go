@@ -38,7 +38,7 @@ func New(clockTime float64, audioSampleTime float64) *NES {
 		CPU:             cpu.New(),
 		RAM:             &ram.RAM{},
 		VRAM:            &ram.RAM{},
-		PPU:             &ppu.PPU{},
+		PPU:             ppu.New(),
 		APU:             &apu.APU{},
 	}
 	nes.CPU.Bus = nes
