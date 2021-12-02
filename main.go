@@ -19,7 +19,7 @@ func main() {
 		log.Fatal("failed to set up emulator: ", err)
 	}
 
-	ebiten.SetWindowSize(1200, 1000)
+	ebiten.SetWindowSize(emulator.WindowWidth, emulator.WindowHeight)
 	ebiten.SetWindowTitle("GoNES")
 	ebiten.SetFPSMode(ebiten.FPSModeVsyncOn)
 	if err := ebiten.RunGame(e); err != nil {

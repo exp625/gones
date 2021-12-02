@@ -50,11 +50,7 @@ func (e *Emulator) DrawInstructions(t *textutil.Text) {
 		if j == 0 {
 			t.Color(colornames.Yellow)
 		}
-		if e.showsRAMPC {
-			plz.Just(fmt.Fprintf(t, "%04X ", (e.CPU.PC+offset-0x8000)%0x4000*uint16(e.Cartridge.PrgRomSize)+0x0010))
-		} else {
-			plz.Just(fmt.Fprintf(t, "%04X ", e.CPU.PC+offset))
-		}
+		plz.Just(fmt.Fprintf(t, "%04X ", e.CPU.PC+offset))
 		inst := e.CPU.Instructions[e.CPURead(e.CPU.PC+offset)]
 		i := 0
 		for ; i < int(inst.Length); i++ {
