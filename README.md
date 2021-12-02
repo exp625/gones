@@ -8,11 +8,11 @@ The following resources were used for the project:
 - Reset behaviour description [https://www.pagetable.com/?p=410](https://www.pagetable.com/?p=410)
 - The [cc65 assembler ](https://cc65.github.io/index.html)
 - [https://github.com/clbr/neslib](https://github.com/clbr/neslib)
+- [NTSC NES palette generator](https://bisqwit.iki.fi/utils/nespalette.php)
 
-This project uses the two awesome libraries
+This project the following awesome libraries
 
-- [https://github.com/faiface/pixel](https://github.com/faiface/pixel) for 2D display and user input
-- [https://github.com/faiface/beep](https://github.com/faiface/beep) for audio streaming
+- [Ebiten](https://ebiten.org/) for 2D display, audio and input
 
 ## Status
 
@@ -20,9 +20,10 @@ This project uses the two awesome libraries
 
 - [x] CPU Working "_We've built a working 6502 emulator. Kinda cool_"
 - [x] Nes Illegal Opcodes "_Look at the debug tool, it's amazing_"
-- [ ] PPU Working
+- [ ] PPU Debug Working
 - [ ] DMA Working
-- [ ] Cycle accurate
+- [ ] PPU Background Rendering Clock Accurate
+- [ ] PPU Sprite Rendering Working Clock Accurate
 - [ ] Input Working
 - [ ] APU Working
 - Implemented iNES Mappers: Mapper000, Mapper002
@@ -39,9 +40,10 @@ The rom file should be valid rom file including iNES header. You can build your 
 * ``Arrow Up`` - Execute one CPU Clock
 * ``Arror Left`` - Execute one Master/PPU Clock
 * ``R`` Reset
-* ``D`` Hide/Display Debug display
-* ``P`` Hide/Display Pattern Tables
-* ``I`` Hide/Display Emulator Information
+* ``F1`` Hide/Display CPU Debug display
+* ``F2`` Hide/Display Pattern Tables
+* ``F3`` Hide/Display Nametable Information
+* ``F4`` Hide/Display Palette Information
 * ``L`` Enable Logging
 * ``Keypad`` Enter requested instruction that should be executed when pressing enter. 0 = Disabled,
 * ``Esc`` Reset requested instructions
@@ -50,24 +52,11 @@ The rom file should be valid rom file including iNES header. You can build your 
 
 ### For Windows
 
-### Using Powershell and Docker
-
-1. Build the Docker Image using ``docker build -t gones-builder .``
-2. Compile the project: ``docker run -v "${PWD}":/usr/src/nes --rm builder``
-3. Run the emulator: ``.\bin\nes.exe``
-
-### Using WSL cross compilation
-
-1. Open a linux terminal inside the cloned repository
-2. Install the following packages ``libgl1-mesa-dev xorg-dev gcc-multilib gcc-mingw-w64 libasound2-dev``
-3. Run ``CGO_ENABLED=1 GOOS=windows GOARCH=amd64 CC=x86_64-w64-mingw32-gcc go build -o ./bin/nes.exe ./main.go``
+1. No CGO required. Just run ``go buid github.com/exp625/gones``
 
 ### For Linux
 
-### Using WSL cross compilation
-
-2. Install the following packages ``libgl1-mesa-dev xorg-dev gcc-multilib gcc-mingw-w64 libasound2-dev``
-3. Run ``go build -o ./bin/nes ./main.go``
+TODO
 
 ## Compiling C programs to 6502 using cc65
 
