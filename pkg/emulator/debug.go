@@ -6,8 +6,6 @@ import (
 	"github.com/exp625/gones/pkg/plz"
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/colornames"
-	"image"
-	"image/color"
 )
 
 func (e *Emulator) DrawCPU(t *textutil.Text) {
@@ -178,47 +176,4 @@ func (e *Emulator) DrawRAM(t *textutil.Text) {
 
 func (e *Emulator) DrawCartridge(t *textutil.Text) {
 	e.Cartridge.Mapper.DebugDisplay(t)
-}
-
-func (e *Emulator) DrawCHRROM(table int) *ebiten.Image {
-	width := 128
-	height := 128
-
-	upLeft := image.Point{X: 0, Y: 0}
-	lowRight := image.Point{X: width, Y: height}
-	img := image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
-
-	// DCBA98 76543210
-	// ---------------
-	// 0HRRRR CCCCPTTT
-	// |||||| |||||+++- T: Fine Y offset, the row number within a tile
-	// |||||| ||||+---- P: Bit plane (0: "lower"; 1: "upper")
-	// |||||| ++++----- 6502: Tile column
-	// ||++++---------- R: Tile row
-	// |+-------------- H: Half of sprite table (0: "left"; 1: "right")
-	// +--------------- 0: Pattern table is at $0000-$1FFF
-
-	for y := 0; y < 16; y++ {
-		for x := 0; x < 16; x++ {
-			for tileY := 0; tileY < 8; tileY++ {
-				addressPlane0 := uint16(table<<12 | y<<8 | x<<4 | 0<<3 | tileY)
-				addressPlane1 := uint16(table<<12 | y<<8 | x<<4 | 1<<3 | tileY)
-				plane0 := e.PPURead(addressPlane0)
-				plane1 := e.PPURead(addressPlane1)
-
-				for tileX := 0; tileX < 8; tileX++ {
-					if (plane0>>(7-tileX))&0x01 == 1 && (plane1>>(7-tileX))&0x01 == 1 {
-						img.Set(x*8+tileX, y*8+tileY, color.White)
-					} else if (plane1>>(7-tileX))&0x01 == 1 {
-						img.Set(x*8+tileX, y*8+tileY, color.Gray16{Y: 0xAAAA})
-					} else if (plane0>>(7-tileX))&0x01 == 1 {
-						img.Set(x*8+tileX, y*8+tileY, color.Gray16{Y: 0x5555})
-					} else {
-						img.Set(x*8+tileX, y*8+tileY, color.Gray16{Y: 0x1111})
-					}
-				}
-			}
-		}
-	}
-	return ebiten.NewImageFromImage(img)
 }

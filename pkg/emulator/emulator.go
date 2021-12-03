@@ -20,7 +20,7 @@ const (
 	NESClockTime       = 1.0 / PPUFrequency
 
 	WindowWidth  = 256 * 4
-	WindowHeight = 240 * 4 + 20
+	WindowHeight = 240*4 + 20
 )
 
 var (
@@ -30,15 +30,16 @@ var (
 	zeroPageText     *textutil.Text
 	stackText        *textutil.Text
 	ramText          *textutil.Text
+	ppuText          *textutil.Text
+	oamText          *textutil.Text
 )
 
 const (
 	ScreenGame = iota
 	ScreenDebugCPU
-	ScreenDebugCHRRom
+	ScreenDebugPPU
 	ScreenDebugNametables
 	ScreenDebugPalettes
-
 )
 
 // Emulator struct
@@ -69,7 +70,7 @@ func New(romFile string, debug bool) (*Emulator, error) {
 	c := cartridge.Load(bytes)
 
 	e := &Emulator{
-		NES:        nes.New(NESClockTime, NESAudioSampleTime),
+		NES: nes.New(NESClockTime, NESAudioSampleTime),
 	}
 	if debug {
 		e.Screen = ScreenDebugCPU
@@ -106,6 +107,8 @@ func (e *Emulator) Init() error {
 	zeroPageText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 4, 400, 1)
 	stackText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 400, 400, 1)
 	ramText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 4, 640, 1)
+	ppuText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 400, 256*2+40, 1)
+	oamText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 4, 256*2+40, 1)
 
 	return nil
 }
@@ -127,7 +130,6 @@ func (e *Emulator) Update() error {
 func (e *Emulator) Draw(screen *ebiten.Image) {
 	e.DrawHeader(screen)
 
-
 	// Clear Text
 	cpuText.Clear()
 	instructionsText.Clear()
@@ -135,6 +137,8 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 	stackText.Clear()
 	ramText.Clear()
 	cartridgeText.Clear()
+	ppuText.Clear()
+	oamText.Clear()
 
 	// Show debug info
 
@@ -153,15 +157,23 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 		cartridgeText.Draw(screen)
 	}
 
-	if e.Screen == ScreenDebugCHRRom {
+	if e.Screen == ScreenDebugPPU {
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Scale(4, 4)
 		op.GeoM.Translate(0, 20)
-		screen.DrawImage(e.DrawCHRROM(0), op)
+		screen.DrawImage(e.PPU.DrawPatternTable(0), op)
 		op.GeoM.Reset()
 		op.GeoM.Scale(4, 4)
 		op.GeoM.Translate(256*2, 20)
-		screen.DrawImage(e.DrawCHRROM(1), op)
+		screen.DrawImage(e.PPU.DrawPatternTable(1), op)
+		e.PPU.DrawPPUInfo(ppuText)
+		ppuText.Draw(screen)
+		e.PPU.DrawOAM(oamText)
+		oamText.Draw(screen)
+		op.GeoM.Reset()
+		op.GeoM.Scale(64, 64)
+		op.GeoM.Translate(0, WindowHeight-64*2)
+		screen.DrawImage(e.PPU.DrawPalettes(), op)
 	}
 
 	if e.Screen == ScreenDebugNametables {
@@ -187,7 +199,7 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Scale(64, 30)
 		op.GeoM.Translate(0, 20)
-		screen.DrawImage(e.NES.PPU.DrawPalette(), op)
+		screen.DrawImage(e.NES.PPU.DrawLoadedPalette(), op)
 	}
 }
 
@@ -210,13 +222,12 @@ func (e *Emulator) HandleInput() {
 		}
 	}
 
-
 	// 'P' toggles the display of pattern tables
 	if inpututil.IsKeyJustPressed(ebiten.KeyF2) {
-		if e.Screen == ScreenDebugCHRRom {
+		if e.Screen == ScreenDebugPPU {
 			e.Screen = ScreenGame
 		} else {
-			e.Screen = ScreenDebugCHRRom
+			e.Screen = ScreenDebugPPU
 		}
 	}
 
