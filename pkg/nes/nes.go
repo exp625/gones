@@ -142,8 +142,9 @@ func (nes *NES) PPURead(location uint16) uint8 {
 	case mappedLocation <= 0x1FFF:
 		_, data := nes.Cartridge.PPURead(mappedLocation)
 		return data
-	case 0x2000 <= mappedLocation && mappedLocation <= 0x3FFF:
-		if mappedLocation >= 0x3000 {
+	case 0x2000 <= mappedLocation && mappedLocation <= 0x3EFF:
+		// $3000-$3EFF  -> 	Mirrors of $2000-$2EFF
+		if 0x3000 <= mappedLocation && mappedLocation <= 0x3EFF {
 			mappedLocation -= 0x1000
 		}
 		if nes.Cartridge.Mirroring() {
@@ -160,6 +161,19 @@ func (nes *NES) PPURead(location uint16) uint8 {
 				return data
 			}
 		}
+	// $3F00-3FFF is not configurable, always mapped to the internal palette control.
+	case 0x3F00 <= location:
+		// $3F00-$3F1F 	Palette RAM indexes
+		// $3F20-$3FFF  Mirrors of $3F00-$3F1F
+		if 0x3F00 <= mappedLocation && mappedLocation <= 0x3FFF {
+			mirroredLocation := (mappedLocation)%0x0020 + 0x3F00
+			// Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C. Note that this goes for writing as well as reading.
+			if mirroredLocation == 0x3F10 || mirroredLocation == 0x3F14 || mirroredLocation == 0x3F18 || mirroredLocation == 0x3F1C {
+				mirroredLocation -= 0x0010
+			}
+			data := nes.PPU.PaletteRAM[mirroredLocation-0x3F00]
+			return data
+		}
 	}
 	return 0
 }
@@ -169,7 +183,7 @@ func (nes *NES) PPUWrite(location uint16, data uint8) {
 	switch {
 	case mappedLocation <= 0x1FFF:
 		nes.Cartridge.PPUWrite(mappedLocation, data)
-	case 0x2000 <= mappedLocation && mappedLocation <= 0x3FFF:
+	case 0x2000 <= mappedLocation && mappedLocation <= 0x3EFF:
 		if mappedLocation > 0x2FFF {
 			mappedLocation -= 0x1000
 		}
@@ -184,14 +198,26 @@ func (nes *NES) PPUWrite(location uint16, data uint8) {
 				nes.VRAM.Write((mappedLocation-0x2000)%0x400+0x400, data)
 			}
 		}
+	// $3F00-3FFF is not configurable, always mapped to the internal palette control.
+	case 0x3F00 <= location:
+		// $3F00-$3F1F 	Palette RAM indexes
+		// $3F20-$3FFF  Mirrors of $3F00-$3F1F
+		if 0x3F00 <= mappedLocation && mappedLocation <= 0x3FFF {
+			mirroredLocation := (mappedLocation)%0x0020 + 0x3F00
+			// Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C. Note that this goes for writing as well as reading.
+			if mirroredLocation == 0x3F10 || mirroredLocation == 0x3F14 || mirroredLocation == 0x3F18 || mirroredLocation == 0x3F1C {
+				mirroredLocation -= 0x0010
+			}
+			nes.PPU.PaletteRAM[mirroredLocation-0x3F00] = data
+		}
 	}
 }
 
-func (nes *NES) NMI () {
+func (nes *NES) NMI() {
 	nes.CPU.RequestNMI = true
 }
 
-func (nes *NES) IRQ () {
+func (nes *NES) IRQ() {
 	nes.CPU.RequestIRQ = true
 }
 
