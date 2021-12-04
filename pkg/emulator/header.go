@@ -15,7 +15,7 @@ var (
 		{"F2", "PPU Debug"},
 		{"F3", "Nametable Debug"},
 		{"F4", "Pallet Debug"},
-		{"F5", ""},
+		{"F5", "Controller Debug"},
 		{"F6", ""},
 	}
 	header = ebiten.NewImage(WindowWidth, 20)
@@ -44,5 +44,4 @@ func (e *Emulator) DrawHeader(screen *ebiten.Image) {
 		plz.Just(fmt.Fprintf(headerEntry, " "+headerEntries[i][0]+": "+headerEntries[i][1]))
 		headerEntry.Draw(screen)
 	}
-
 }

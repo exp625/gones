@@ -3,6 +3,7 @@ package emulator
 import (
 	"github.com/exp625/gones/internal/textutil"
 	"github.com/exp625/gones/pkg/cartridge"
+	"github.com/exp625/gones/pkg/controller"
 	"github.com/exp625/gones/pkg/nes"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
@@ -32,6 +33,7 @@ var (
 	ramText          *textutil.Text
 	ppuText          *textutil.Text
 	oamText          *textutil.Text
+	controllerText   *textutil.Text
 )
 
 const (
@@ -40,6 +42,7 @@ const (
 	ScreenDebugPPU
 	ScreenDebugNametables
 	ScreenDebugPalettes
+	ScreenDebugController
 )
 
 // Emulator struct
@@ -109,6 +112,7 @@ func (e *Emulator) Init() error {
 	ramText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 4, 640, 1)
 	ppuText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 400, 256*2+40, 1)
 	oamText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 4, 256*2+40, 1)
+	controllerText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 4, 24, 1)
 
 	return nil
 }
@@ -139,6 +143,7 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 	cartridgeText.Clear()
 	ppuText.Clear()
 	oamText.Clear()
+	controllerText.Clear()
 
 	// Show debug info
 
@@ -187,11 +192,11 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 		screen.DrawImage(e.NES.PPU.DrawNametableInColor(1), op)
 		op.GeoM.Reset()
 		op.GeoM.Scale(2, 2)
-		op.GeoM.Translate(0, 240*2 + 20)
+		op.GeoM.Translate(0, 240*2+20)
 		screen.DrawImage(e.NES.PPU.DrawNametableInColor(2), op)
 		op.GeoM.Reset()
 		op.GeoM.Scale(2, 2)
-		op.GeoM.Translate(256*2, 240*2 + 20)
+		op.GeoM.Translate(256*2, 240*2+20)
 		screen.DrawImage(e.NES.PPU.DrawNametableInColor(3), op)
 	}
 
@@ -200,6 +205,11 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 		op.GeoM.Scale(64, 30)
 		op.GeoM.Translate(0, 20)
 		screen.DrawImage(e.NES.PPU.DrawLoadedPalette(), op)
+	}
+
+	if e.Screen == ScreenDebugController {
+		e.DrawController(controllerText)
+		controllerText.Draw(screen)
 	}
 }
 
@@ -244,6 +254,14 @@ func (e *Emulator) HandleInput() {
 			e.Screen = ScreenGame
 		} else {
 			e.Screen = ScreenDebugPalettes
+		}
+	}
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyF5) {
+		if e.Screen == ScreenDebugController {
+			e.Screen = ScreenGame
+		} else {
+			e.Screen = ScreenDebugController
 		}
 	}
 
@@ -334,6 +352,86 @@ func (e *Emulator) HandleInput() {
 		e.Reset()
 		e.CPU.PC = 0xC000
 		e.CPU.P = 0x24
+	}
+
+	// 'W' is equivalent to 'up' on the NES controller
+	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
+		e.Controller1.Press(controller.ButtonUP)
+	}
+
+	// 'D' is equivalent to 'left' on the NES controller
+	if inpututil.IsKeyJustPressed(ebiten.KeyD) {
+		e.Controller1.Press(controller.ButtonRIGHT)
+	}
+
+	// 'S' is equivalent to 'down' on the NES controller
+	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
+		e.Controller1.Press(controller.ButtonDOWN)
+	}
+
+	// 'A' is equivalent to 'right' on the NES controller
+	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
+		e.Controller1.Press(controller.ButtonLEFT)
+	}
+
+	// 'G' is equivalent to 'SELECT' on the NES controller
+	if inpututil.IsKeyJustPressed(ebiten.KeyG) {
+		e.Controller1.Press(controller.ButtonSELECT)
+	}
+
+	// 'H' is equivalent to 'START' on the NES controller
+	if inpututil.IsKeyJustPressed(ebiten.KeyH) {
+		e.Controller1.Press(controller.ButtonSTART)
+	}
+
+	// 'O' is equivalent to 'B' on the NES controller
+	if inpututil.IsKeyJustPressed(ebiten.KeyO) {
+		e.Controller1.Press(controller.ButtonB)
+	}
+
+	// 'P' is equivalent to 'A' on the NES controller
+	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
+		e.Controller1.Press(controller.ButtonA)
+	}
+
+	// 'W' is equivalent to 'up' on the NES controller
+	if inpututil.IsKeyJustReleased(ebiten.KeyW) {
+		e.Controller1.Release(controller.ButtonUP)
+	}
+
+	// 'D' is equivalent to 'left' on the NES controller
+	if inpututil.IsKeyJustReleased(ebiten.KeyD) {
+		e.Controller1.Release(controller.ButtonRIGHT)
+	}
+
+	// 'S' is equivalent to 'down' on the NES controller
+	if inpututil.IsKeyJustReleased(ebiten.KeyS) {
+		e.Controller1.Release(controller.ButtonDOWN)
+	}
+
+	// 'A' is equivalent to 'right' on the NES controller
+	if inpututil.IsKeyJustReleased(ebiten.KeyA) {
+		e.Controller1.Release(controller.ButtonLEFT)
+	}
+
+	// 'G' is equivalent to 'SELECT' on the NES controller
+	if inpututil.IsKeyJustReleased(ebiten.KeyG) {
+		e.Controller1.Release(controller.ButtonSELECT)
+	}
+
+	// 'H' is equivalent to 'START' on the NES controller
+	if inpututil.IsKeyJustReleased(ebiten.KeyH) {
+		e.Controller1.Release(controller.ButtonSTART)
+	}
+
+	// 'O' is equivalent to 'B' on the NES controller
+	if inpututil.IsKeyJustReleased(ebiten.KeyO) {
+		e.Controller1.Release(controller.ButtonB)
+	}
+
+	// 'P' is equivalent to 'A' on the NES controller
+	if inpututil.IsKeyJustReleased(ebiten.KeyP) {
+		e.Controller1.Release(controller.ButtonA)
 	}
 }
 

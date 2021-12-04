@@ -15,7 +15,7 @@ type CPU struct {
 	PC uint16
 	// Stack Pointer
 	S uint8
-	// Status Register
+	// Status register
 	P uint8
 
 	Bus bus.Bus

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/exp625/gones/pkg/apu"
 	"github.com/exp625/gones/pkg/cartridge"
+	"github.com/exp625/gones/pkg/controller"
 	"github.com/exp625/gones/pkg/cpu"
 	"github.com/exp625/gones/pkg/plz"
 	"github.com/exp625/gones/pkg/ppu"
@@ -18,6 +19,9 @@ type NES struct {
 	PPU  *ppu.PPU
 	RAM  *ram.RAM
 	VRAM *ram.RAM
+
+	Controller1 *controller.Controller
+	Controller2 *controller.Controller
 
 	Cartridge *cartridge.Cartridge
 
@@ -38,6 +42,8 @@ func New(clockTime float64, audioSampleTime float64) *NES {
 		CPU:             cpu.New(),
 		RAM:             &ram.RAM{},
 		VRAM:            &ram.RAM{},
+		Controller1:     &controller.Controller{},
+		Controller2:     &controller.Controller{},
 		PPU:             ppu.New(),
 		APU:             &apu.APU{},
 	}
@@ -104,7 +110,11 @@ func (nes *NES) CPURead(location uint16) uint8 {
 	case 0x2000 <= mappedLocation && mappedLocation <= 0x3FFF:
 		_, data := nes.PPU.CPURead(mappedLocation)
 		return data
-	case 0x4000 <= mappedLocation && mappedLocation <= 0x4017:
+	case mappedLocation == 0x4016:
+		return nes.Controller1.SerialRead()
+	case mappedLocation == 0x4017:
+		return nes.Controller2.SerialRead()
+	case 0x4000 <= mappedLocation && mappedLocation <= 0x4015:
 		// TODO: APU and I/O Registers
 		return 0xFF
 	case 0x4018 <= mappedLocation && mappedLocation <= 0x401F:
@@ -125,7 +135,10 @@ func (nes *NES) CPUWrite(location uint16, data uint8) {
 		nes.RAM.Write(mappedLocation%0x0800, data)
 	case 0x2000 <= mappedLocation && mappedLocation <= 0x3FFF:
 		nes.PPU.CPUWrite(mappedLocation, data)
-	case 0x4000 <= mappedLocation && mappedLocation <= 0x4017:
+	case mappedLocation == 0x4016 :
+		nes.Controller1.SetMode(data & 0b1 == 0)
+		nes.Controller2.SetMode(data & 0b1 == 0)
+	case 0x4000 <= mappedLocation && mappedLocation <= 0x4015 || mappedLocation == 0x4017:
 		// TODO: APU and I/O Registers
 	case 0x4018 <= mappedLocation && mappedLocation <= 0x401F:
 		// TODO: APU and I/O functionality that is normally disabled
