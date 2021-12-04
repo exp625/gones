@@ -44,8 +44,7 @@ func Load(rom []byte) *Cartridge {
 	}
 	mapperNumberLo := rom[6] >> 4
 	mapperNumberHi := rom[7] >> 4
-	mapperNumber := mapperNumberHi << 4 | mapperNumberLo
-
+	mapperNumber := mapperNumberHi<<4 | mapperNumberLo
 
 	trainerPresent := (rom[6]&0b00000100)>>2 == 1
 	mirrorBit := rom[6]&0b00000001 == 1

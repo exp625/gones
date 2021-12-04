@@ -14,7 +14,7 @@ var (
 		{"F1", "CPU Debug"},
 		{"F2", "PPU Debug"},
 		{"F3", "Nametable Debug"},
-		{"F4", "Pallet Debug"},
+		{"F4", "Palette Debug"},
 		{"F5", "Controller Debug"},
 		{"F6", ""},
 	}

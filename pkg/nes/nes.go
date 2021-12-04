@@ -135,9 +135,9 @@ func (nes *NES) CPUWrite(location uint16, data uint8) {
 		nes.RAM.Write(mappedLocation%0x0800, data)
 	case 0x2000 <= mappedLocation && mappedLocation <= 0x3FFF:
 		nes.PPU.CPUWrite(mappedLocation, data)
-	case mappedLocation == 0x4016 :
-		nes.Controller1.SetMode(data & 0b1 == 0)
-		nes.Controller2.SetMode(data & 0b1 == 0)
+	case mappedLocation == 0x4016:
+		nes.Controller1.SetMode(data&0b1 == 0)
+		nes.Controller2.SetMode(data&0b1 == 0)
 	case 0x4000 <= mappedLocation && mappedLocation <= 0x4015 || mappedLocation == 0x4017:
 		// TODO: APU and I/O Registers
 	case 0x4018 <= mappedLocation && mappedLocation <= 0x401F:

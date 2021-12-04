@@ -38,10 +38,10 @@ func (ppu *PPU) DrawPatternTable(table int) *ebiten.Image {
 
 				colorEmpasis := ppu.ppumask >> 5
 				pallets := [4]color.Color{
-					ppu.Pallet[ppu.Bus.PPURead(0x3F00)%0x40][colorEmpasis],
-					ppu.Pallet[ppu.Bus.PPURead(0x3F01)%0x40][colorEmpasis],
-					ppu.Pallet[ppu.Bus.PPURead(0x3F02)%0x40][colorEmpasis],
-					ppu.Pallet[ppu.Bus.PPURead(0x3F03)%0x40][colorEmpasis],
+					ppu.Palette[ppu.Bus.PPURead(0x3F00)%0x40][colorEmpasis],
+					ppu.Palette[ppu.Bus.PPURead(0x3F01)%0x40][colorEmpasis],
+					ppu.Palette[ppu.Bus.PPURead(0x3F02)%0x40][colorEmpasis],
+					ppu.Palette[ppu.Bus.PPURead(0x3F03)%0x40][colorEmpasis],
 				}
 
 				for tileX := 0; tileX < 8; tileX++ {
@@ -136,24 +136,24 @@ func (ppu *PPU) DrawPalettes() *ebiten.Image {
 	img := image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
 
 	// Background Palettes
-	for pallet := uint16(0); pallet < 4; pallet++ {
+	for palette := uint16(0); palette < 4; palette++ {
 		for index := uint16(0); index < 4; index++ {
 			if index == 0 {
-				img.Set(int(pallet*4+index), 0, ppu.Pallet[ppu.Bus.PPURead(0x3F00)][0])
+				img.Set(int(palette*4+index), 0, ppu.Palette[ppu.Bus.PPURead(0x3F00)][0])
 			} else {
-				img.Set(int(pallet*4+index), 0, ppu.Pallet[ppu.Bus.PPURead(0x3F00+index+pallet*4)%0x40][0])
+				img.Set(int(palette*4+index), 0, ppu.Palette[ppu.Bus.PPURead(0x3F00+index+palette*4)%0x40][0])
 			}
 
 		}
 	}
 
 	// Sprite Palettes
-	for pallet := uint16(0); pallet < 8; pallet++ {
+	for palette := uint16(0); palette < 8; palette++ {
 		for index := uint16(0); index < 0x40; index++ {
 			if index == 0 {
-				img.Set(int(pallet*4+index), 1, ppu.Pallet[ppu.Bus.PPURead(0x3F00)][0])
+				img.Set(int(palette*4+index), 1, ppu.Palette[ppu.Bus.PPURead(0x3F00)][0])
 			} else {
-				img.Set(int(pallet*4+index), 1, ppu.Pallet[ppu.Bus.PPURead(0x3F10+index+pallet*4)%0x40][0])
+				img.Set(int(palette*4+index), 1, ppu.Palette[ppu.Bus.PPURead(0x3F10+index+palette*4)%0x40][0])
 			}
 		}
 	}
@@ -169,7 +169,7 @@ func (ppu *PPU) DrawLoadedPalette() *ebiten.Image {
 	img := image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
 	for emphasis := 0; emphasis < 8; emphasis++ {
 		for index := 0; index < 0x40; index++ {
-			img.Set(index%0x10, emphasis*4+index/0x10, ppu.Pallet[index][emphasis])
+			img.Set(index%0x10, emphasis*4+index/0x10, ppu.Palette[index][emphasis])
 		}
 	}
 	return ebiten.NewImageFromImage(img)
@@ -289,7 +289,7 @@ func (ppu *PPU) DrawNametableInColor(table int) *ebiten.Image {
 
 				for tileX := uint16(0); tileX < 8; tileX++ {
 					colorIndex := uint16(((plane1 >> (7 - tileX)) & 0x01 << 1) | (plane0>>(7-tileX))&0x01)
-					c := ppu.Pallet[ppu.Bus.PPURead(0x3F00+attribute*4+colorIndex)][colorEmphasis]
+					c := ppu.Palette[ppu.Bus.PPURead(0x3F00+attribute*4+colorIndex)][colorEmphasis]
 
 					imgX := int(tile*8 + tileX)
 					imgY := int(row*8 + tileY)

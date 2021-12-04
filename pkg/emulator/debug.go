@@ -1,13 +1,37 @@
 package emulator
 
 import (
+	"embed"
 	"fmt"
 	"github.com/exp625/gones/internal/textutil"
-	"github.com/exp625/gones/pkg/controller"
 	"github.com/exp625/gones/pkg/plz"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"golang.org/x/image/colornames"
+	_ "image/png"
 )
+
+//go:embed resources/*
+var resourcesFS embed.FS
+
+var (
+	ControllerImage    *ebiten.Image
+	ArrowPressedImage  *ebiten.Image
+	PillPressedImage   *ebiten.Image
+	CirclePressedImage *ebiten.Image
+)
+
+func init() {
+	controllerImageReader, _ := resourcesFS.Open("resources/controller.png")
+	arrowPressedImageReader, _ := resourcesFS.Open("resources/arrow_pressed.png")
+	pillPressedImageReader, _ := resourcesFS.Open("resources/pill_pressed.png")
+	circlePressedImageReader, _ := resourcesFS.Open("resources/circle_pressed.png")
+
+	ControllerImage, _, _ = ebitenutil.NewImageFromReader(controllerImageReader)
+	ArrowPressedImage, _, _ = ebitenutil.NewImageFromReader(arrowPressedImageReader)
+	PillPressedImage, _, _ = ebitenutil.NewImageFromReader(pillPressedImageReader)
+	CirclePressedImage, _, _ = ebitenutil.NewImageFromReader(circlePressedImageReader)
+}
 
 func (e *Emulator) DrawCPU(t *textutil.Text) {
 	plz.Just(fmt.Fprintf(t, "FPS: %0.2f \t Auto Run Mode: \t %t \t Logging Enabled: \t %t \n", ebiten.CurrentFPS(), e.autoRunEnabled, e.LoggingEnabled))
@@ -177,27 +201,4 @@ func (e *Emulator) DrawRAM(t *textutil.Text) {
 
 func (e *Emulator) DrawCartridge(t *textutil.Text) {
 	e.Cartridge.Mapper.DebugDisplay(t)
-}
-
-func (e *Emulator) DrawController(t *textutil.Text) {
-	for _, button := range []struct {
-		name    string
-		pressed bool
-	}{
-		{"UP", e.Controller1.IsPressed(controller.ButtonUP)},
-		{"RIGHT", e.Controller1.IsPressed(controller.ButtonRIGHT)},
-		{"DOWN", e.Controller1.IsPressed(controller.ButtonDOWN)},
-		{"LEFT", e.Controller1.IsPressed(controller.ButtonLEFT)},
-		{"SELECT", e.Controller1.IsPressed(controller.ButtonSELECT)},
-		{"START", e.Controller1.IsPressed(controller.ButtonSTART)},
-		{"B", e.Controller1.IsPressed(controller.ButtonB)},
-		{"A", e.Controller1.IsPressed(controller.ButtonA)},
-	} {
-		if button.pressed {
-			t.Color(colornames.Green)
-		} else {
-			t.Color(colornames.Red)
-		}
-		plz.Just(t.WriteString(fmt.Sprintf("%s\n", button.name)))
-	}
 }

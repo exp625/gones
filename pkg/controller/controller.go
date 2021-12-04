@@ -12,9 +12,9 @@ const (
 )
 
 type Controller struct {
-	Buttons    uint8
-	SerialMode bool
-	register   uint8
+	Buttons         uint8
+	SerialMode      bool
+	register        uint8
 	serialReadCount uint8
 }
 

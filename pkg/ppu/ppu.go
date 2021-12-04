@@ -12,7 +12,7 @@ type PPU struct {
 	Position   uint16
 	FrameCount uint64
 
-	Pallet [0x40][8]color.Color
+	Palette [0x40][8]color.Color
 
 	// Registers
 	ppuctrl        uint8
@@ -38,7 +38,7 @@ type PPU struct {
 
 func New() *PPU {
 	p := &PPU{}
-	p.generatePallet()
+	p.generatePalette()
 	return p
 }
 

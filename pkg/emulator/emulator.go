@@ -11,6 +11,7 @@ import (
 	"golang.org/x/image/font/basicfont"
 	"io/ioutil"
 	"log"
+	"math"
 	"time"
 )
 
@@ -49,6 +50,8 @@ const (
 type Emulator struct {
 	*nes.NES
 
+	Bindings []*Binding
+
 	autoRunEnabled bool
 	LoggingEnabled bool
 
@@ -73,7 +76,8 @@ func New(romFile string, debug bool) (*Emulator, error) {
 	c := cartridge.Load(bytes)
 
 	e := &Emulator{
-		NES: nes.New(NESClockTime, NESAudioSampleTime),
+		NES:      nes.New(NESClockTime, NESAudioSampleTime),
+		Bindings: Bindings,
 	}
 	if debug {
 		e.Screen = ScreenDebugCPU
@@ -131,6 +135,22 @@ func (e *Emulator) Update() error {
 	return nil
 }
 
+func (e *Emulator) HandleInput() {
+	for _, b := range e.Bindings {
+		key := b.Key()
+		if b.Pressed != nil {
+			if inpututil.IsKeyJustPressed(key) {
+				b.Pressed(e)
+			}
+		}
+		if b.Released != nil {
+			if inpututil.IsKeyJustReleased(key) {
+				b.Released(e)
+			}
+		}
+	}
+}
+
 func (e *Emulator) Draw(screen *ebiten.Image) {
 	e.DrawHeader(screen)
 
@@ -146,8 +166,8 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 	controllerText.Clear()
 
 	// Show debug info
-
-	if e.Screen == ScreenDebugCPU {
+	switch e.Screen {
+	case ScreenDebugCPU:
 		e.DrawCPU(cpuText)
 		cpuText.Draw(screen)
 		e.DrawInstructions(instructionsText)
@@ -160,9 +180,7 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 		ramText.Draw(screen)
 		e.DrawCartridge(cartridgeText)
 		cartridgeText.Draw(screen)
-	}
-
-	if e.Screen == ScreenDebugPPU {
+	case ScreenDebugPPU:
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Scale(4, 4)
 		op.GeoM.Translate(0, 20)
@@ -179,9 +197,7 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 		op.GeoM.Scale(64, 64)
 		op.GeoM.Translate(0, WindowHeight-64*2)
 		screen.DrawImage(e.PPU.DrawPalettes(), op)
-	}
-
-	if e.Screen == ScreenDebugNametables {
+	case ScreenDebugNametables:
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Scale(2, 2)
 		op.GeoM.Translate(0, 20)
@@ -198,241 +214,74 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 		op.GeoM.Scale(2, 2)
 		op.GeoM.Translate(256*2, 240*2+20)
 		screen.DrawImage(e.NES.PPU.DrawNametableInColor(3), op)
-	}
-
-	if e.Screen == ScreenDebugPalettes {
+	case ScreenDebugPalettes:
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Scale(64, 30)
 		op.GeoM.Translate(0, 20)
 		screen.DrawImage(e.NES.PPU.DrawLoadedPalette(), op)
-	}
+	case ScreenDebugController:
+		offset := WindowHeight/2 - float64(ControllerImage.Bounds().Dy())/2
 
-	if e.Screen == ScreenDebugController {
-		e.DrawController(controllerText)
-		controllerText.Draw(screen)
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(0, WindowHeight/2-float64(ControllerImage.Bounds().Dy())/2)
+		screen.DrawImage(ControllerImage, op)
+
+		buttonAOptions := &ebiten.DrawImageOptions{}
+		buttonAOptions.GeoM.Translate(804, 252+offset)
+
+		buttonBOptions := &ebiten.DrawImageOptions{}
+		buttonBOptions.GeoM.Translate(672, 252+offset)
+
+		buttonSELECTOptions := &ebiten.DrawImageOptions{}
+		buttonSELECTOptions.GeoM.Translate(362, 286+offset)
+
+		buttonSTARTOptions := &ebiten.DrawImageOptions{}
+		buttonSTARTOptions.GeoM.Translate(502, 286+offset)
+
+		buttonUPOptions := &ebiten.DrawImageOptions{}
+		buttonUPOptions.GeoM.Translate(151, 167+offset)
+
+		buttonDOWNOptions := &ebiten.DrawImageOptions{}
+		buttonDOWNOptions.GeoM.Translate(-float64(ArrowPressedImage.Bounds().Dx())/2, -float64(ArrowPressedImage.Bounds().Dy())/2)
+		buttonDOWNOptions.GeoM.Rotate(math.Pi)
+		buttonDOWNOptions.GeoM.Translate(float64(ArrowPressedImage.Bounds().Dx())/2, float64(ArrowPressedImage.Bounds().Dy())/2)
+		buttonDOWNOptions.GeoM.Translate(151, 296+offset)
+
+		buttonLEFTOptions := &ebiten.DrawImageOptions{}
+		buttonLEFTOptions.GeoM.Translate(-float64(ArrowPressedImage.Bounds().Dx())/2, -float64(ArrowPressedImage.Bounds().Dy())/2)
+		buttonLEFTOptions.GeoM.Rotate(-math.Pi / 2)
+		buttonLEFTOptions.GeoM.Translate(float64(ArrowPressedImage.Bounds().Dx())/2, float64(ArrowPressedImage.Bounds().Dy())/2)
+		buttonLEFTOptions.GeoM.Translate(88, 231+offset)
+
+		buttonRIGHTOptions := &ebiten.DrawImageOptions{}
+		buttonRIGHTOptions.GeoM.Translate(-float64(ArrowPressedImage.Bounds().Dx())/2, -float64(ArrowPressedImage.Bounds().Dy())/2)
+		buttonRIGHTOptions.GeoM.Rotate(math.Pi / 2)
+		buttonRIGHTOptions.GeoM.Translate(float64(ArrowPressedImage.Bounds().Dx())/2, float64(ArrowPressedImage.Bounds().Dy())/2)
+		buttonRIGHTOptions.GeoM.Translate(215, 231+offset)
+
+		for _, button := range []struct {
+			button  uint8
+			image   *ebiten.Image
+			options *ebiten.DrawImageOptions
+		}{
+			{controller.ButtonA, CirclePressedImage, buttonAOptions},
+			{controller.ButtonB, CirclePressedImage, buttonBOptions},
+			{controller.ButtonSELECT, PillPressedImage, buttonSELECTOptions},
+			{controller.ButtonSTART, PillPressedImage, buttonSTARTOptions},
+			{controller.ButtonUP, ArrowPressedImage, buttonUPOptions},
+			{controller.ButtonDOWN, ArrowPressedImage, buttonDOWNOptions},
+			{controller.ButtonLEFT, ArrowPressedImage, buttonLEFTOptions},
+			{controller.ButtonRIGHT, ArrowPressedImage, buttonRIGHTOptions},
+		} {
+			if e.Controller1.IsPressed(button.button) {
+				screen.DrawImage(button.image, button.options)
+			}
+		}
 	}
 }
 
 func (e *Emulator) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	return WindowWidth, WindowHeight
-}
-
-func (e *Emulator) HandleInput() {
-	// 'R' resets the emulator
-	if inpututil.IsKeyJustPressed(ebiten.KeyR) {
-		e.Reset()
-	}
-
-	// 'F1' toggles the display of debug info
-	if inpututil.IsKeyJustPressed(ebiten.KeyF1) {
-		if e.Screen == ScreenDebugCPU {
-			e.Screen = ScreenGame
-		} else {
-			e.Screen = ScreenDebugCPU
-		}
-	}
-
-	// 'P' toggles the display of pattern tables
-	if inpututil.IsKeyJustPressed(ebiten.KeyF2) {
-		if e.Screen == ScreenDebugPPU {
-			e.Screen = ScreenGame
-		} else {
-			e.Screen = ScreenDebugPPU
-		}
-	}
-
-	if inpututil.IsKeyJustPressed(ebiten.KeyF3) {
-		if e.Screen == ScreenDebugNametables {
-			e.Screen = ScreenGame
-		} else {
-			e.Screen = ScreenDebugNametables
-		}
-	}
-
-	if inpututil.IsKeyJustPressed(ebiten.KeyF4) {
-		if e.Screen == ScreenDebugPalettes {
-			e.Screen = ScreenGame
-		} else {
-			e.Screen = ScreenDebugPalettes
-		}
-	}
-
-	if inpututil.IsKeyJustPressed(ebiten.KeyF5) {
-		if e.Screen == ScreenDebugController {
-			e.Screen = ScreenGame
-		} else {
-			e.Screen = ScreenDebugController
-		}
-	}
-
-	// 'L' toggles logging
-	if inpututil.IsKeyJustPressed(ebiten.KeyL) {
-		if e.LoggingEnabled {
-			e.StopLogging()
-		} else {
-			e.StartLogging()
-		}
-	}
-
-	// 'Enter' executes one CPU instruction if auto run is disabled
-	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) && !e.autoRunEnabled {
-		if e.requestedSteps == 0 {
-			e.requestedSteps = 1
-		}
-		for e.requestedSteps != 0 {
-			e.Clock()
-			e.Clock()
-			e.Clock()
-			for e.CPU.CycleCount != 0 {
-				e.Clock()
-				e.Clock()
-				e.Clock()
-			}
-			e.requestedSteps--
-		}
-		e.requestedSteps = 0
-	}
-
-	// 'Space' toggles the auto run mode
-	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
-		e.autoRunEnabled = !e.autoRunEnabled
-	}
-
-	// 'Right Arrow' issues one Master Clock
-	if inpututil.IsKeyJustPressed(ebiten.KeyRight) && !e.autoRunEnabled {
-		e.Clock()
-	}
-
-	// 'Up Arrow' issues three Master Clocks e.g. one CPU clock
-	if inpututil.IsKeyJustPressed(ebiten.KeyUp) && !e.autoRunEnabled {
-		e.Clock()
-		e.Clock()
-		e.Clock()
-	}
-
-	// The numpad number keys add the requested digit to the end of the number of steps that will be requested
-	if inpututil.IsKeyJustPressed(ebiten.KeyKP0) {
-		e.requestedSteps = e.requestedSteps*10 + 0
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyKP1) {
-		e.requestedSteps = e.requestedSteps*10 + 1
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyKP2) {
-		e.requestedSteps = e.requestedSteps*10 + 2
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyKP3) {
-		e.requestedSteps = e.requestedSteps*10 + 3
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyKP4) {
-		e.requestedSteps = e.requestedSteps*10 + 4
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyKP5) {
-		e.requestedSteps = e.requestedSteps*10 + 5
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyKP6) {
-		e.requestedSteps = e.requestedSteps*10 + 6
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyKP7) {
-		e.requestedSteps = e.requestedSteps*10 + 7
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyKP8) {
-		e.requestedSteps = e.requestedSteps*10 + 8
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyKP9) {
-		e.requestedSteps = e.requestedSteps*10 + 9
-	}
-
-	// 'Escape' clears the number of requested steps
-	if inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		e.requestedSteps = 0
-	}
-
-	// 'Q' sets the program counter to 0x4000
-	if inpututil.IsKeyJustPressed(ebiten.KeyQ) && !e.autoRunEnabled {
-		e.Reset()
-		e.CPU.PC = 0xC000
-		e.CPU.P = 0x24
-	}
-
-	// 'W' is equivalent to 'up' on the NES controller
-	if inpututil.IsKeyJustPressed(ebiten.KeyW) {
-		e.Controller1.Press(controller.ButtonUP)
-	}
-
-	// 'D' is equivalent to 'left' on the NES controller
-	if inpututil.IsKeyJustPressed(ebiten.KeyD) {
-		e.Controller1.Press(controller.ButtonRIGHT)
-	}
-
-	// 'S' is equivalent to 'down' on the NES controller
-	if inpututil.IsKeyJustPressed(ebiten.KeyS) {
-		e.Controller1.Press(controller.ButtonDOWN)
-	}
-
-	// 'A' is equivalent to 'right' on the NES controller
-	if inpututil.IsKeyJustPressed(ebiten.KeyA) {
-		e.Controller1.Press(controller.ButtonLEFT)
-	}
-
-	// 'G' is equivalent to 'SELECT' on the NES controller
-	if inpututil.IsKeyJustPressed(ebiten.KeyG) {
-		e.Controller1.Press(controller.ButtonSELECT)
-	}
-
-	// 'H' is equivalent to 'START' on the NES controller
-	if inpututil.IsKeyJustPressed(ebiten.KeyH) {
-		e.Controller1.Press(controller.ButtonSTART)
-	}
-
-	// 'O' is equivalent to 'B' on the NES controller
-	if inpututil.IsKeyJustPressed(ebiten.KeyO) {
-		e.Controller1.Press(controller.ButtonB)
-	}
-
-	// 'P' is equivalent to 'A' on the NES controller
-	if inpututil.IsKeyJustPressed(ebiten.KeyP) {
-		e.Controller1.Press(controller.ButtonA)
-	}
-
-	// 'W' is equivalent to 'up' on the NES controller
-	if inpututil.IsKeyJustReleased(ebiten.KeyW) {
-		e.Controller1.Release(controller.ButtonUP)
-	}
-
-	// 'D' is equivalent to 'left' on the NES controller
-	if inpututil.IsKeyJustReleased(ebiten.KeyD) {
-		e.Controller1.Release(controller.ButtonRIGHT)
-	}
-
-	// 'S' is equivalent to 'down' on the NES controller
-	if inpututil.IsKeyJustReleased(ebiten.KeyS) {
-		e.Controller1.Release(controller.ButtonDOWN)
-	}
-
-	// 'A' is equivalent to 'right' on the NES controller
-	if inpututil.IsKeyJustReleased(ebiten.KeyA) {
-		e.Controller1.Release(controller.ButtonLEFT)
-	}
-
-	// 'G' is equivalent to 'SELECT' on the NES controller
-	if inpututil.IsKeyJustReleased(ebiten.KeyG) {
-		e.Controller1.Release(controller.ButtonSELECT)
-	}
-
-	// 'H' is equivalent to 'START' on the NES controller
-	if inpututil.IsKeyJustReleased(ebiten.KeyH) {
-		e.Controller1.Release(controller.ButtonSTART)
-	}
-
-	// 'O' is equivalent to 'B' on the NES controller
-	if inpututil.IsKeyJustReleased(ebiten.KeyO) {
-		e.Controller1.Release(controller.ButtonB)
-	}
-
-	// 'P' is equivalent to 'A' on the NES controller
-	if inpututil.IsKeyJustReleased(ebiten.KeyP) {
-		e.Controller1.Release(controller.ButtonA)
-	}
 }
 
 // Audio Streamer
