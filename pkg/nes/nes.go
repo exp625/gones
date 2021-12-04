@@ -182,7 +182,11 @@ func (nes *NES) PPURead(location uint16) uint8 {
 			mirroredLocation := (mappedLocation)%0x0020 + 0x3F00
 			// Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C. Note that this goes for writing as well as reading.
 			if mirroredLocation == 0x3F10 || mirroredLocation == 0x3F14 || mirroredLocation == 0x3F18 || mirroredLocation == 0x3F1C {
-				mirroredLocation -= 0x0010
+				mirroredLocation = 0x3F00
+			}
+			// Addresses $3F04/$3F08/$3F0C are mirrors of $3F00. Note that this goes for writing as well as reading.
+			if mirroredLocation == 0x3F04 || mirroredLocation == 0x3F08 || mirroredLocation == 0x3F0C {
+				mirroredLocation = 0x3F00
 			}
 			data := nes.PPU.PaletteRAM[mirroredLocation-0x3F00]
 			return data
@@ -219,7 +223,11 @@ func (nes *NES) PPUWrite(location uint16, data uint8) {
 			mirroredLocation := (mappedLocation)%0x0020 + 0x3F00
 			// Addresses $3F10/$3F14/$3F18/$3F1C are mirrors of $3F00/$3F04/$3F08/$3F0C. Note that this goes for writing as well as reading.
 			if mirroredLocation == 0x3F10 || mirroredLocation == 0x3F14 || mirroredLocation == 0x3F18 || mirroredLocation == 0x3F1C {
-				mirroredLocation -= 0x0010
+				mirroredLocation = 0x3F00
+			}
+			// Addresses $3F04/$3F08/$3F0C are mirrors of $3F00. Note that this goes for writing as well as reading.
+			if mirroredLocation == 0x3F04 || mirroredLocation == 0x3F08 || mirroredLocation == 0x3F0C {
+				mirroredLocation = 0x3F00
 			}
 			nes.PPU.PaletteRAM[mirroredLocation-0x3F00] = data
 		}
