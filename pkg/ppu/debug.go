@@ -239,30 +239,8 @@ func (ppu *PPU) DrawNametableInColor(table int) *ebiten.Image {
 	lowRight := image.Point{X: width, Y: height}
 	img := image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
 
-	colorEmpasis := ppu.ppumask >> 5
+	colorEmphasis := ppu.ppumask >> 5
 	// greyscale := ppu.ppumask & 0x1
-	universalBackgroundColor := ppu.Pallet[ppu.Bus.PPURead(0x3F00)%0x40][colorEmpasis]
-	pallets := [4][4]color.Color{{
-		universalBackgroundColor,
-		ppu.Pallet[ppu.Bus.PPURead(0x3F01)%0x40][colorEmpasis],
-		ppu.Pallet[ppu.Bus.PPURead(0x3F02)%0x40][colorEmpasis],
-		ppu.Pallet[ppu.Bus.PPURead(0x3F03)%0x40][colorEmpasis],
-	}, {
-		universalBackgroundColor,
-		ppu.Pallet[ppu.Bus.PPURead(0x3F05)%0x40][colorEmpasis],
-		ppu.Pallet[ppu.Bus.PPURead(0x3F06)%0x40][colorEmpasis],
-		ppu.Pallet[ppu.Bus.PPURead(0x3F07)%0x40][colorEmpasis],
-	}, {
-		universalBackgroundColor,
-		ppu.Pallet[ppu.Bus.PPURead(0x3F09)%0x40][colorEmpasis],
-		ppu.Pallet[ppu.Bus.PPURead(0x3F0A)%0x40][colorEmpasis],
-		ppu.Pallet[ppu.Bus.PPURead(0x3F0B)%0x40][colorEmpasis],
-	}, {
-		universalBackgroundColor,
-		ppu.Pallet[ppu.Bus.PPURead(0x3F0D)%0x40][colorEmpasis],
-		ppu.Pallet[ppu.Bus.PPURead(0x3F0E)%0x40][colorEmpasis],
-		ppu.Pallet[ppu.Bus.PPURead(0x3F0F)%0x40][colorEmpasis],
-	}}
 
 	for row := uint16(0); row < 30; row++ {
 		for tile := uint16(0); tile < 32; tile++ {
@@ -276,20 +254,23 @@ func (ppu *PPU) DrawNametableInColor(table int) *ebiten.Image {
 			// Background pattern table address (0: $0000; 1: $1000)
 			backgroundTable := uint16(ppu.ppuctrl >> 4 & 0x1)
 
-			// Get assigned pallet
-			pallet := ppu.Bus.PPURead((tile / 2) + (row/2)*8)
-			palletIndex := uint8(0)
-			switch {
-			case tile%2 == 0 && row%2 == 0:
-				palletIndex = pallet & 0x2
-			case tile%2 == 1 && row%2 == 0:
-				palletIndex = pallet >> 2 & 0x2
-			case tile%2 == 0 && row%2 == 1:
-				palletIndex = pallet >> 4 & 0x2
-			case tile%2 == 1 && row%2 == 1:
-				palletIndex = pallet >> 6 & 0x2
-			}
+			// Get assigned attributeByte
+			attributeIndex := (tile / 4) + (row/4)*8
+			// tileByte = attributeIndex
+			attributeByte := uint16(ppu.Bus.PPURead(attributeTableBaseAddress + nameTableOffset + attributeIndex))
+			attribute := uint16(0)
 
+			switch {
+			case tile%4 <= 1 && row%4 <= 1:
+				attribute = attributeByte & 0b11
+			case tile%4 >= 2 && row%4 <= 1:
+				attribute = attributeByte >> 2 & 0b11
+			case tile%4 <= 1 && row%4 >= 2:
+				attribute = attributeByte >> 4 & 0b11
+			case tile%4 >= 2 && row%4 >= 2:
+				attribute = attributeByte >> 6 & 0b11
+			}
+			// tileByte = attribute
 			// Get tile byte
 			// DCBA98 76543210
 			// ---------------
@@ -307,8 +288,8 @@ func (ppu *PPU) DrawNametableInColor(table int) *ebiten.Image {
 				plane1 := ppu.Bus.PPURead(addressPlane1)
 
 				for tileX := uint16(0); tileX < 8; tileX++ {
-					colorIndex := ((plane1 >> (7 - tileX)) & 0x01 << 1) | (plane0>>(7-tileX))&0x01
-					c := pallets[palletIndex][colorIndex]
+					colorIndex := uint16(((plane1 >> (7 - tileX)) & 0x01 << 1) | (plane0>>(7-tileX))&0x01)
+					c := ppu.Pallet[ppu.Bus.PPURead(0x3F00+attribute*4+colorIndex)][colorEmphasis]
 
 					imgX := int(tile*8 + tileX)
 					imgY := int(row*8 + tileY)
