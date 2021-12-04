@@ -42,7 +42,11 @@ func Load(rom []byte) *Cartridge {
 		chrRomSize = 1
 		chrRam = true
 	}
-	mapperNumber := (rom[6] & 0b00001000) >> 4
+	mapperNumberLo := rom[6] >> 4
+	mapperNumberHi := rom[7] >> 4
+	mapperNumber := mapperNumberHi << 4 | mapperNumberLo
+
+
 	trainerPresent := (rom[6]&0b00000100)>>2 == 1
 	mirrorBit := rom[6]&0b00000001 == 1
 
