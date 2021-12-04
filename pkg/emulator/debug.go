@@ -3,8 +3,8 @@ package emulator
 import (
 	"embed"
 	"fmt"
+	"github.com/exp625/gones/internal/plz"
 	"github.com/exp625/gones/internal/textutil"
-	"github.com/exp625/gones/pkg/plz"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"golang.org/x/image/colornames"
@@ -34,11 +34,11 @@ func init() {
 }
 
 func (e *Emulator) DrawCPU(t *textutil.Text) {
-	plz.Just(fmt.Fprintf(t, "FPS: %0.2f \t Auto Run Mode: \t %t \t Logging Enabled: \t %t \n", ebiten.CurrentFPS(), e.autoRunEnabled, e.LoggingEnabled))
+	plz.Just(fmt.Fprintf(t, "FPS: %0.2f \t Auto Run Mode: \t %t \t Logging Enabled: \t %t \n", ebiten.CurrentFPS(), e.AutoRunEnabled, e.LoggingEnabled))
 	plz.Just(fmt.Fprintf(t, "Master Clock Count: \t %d\n", e.NES.MasterClockCount))
-	plz.Just(fmt.Fprintf(t, "CPU Clock Count: \t %d \t Requested: \t %d \n", e.CPU.ClockCount, e.requestedSteps))
+	plz.Just(fmt.Fprintf(t, "CPU Clock Count: \t %d \t Requested: \t %d \n", e.CPU.ClockCount, e.RequestedSteps))
 	plz.Just(fmt.Fprintf(t, "Clock Cycles Per Second (during auto run): %0.2f/s\n",
-		1000*1000*1000*float64(e.autoRunCycles)/(float64(e.nanoSecondsSpentInAutoRun))))
+		1000*1000*1000*float64(e.AutoRunCycles)/(float64(e.NanoSecondsSpentInAutoRun))))
 	plz.Just(fmt.Fprint(t, "\n"))
 
 	// Print Status
@@ -201,13 +201,4 @@ func (e *Emulator) DrawRAM(t *textutil.Text) {
 
 func (e *Emulator) DrawCartridge(t *textutil.Text) {
 	e.Cartridge.Mapper.DebugDisplay(t)
-}
-
-func (e *Emulator) DrawKeybindings(t *textutil.Text) {
-	for _, group := range e.KeyBindings {
-		plz.Just(t.WriteString(fmt.Sprintf("%s: \n", group.Name)))
-		for _, binding := range group.Bindings {
-			plz.Just(t.WriteString(fmt.Sprintf("    %s: %s\n", binding.Key().String(), binding.Help)))
-		}
-	}
 }

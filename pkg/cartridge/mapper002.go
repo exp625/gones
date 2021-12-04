@@ -2,8 +2,8 @@ package cartridge
 
 import (
 	"fmt"
+	"github.com/exp625/gones/internal/plz"
 	"github.com/exp625/gones/internal/textutil"
-	"github.com/exp625/gones/pkg/plz"
 )
 
 type Mapper002 struct {

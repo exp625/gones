@@ -2,8 +2,8 @@ package ppu
 
 import (
 	"fmt"
+	"github.com/exp625/gones/internal/plz"
 	"github.com/exp625/gones/internal/textutil"
-	"github.com/exp625/gones/pkg/plz"
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/colornames"
 	"image"

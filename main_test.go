@@ -4,10 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/exp625/gones/internal/plz"
 	"github.com/exp625/gones/pkg/cpu"
 	"github.com/exp625/gones/pkg/emulator"
-	"github.com/exp625/gones/pkg/plz"
-
 	"log"
 	"os"
 	"strings"

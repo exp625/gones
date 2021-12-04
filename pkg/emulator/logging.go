@@ -1,7 +1,7 @@
 package emulator
 
 import (
-	"github.com/exp625/gones/pkg/plz"
+	"github.com/exp625/gones/internal/plz"
 	"log"
 	"os"
 	"path/filepath"

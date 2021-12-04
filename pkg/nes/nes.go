@@ -2,11 +2,11 @@ package nes
 
 import (
 	"fmt"
+	"github.com/exp625/gones/internal/plz"
 	"github.com/exp625/gones/pkg/apu"
 	"github.com/exp625/gones/pkg/cartridge"
 	"github.com/exp625/gones/pkg/controller"
 	"github.com/exp625/gones/pkg/cpu"
-	"github.com/exp625/gones/pkg/plz"
 	"github.com/exp625/gones/pkg/ppu"
 	"github.com/exp625/gones/pkg/ram"
 	"io"

@@ -38,7 +38,7 @@ type PPU struct {
 
 func New() *PPU {
 	p := &PPU{}
-	p.generatePalette()
+	p.GeneratePalette()
 	return p
 }
 

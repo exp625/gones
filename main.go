@@ -14,13 +14,13 @@ func main() {
 	}
 
 	e, err := emulator.New(romFile, true)
-	e.Init()
 	if err != nil {
 		log.Fatal("failed to set up emulator: ", err)
 	}
 
-	ebiten.SetWindowSize(emulator.WindowWidth, emulator.WindowHeight)
 	ebiten.SetWindowTitle("GoNES")
+	ebiten.SetWindowResizable(true)
+	ebiten.SetWindowSize(emulator.WindowWidth, emulator.WindowHeight)
 	ebiten.SetFPSMode(ebiten.FPSModeVsyncOn)
 	if err := ebiten.RunGame(e); err != nil {
 		log.Fatal(err)
