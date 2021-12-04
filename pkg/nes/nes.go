@@ -153,7 +153,7 @@ func (nes *NES) PPURead(location uint16) uint8 {
 			return data
 		} else {
 			// 0: horizontal (vertical arrangement) (CIRAM A10 = PPU A11)
-			if mappedLocation-0x2000 <= 0x800 {
+			if mappedLocation-0x2000 < 0x800 {
 				_, data := nes.VRAM.Read((mappedLocation - 0x2000) % 0x400)
 				return data
 			} else {
@@ -192,7 +192,7 @@ func (nes *NES) PPUWrite(location uint16, data uint8) {
 			nes.VRAM.Write((mappedLocation-0x2000)%0x800, data)
 		} else {
 			// 0: horizontal (vertical arrangement) (CIRAM A10 = PPU A11)
-			if mappedLocation-0x2000 <= 0x800 {
+			if mappedLocation-0x2000 < 0x800 {
 				nes.VRAM.Write((mappedLocation-0x2000)%0x400, data)
 			} else {
 				nes.VRAM.Write((mappedLocation-0x2000)%0x400+0x400, data)
