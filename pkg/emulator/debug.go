@@ -202,3 +202,12 @@ func (e *Emulator) DrawRAM(t *textutil.Text) {
 func (e *Emulator) DrawCartridge(t *textutil.Text) {
 	e.Cartridge.Mapper.DebugDisplay(t)
 }
+
+func (e *Emulator) DrawKeybindings(t *textutil.Text) {
+	for _, group := range e.KeyBindings {
+		plz.Just(t.WriteString(fmt.Sprintf("%s: \n", group.Name)))
+		for _, binding := range group.Bindings {
+			plz.Just(t.WriteString(fmt.Sprintf("    %s: %s\n", binding.Key().String(), binding.Help)))
+		}
+	}
+}

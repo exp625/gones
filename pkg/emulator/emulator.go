@@ -35,27 +35,31 @@ var (
 	ppuText          *textutil.Text
 	oamText          *textutil.Text
 	controllerText   *textutil.Text
+	keybindingsText  *textutil.Text
 )
 
+type Screen int
+
 const (
-	ScreenGame = iota
+	ScreenGame Screen = iota
 	ScreenDebugCPU
 	ScreenDebugPPU
 	ScreenDebugNametables
 	ScreenDebugPalettes
 	ScreenDebugController
+	ScreenKeybindings
 )
 
 // Emulator struct
 type Emulator struct {
 	*nes.NES
 
-	Bindings []*Binding
+	KeyBindings []*KeyBindingGroup
 
 	autoRunEnabled bool
 	LoggingEnabled bool
 
-	Screen int
+	Screen Screen
 
 	requestedSteps int
 	autoRunCycles  int
@@ -76,8 +80,8 @@ func New(romFile string, debug bool) (*Emulator, error) {
 	c := cartridge.Load(bytes)
 
 	e := &Emulator{
-		NES:      nes.New(NESClockTime, NESAudioSampleTime),
-		Bindings: Bindings,
+		NES:         nes.New(NESClockTime, NESAudioSampleTime),
+		KeyBindings: Bindings,
 	}
 	if debug {
 		e.Screen = ScreenDebugCPU
@@ -117,6 +121,7 @@ func (e *Emulator) Init() error {
 	ppuText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 400, 256*2+40, 1)
 	oamText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 4, 256*2+40, 1)
 	controllerText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 4, 24, 1)
+	keybindingsText = textutil.New(basicfont.Face7x13, WindowWidth, WindowHeight, 4, 24, 1)
 
 	return nil
 }
@@ -136,16 +141,18 @@ func (e *Emulator) Update() error {
 }
 
 func (e *Emulator) HandleInput() {
-	for _, b := range e.Bindings {
-		key := b.Key()
-		if b.Pressed != nil {
-			if inpututil.IsKeyJustPressed(key) {
-				b.Pressed(e)
+	for _, group := range e.KeyBindings {
+		for _, binding := range group.Bindings {
+			key := binding.Key()
+			if binding.Pressed != nil {
+				if inpututil.IsKeyJustPressed(key) {
+					binding.Pressed(e)
+				}
 			}
-		}
-		if b.Released != nil {
-			if inpututil.IsKeyJustReleased(key) {
-				b.Released(e)
+			if binding.Released != nil {
+				if inpututil.IsKeyJustReleased(key) {
+					binding.Released(e)
+				}
 			}
 		}
 	}
@@ -164,6 +171,7 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 	ppuText.Clear()
 	oamText.Clear()
 	controllerText.Clear()
+	keybindingsText.Clear()
 
 	// Show debug info
 	switch e.Screen {
@@ -277,6 +285,9 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 				screen.DrawImage(button.image, button.options)
 			}
 		}
+	case ScreenKeybindings:
+		e.DrawKeybindings(keybindingsText)
+		keybindingsText.Draw(screen)
 	}
 }
 

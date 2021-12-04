@@ -16,7 +16,7 @@ var (
 		{"F3", "Nametable Debug"},
 		{"F4", "Palette Debug"},
 		{"F5", "Controller Debug"},
-		{"F6", ""},
+		{"F6", "Keybindings"},
 	}
 	header = ebiten.NewImage(WindowWidth, 20)
 	bg     = ebiten.NewImage(WindowWidth/len(headerEntries), 20)
@@ -33,7 +33,7 @@ func (e *Emulator) DrawHeader(screen *ebiten.Image) {
 	screen.DrawImage(header, op)
 	for i := range headerEntries {
 		headerEntry := textutil.New(basicfont.Face7x13, WindowWidth, 20, (WindowWidth/len(headerEntries))*i, 3, 1)
-		if e.Screen == i+1 {
+		if e.Screen == Screen(i+1) {
 			screen.DrawImage(bg, op)
 			headerEntry.Color(color.White)
 		} else {
