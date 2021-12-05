@@ -6,8 +6,8 @@ import (
 	"github.com/exp625/gones/internal/plz"
 	"github.com/exp625/gones/internal/textutil"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"golang.org/x/image/colornames"
+	"image"
 	_ "image/png"
 )
 
@@ -27,10 +27,15 @@ func init() {
 	pillPressedImageReader, _ := resourcesFS.Open("resources/pill_pressed.png")
 	circlePressedImageReader, _ := resourcesFS.Open("resources/circle_pressed.png")
 
-	ControllerImage, _, _ = ebitenutil.NewImageFromReader(controllerImageReader)
-	ArrowPressedImage, _, _ = ebitenutil.NewImageFromReader(arrowPressedImageReader)
-	PillPressedImage, _, _ = ebitenutil.NewImageFromReader(pillPressedImageReader)
-	CirclePressedImage, _, _ = ebitenutil.NewImageFromReader(circlePressedImageReader)
+	controllerImageDecoded, _, _ := image.Decode(controllerImageReader)
+	arrowPressedImageDecoded, _, _ := image.Decode(arrowPressedImageReader)
+	pillPressedImageDecoded, _, _ := image.Decode(pillPressedImageReader)
+	circlePressedImageDecoded, _, _ := image.Decode(circlePressedImageReader)
+
+	ControllerImage = ebiten.NewImageFromImage(controllerImageDecoded)
+	ArrowPressedImage = ebiten.NewImageFromImage(arrowPressedImageDecoded)
+	PillPressedImage = ebiten.NewImageFromImage(pillPressedImageDecoded)
+	CirclePressedImage = ebiten.NewImageFromImage(circlePressedImageDecoded)
 }
 
 func (e *Emulator) DrawCPU(t *textutil.Text) {
