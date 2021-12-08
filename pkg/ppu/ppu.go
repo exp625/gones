@@ -22,13 +22,14 @@ type PPU struct {
 	OamData      uint8
 	ScrollX      uint8
 	ScrollY      uint8
-	scrollTemp   uint8
-	scrollWrite  bool
 	Address      uint16
-	addressWrite bool
-	addressTemp  uint8
 	Data         uint8
 	OamDma       uint8
+
+	// Latch
+	GenLatch uint8
+	AddrLatch uint8
+	addrLatchWrite bool
 
 	// oam
 	OAM [256]uint8
@@ -83,11 +84,9 @@ func (ppu *PPU) Reset() {
 	ppu.OamData = 0
 	ppu.ScrollX = 0
 	ppu.ScrollY = 0
-	ppu.scrollTemp = 0
-	ppu.scrollWrite = false
+	ppu.AddrLatch = 0
+	ppu.addrLatchWrite = false
 	ppu.Address = 0
-	ppu.addressWrite = false
-	ppu.addressTemp = 0
 	ppu.Data = 0
 	ppu.OamDma = 0
 
@@ -100,23 +99,27 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 	if location >= 0x2000 && location <= 0x3FFF {
 		switch (location - 0x2000) % 0x8 {
 		case 0:
-			return true, 0
+			return true, ppu.GenLatch
 		case 1:
-			return true, 0
+			return true, ppu.GenLatch
 		case 2:
-			ret := ppu.Status
+			ret := ppu.Status & 0b11100000 | ppu.GenLatch & 0b00011111
 			ppu.Status &= 0b01111111
+			ppu.GenLatch = ret
 			return true, ret
 		case 3:
-			return true, ppu.OamAddress
+			return true, ppu.GenLatch
 		case 4:
-			return true, ppu.OAM[ppu.OamData]
+			ret := ppu.OAM[ppu.OamData]
+			ppu.GenLatch = ret
+			return true, ret
 		case 5:
-			return true, 0
+			return true, ppu.GenLatch
 		case 6:
-			return true, ppu.Data
+			return true, ppu.GenLatch
 		case 7:
 			ret := ppu.Bus.PPURead(ppu.Address)
+			ppu.GenLatch = ret
 			//if (ppu.Control >> 2 & 0x1) == 1 {
 			//	ppu.Address += 32
 			//} else {
@@ -129,6 +132,7 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 }
 
 func (ppu *PPU) CPUWrite(location uint16, data uint8) {
+	ppu.GenLatch = data
 	switch (location - 0x2000) % 0x8 {
 	case 0:
 		ppu.Control = data
@@ -137,26 +141,26 @@ func (ppu *PPU) CPUWrite(location uint16, data uint8) {
 	case 2:
 		// Do nothing
 	case 3:
-		// Do nothing
+		ppu.OamAddress = data
 	case 4:
 		ppu.OAM[ppu.OamAddress] = data
 		ppu.OamAddress++
 	case 5:
-		if !ppu.scrollWrite {
-			ppu.scrollTemp = data
-			ppu.scrollWrite = true
+		if !ppu.addrLatchWrite {
+			ppu.AddrLatch = data
+			ppu.addrLatchWrite = true
 		} else {
-			ppu.ScrollX = ppu.scrollTemp
+			ppu.ScrollX = ppu.AddrLatch
 			ppu.ScrollY = data
-			ppu.scrollWrite = false
+			ppu.addrLatchWrite = false
 		}
 	case 6:
-		if !ppu.addressWrite {
-			ppu.addressTemp = data
-			ppu.addressWrite = true
+		if !ppu.addrLatchWrite {
+			ppu.AddrLatch = data
+			ppu.addrLatchWrite = true
 		} else {
-			ppu.Address = (uint16(ppu.addressTemp) << 8) | uint16(data)
-			ppu.addressWrite = false
+			ppu.Address = (uint16(ppu.AddrLatch) << 8) | uint16(data) % 0x3FFF
+			ppu.addrLatchWrite = false
 		}
 	case 7:
 		ppu.Bus.PPUWrite(ppu.Address, data)
