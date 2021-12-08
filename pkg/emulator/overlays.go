@@ -25,7 +25,7 @@ func (e *Emulator) DrawOverlayGame(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(0, 20)
 	op.GeoM.Scale(4, 4)
-	// screen.DrawImage(e.Debugger.DrawGameDebug(), op)
+	screen.DrawImage(e.Debugger.DrawGameDebug(), op)
 }
 
 func (e *Emulator) DrawOverlayCPU(screen *ebiten.Image) {
@@ -112,7 +112,7 @@ func (e *Emulator) DrawOverlaySprites(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(0, 20)
 	op.GeoM.Scale(4, 4)
-	// screen.DrawImage(e.Debugger.DrawOAMSprites(), op)
+	screen.DrawImage(e.Debugger.DrawOAMSprites(), op)
 }
 
 func (e *Emulator) DrawOverlayKeybindings(screen *ebiten.Image) {

@@ -311,3 +311,180 @@ func (nes *Debugger) DrawNametableInColor(table int) *ebiten.Image {
 	return ebiten.NewImageFromImage(img)
 }
 
+func (nes *Debugger) DrawOAMSprites() *ebiten.Image {
+	colorEmphasis := nes.PPU.Mask >> 5
+	width := 32 * 8  // 256
+	height := 30 * 8 // 240
+
+	upLeft := image.Point{X: 0, Y: 0}
+	lowRight := image.Point{X: width, Y: height}
+	img := image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
+
+	spriteTable := uint16(0x0000)
+	if nes.PPU.Control>>3&0x1 == 1 {
+		spriteTable = 0x1000
+	}
+
+	for sprite := 0; sprite < 64; sprite++ {
+		spriteYPos := nes.PPU.OAM[sprite]
+		spriteIndex := uint16(nes.PPU.OAM[sprite+1])
+		spriteAttributes := uint16(nes.PPU.OAM[sprite+2])
+		spriteXPos := nes.PPU.OAM[sprite+3]
+
+		paletteIndex := spriteAttributes&0b11 + 4
+		flipHorizontal := spriteAttributes>>6&0b1 == 1
+		flipVertical := spriteAttributes>>7&0b1 == 1
+
+		// Get tile byte
+		for tileY := uint16(0); tileY < 8; tileY++ {
+			tileYFlipped := tileY
+			if flipVertical {
+				tileYFlipped = 7 - tileYFlipped
+			}
+			addressPlane0 := spriteTable<<12 | spriteIndex<<4 | 0<<3 | tileYFlipped
+			addressPlane1 := spriteTable<<12 | spriteIndex<<4 | 1<<3 | tileYFlipped
+			plane0 := nes.PPURead(addressPlane0)
+			plane1 := nes.PPURead(addressPlane1)
+
+			for tileX := uint16(0); tileX < 8; tileX++ {
+				tileXFlipped := tileX
+				if flipHorizontal {
+					tileXFlipped = 7 - tileXFlipped
+				}
+				colorIndex := uint16(((plane1 >> (7 - tileXFlipped)) & 0x01 << 1) | (plane0>>(7-tileXFlipped))&0x01)
+				c := nes.PPU.Palette[nes.PPURead(0x3F00+(paletteIndex*4+colorIndex))][colorEmphasis]
+
+				imgX := int(spriteXPos + uint8(tileX))
+				imgY := int(spriteYPos + uint8(tileY))
+				img.Set(imgX, imgY, c)
+			}
+		}
+	}
+	return ebiten.NewImageFromImage(img)
+}
+
+func (nes *Debugger) DrawGameDebug() *ebiten.Image {
+	width := 32 * 8  // 256
+	height := 30 * 8 // 240
+	table := 0
+	upLeft := image.Point{X: 0, Y: 0}
+	lowRight := image.Point{X: width, Y: height}
+	imgBackgroundColor := image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
+	imgBackgroundSprite := image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
+	imgBackgroundTiles := image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
+	imgSprites := image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
+	spriteTable := uint16(0x0000)
+	if nes.PPU.Control>>3&0x1 == 1 {
+		spriteTable = 0x1000
+	}
+	colorEmphasis := nes.PPU.Mask >> 5
+
+	for row := uint16(0); row < 30; row++ {
+		for tile := uint16(0); tile < 32; tile++ {
+			// Get tile byte
+			const nameTableBaseAddress = 0x2000
+			const attributeTableBaseAddress = 0x23C0
+			nameTableOffset := uint16(table * 0x400)
+			tileIndex := row*32 + tile
+			tileByte := uint16(nes.PPURead(nameTableBaseAddress+nameTableOffset+tileIndex))
+			// RRRRCCCC
+			// Background pattern table address (0: $0000; 1: $1000)
+			backgroundTable := uint16(nes.PPU.Control >> 4 & 0x1)
+
+			// Get assigned attributeByte
+			attributeIndex := (tile / 4) + (row/4)*8
+			// tileByte = attributeIndex
+			attributeByte := uint16(nes.PPURead(attributeTableBaseAddress+nameTableOffset+attributeIndex))
+			attribute := uint16(0)
+
+			switch {
+			case tile%4 <= 1 && row%4 <= 1:
+				attribute = attributeByte & 0b11
+			case tile%4 >= 2 && row%4 <= 1:
+				attribute = attributeByte >> 2 & 0b11
+			case tile%4 <= 1 && row%4 >= 2:
+				attribute = attributeByte >> 4 & 0b11
+			case tile%4 >= 2 && row%4 >= 2:
+				attribute = attributeByte >> 6 & 0b11
+			}
+			// tileByte = attribute
+			// Get tile byte
+			// DCBA98 76543210
+			// ---------------
+			// 0HRRRR CCCCPTTT
+			// |||||| |||||+++- T: Fine Y offset, the row number within a tile
+			// |||||| ||||+---- P: Bit plane (0: "lower"; 1: "upper")
+			// |||||| ++++----- C: Tile column
+			// ||++++---------- R: Tile row
+			// |+-------------- H: Half of sprite table (0: "left"; 1: "right")
+			// +--------------- 0: Pattern table is at $0000-$1FFF
+			for tileY := uint16(0); tileY < 8; tileY++ {
+				addressPlane0 := backgroundTable<<12 | tileByte<<4 | 0<<3 | tileY
+				addressPlane1 := backgroundTable<<12 | tileByte<<4 | 1<<3 | tileY
+				plane0 := nes.PPURead(addressPlane0)
+				plane1 := nes.PPURead(addressPlane1)
+
+				for tileX := uint16(0); tileX < 8; tileX++ {
+					colorIndex := uint16(((plane1 >> (7 - tileX)) & 0x01 << 1) | (plane0>>(7-tileX))&0x01)
+					c := nes.PPU.Palette[nes.PPURead(0x3F00+attribute*4+colorIndex)][colorEmphasis]
+					if colorIndex == 0 {
+						c = color.RGBA{}
+					}
+					imgX := int(tile*8 + tileX)
+					imgY := int(row*8 + tileY)
+					imgBackgroundTiles.Set(imgX, imgY, c)
+				}
+			}
+		}
+	}
+	for sprite := 0; sprite < 64; sprite++ {
+		spriteYPos := nes.PPU.OAM[sprite]
+		spriteIndex := uint16(nes.PPU.OAM[sprite+1])
+		spriteAttributes := uint16(nes.PPU.OAM[sprite+2])
+		spriteXPos := nes.PPU.OAM[sprite+3]
+
+		paletteIndex := spriteAttributes&0b11 + 4
+		flipHorizontal := spriteAttributes>>6&0b1 == 1
+		flipVertical := spriteAttributes>>7&0b1 == 1
+		priority := spriteAttributes>>5&0b1 == 0
+
+		// Get tile byte
+		for tileY := uint16(0); tileY < 8; tileY++ {
+			tileYFlipped := tileY
+			if flipVertical {
+				tileYFlipped = 7 - tileYFlipped
+			}
+			addressPlane0 := spriteTable<<12 | spriteIndex<<4 | 0<<3 | tileYFlipped
+			addressPlane1 := spriteTable<<12 | spriteIndex<<4 | 1<<3 | tileYFlipped
+			plane0 := nes.PPURead(addressPlane0)
+			plane1 := nes.PPURead(addressPlane1)
+
+			for tileX := uint16(0); tileX < 8; tileX++ {
+				tileXFlipped := tileX
+				if flipHorizontal {
+					tileXFlipped = 7 - tileXFlipped
+				}
+				colorIndex := uint16(((plane1 >> (7 - tileXFlipped)) & 0x01 << 1) | (plane0>>(7-tileXFlipped))&0x01)
+				c := nes.PPU.Palette[nes.PPURead(0x3F00+(paletteIndex*4+colorIndex))][colorEmphasis]
+				if colorIndex == 0 {
+					c = color.RGBA{}
+				}
+				imgX := int(spriteXPos + uint8(tileX))
+				imgY := int(spriteYPos + uint8(tileY))
+				if priority {
+					imgSprites.Set(imgX, imgY, c)
+				} else {
+					imgBackgroundSprite.Set(imgX, imgY, c)
+				}
+			}
+		}
+	}
+
+	img := ebiten.NewImageFromImage(imgBackgroundColor)
+	img.Fill(nes.PPU.Palette[nes.PPURead(0x3F00)][colorEmphasis])
+	img.DrawImage(ebiten.NewImageFromImage(imgBackgroundSprite), nil)
+	img.DrawImage(ebiten.NewImageFromImage(imgBackgroundTiles), nil)
+	img.DrawImage(ebiten.NewImageFromImage(imgSprites), nil)
+	return ebiten.NewImageFromImage(img)
+}
+
