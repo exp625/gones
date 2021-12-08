@@ -55,7 +55,6 @@ func (m *Mapper000) CPURead(location uint16) (bool, uint8) {
 	}
 	// Mapper was no responsible for the location
 	return false, 0
-
 }
 
 func (m *Mapper000) CPUMapWrite(location uint16) uint16 {

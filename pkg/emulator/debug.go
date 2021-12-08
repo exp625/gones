@@ -134,7 +134,6 @@ func (e *Emulator) DrawInstructions(t *textutil.Text) {
 }
 
 func (e *Emulator) DrawZeroPage(t *textutil.Text) {
-
 	t.Color(colornames.White)
 	plz.Just(fmt.Fprint(t, "Zero Page:\n     "))
 	t.Color(colornames.Yellow)
@@ -153,7 +152,6 @@ func (e *Emulator) DrawZeroPage(t *textutil.Text) {
 }
 
 func (e *Emulator) DrawStack(t *textutil.Text) {
-
 	t.Color(colornames.White)
 	plz.Just(fmt.Fprintf(t, "Stack: 0x%02X\n     ", e.CPU.S))
 	t.Color(colornames.Yellow)

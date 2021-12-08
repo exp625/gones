@@ -10,13 +10,14 @@ import (
 )
 
 var (
-	headerEntries = [6][2]string{
+	headerEntries = [7][2]string{
 		{"F1", "CPU Debug"},
 		{"F2", "PPU Debug"},
 		{"F3", "Nametable Debug"},
 		{"F4", "Palette Debug"},
 		{"F5", "Controller Debug"},
-		{"F6", "Keybindings"},
+		{"F6", "Sprites Debug"},
+		{"F7", "Keybindings"},
 	}
 )
 

@@ -23,10 +23,13 @@ type CPU struct {
 	Instructions [256]Instruction
 	Mnemonics    map[uint8][2]string
 
-	ClockCount int64
-	CycleCount int
-	RequestNMI bool
-	RequestIRQ bool
+	ClockCount  int64
+	CycleCount  int
+	RequestNMI  bool
+	RequestIRQ  bool
+	DMA         bool
+	DMAPrepared bool
+	DMAAddress  uint16
 }
 
 func New() *CPU {
@@ -46,22 +49,33 @@ const (
 func (cpu *CPU) Clock() {
 	cpu.ClockCount++
 	if cpu.CycleCount == 0 {
-		opcode := cpu.Bus.CPURead(cpu.PC)
-		inst := cpu.Instructions[opcode]
-		if cpu.RequestNMI {
-			cpu.NMI()
-			cpu.RequestNMI = false
-			cpu.CycleCount += 7
-		} else if cpu.RequestIRQ && !cpu.Get(FlagInterruptDisable) {
-			cpu.IRQ()
-			cpu.RequestIRQ = false
-			cpu.CycleCount += 8
+		if cpu.DMA {
+			if !cpu.DMAPrepared {
+				cpu.CycleCount++
+				if cpu.CycleCount%2 != 0 {
+					cpu.CycleCount++
+				}
+				cpu.DMAPrepared = true
+			}
+			cpu.Bus.DMAWrite(cpu.Bus.CPURead(cpu.DMAAddress))
 		} else {
-			if inst.Length != 0 {
-				cpu.Bus.Log()
-				loc, data, addCycle := inst.AddressMode()
-				inst.Execute(loc, data, inst.Length)
-				cpu.CycleCount += inst.ClockCycles + int(addCycle)
+			opcode := cpu.Bus.CPURead(cpu.PC)
+			inst := cpu.Instructions[opcode]
+			if cpu.RequestNMI {
+				cpu.NMI()
+				cpu.RequestNMI = false
+				cpu.CycleCount += 7
+			} else if cpu.RequestIRQ && !cpu.Get(FlagInterruptDisable) {
+				cpu.IRQ()
+				cpu.RequestIRQ = false
+				cpu.CycleCount += 8
+			} else {
+				if inst.Length != 0 {
+					cpu.Bus.Log()
+					loc, data, addCycle := inst.AddressMode()
+					inst.Execute(loc, data, inst.Length)
+					cpu.CycleCount += inst.ClockCycles + int(addCycle)
+				}
 			}
 		}
 	}

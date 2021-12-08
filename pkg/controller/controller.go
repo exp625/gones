@@ -20,6 +20,10 @@ type Controller struct {
 	serialReadCount uint8
 }
 
+func New() *Controller {
+	return &Controller{}
+}
+
 func (c *Controller) SetMode(mode bool) {
 	if c.serialMode == true && mode == false {
 		c.register = c.Buttons

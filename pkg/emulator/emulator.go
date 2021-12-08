@@ -99,9 +99,18 @@ func (e *Emulator) Update() error {
 }
 
 func (e *Emulator) Draw(screen *ebiten.Image) {
+	switch e.ActiveOverlay {
+	case OverlayGame:
+		e.DebugOff()
+	default:
+		e.DebugOn()
+	}
+
 	e.DrawHeader(screen)
 
 	switch e.ActiveOverlay {
+	case OverlayGame:
+		e.DrawOverlayGame(screen)
 	case OverlayCPU:
 		e.DrawOverlayCPU(screen)
 	case OverlayPPU:
@@ -112,18 +121,16 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 		e.DrawOverlayPalettes(screen)
 	case OverlayControllers:
 		e.DrawOverlayControllers(screen)
+	case OverlaySprites:
+		e.DrawOverlaySprites(screen)
 	case OverlayKeybindings:
 		e.DrawOverlayKeybindings(screen)
 	}
+
+	e.DebugOff()
 }
 
 func (e *Emulator) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
-	//if outsideWidth < WindowWidth {
-	//	outsideWidth = WindowWidth
-	//}
-	//if outsideHeight < WindowHeight {
-	//	outsideHeight = WindowHeight
-	//}
 	return outsideWidth, outsideHeight
 }
 

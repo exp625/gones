@@ -31,9 +31,9 @@ type PPU struct {
 	oamdma         uint8
 
 	// oam
-	OAM [256]byte
+	OAM [256]uint8
 
-	PaletteRAM [0x20]byte
+	PaletteRAM [0x20]uint8
 }
 
 func New() *PPU {
@@ -90,6 +90,10 @@ func (ppu *PPU) Reset() {
 	ppu.ppuaddrtemp = 0
 	ppu.ppudata = 0
 	ppu.oamdma = 0
+
+	for i := 0; i < 256; i++ {
+		ppu.OAM[i] = 0
+	}
 }
 
 func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
@@ -101,7 +105,9 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 			return true, 0
 		case 2:
 			ret := ppu.ppustatus
-			ppu.ppustatus &= 0b01111111
+			if !ppu.Bus.Debugging() {
+				ppu.ppustatus &= 0b01111111
+			}
 			return true, ret
 		case 3:
 			return true, ppu.oamaddr
@@ -157,4 +163,9 @@ func (ppu *PPU) CPUWrite(location uint16, data uint8) {
 			ppu.ppuaddr++
 		}
 	}
+}
+
+func (ppu *PPU) DMAWrite(data uint8) {
+	ppu.OAM[ppu.oamaddr] = data
+	ppu.oamaddr++
 }

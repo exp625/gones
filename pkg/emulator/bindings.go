@@ -34,8 +34,13 @@ func DefaultBindings(e *Emulator) []*BindingGroup {
 				OnPressed:  e.ResetPressed,
 			},
 			{
-				Help:       "Show the key bindings screen",
+				Help:       "Show the sprites debug screen",
 				DefaultKey: ebiten.KeyF6,
+				OnPressed:  e.ShowScreenPressedFunc(OverlaySprites),
+			},
+			{
+				Help:       "Show the key bindings screen",
+				DefaultKey: ebiten.KeyF7,
 				OnPressed:  e.ShowScreenPressedFunc(OverlayKeybindings),
 			},
 			{

@@ -33,15 +33,19 @@ func (ppu *PPU) DrawPatternTable(table int) *ebiten.Image {
 			for tileY := 0; tileY < 8; tileY++ {
 				addressPlane0 := uint16(table<<12 | row<<8 | tile<<4 | 0<<3 | tileY)
 				addressPlane1 := uint16(table<<12 | row<<8 | tile<<4 | 1<<3 | tileY)
-				plane0 := ppu.Bus.PPURead(addressPlane0)
-				plane1 := ppu.Bus.PPURead(addressPlane1)
+				plane0 := ppu.Bus.PPURead(addressPlane0, false)
+				plane1 := ppu.Bus.PPURead(addressPlane1, false)
 
-				colorEmpasis := ppu.ppumask >> 5
+				// colorEmphasis := ppu.ppumask >> 5
 				pallets := [4]color.Color{
-					ppu.Palette[ppu.Bus.PPURead(0x3F00)%0x40][colorEmpasis],
-					ppu.Palette[ppu.Bus.PPURead(0x3F01)%0x40][colorEmpasis],
-					ppu.Palette[ppu.Bus.PPURead(0x3F02)%0x40][colorEmpasis],
-					ppu.Palette[ppu.Bus.PPURead(0x3F03)%0x40][colorEmpasis],
+					//ppu.Palette[ppu.Bus.PPURead(0x3F00, false)%0x40][colorEmpasis],
+					//ppu.Palette[ppu.Bus.PPURead(0x3F01, false)%0x40][colorEmpasis],
+					//ppu.Palette[ppu.Bus.PPURead(0x3F02, false)%0x40][colorEmpasis],
+					//ppu.Palette[ppu.Bus.PPURead(0x3F03, false)%0x40][colorEmpasis],
+					color.RGBA{0, 0, 0, 255},
+					color.RGBA{100, 100, 100, 255},
+					color.RGBA{150, 150, 150, 255},
+					color.RGBA{255, 255, 255, 255},
 				}
 
 				for tileX := 0; tileX < 8; tileX++ {
@@ -59,8 +63,7 @@ func (ppu *PPU) DrawPatternTable(table int) *ebiten.Image {
 }
 
 func (ppu *PPU) DrawPPUInfo(t *textutil.Text) {
-
-	plz.Just(fmt.Fprintf(t, "PPUCRTL: %02X \tGenerate NMI: %t  \t\t\t", ppu.ppuctrl, (ppu.ppuctrl>>7)&0x1 == 1))
+	plz.Just(fmt.Fprintf(t, "PPUCTRL: %02X \tGenerate NMI: %t  \t\t\t", ppu.ppuctrl, (ppu.ppuctrl>>7)&0x1 == 1))
 	if (ppu.ppuctrl>>6)&0x1 == 0 {
 		plz.Just(fmt.Fprintf(t, "PPU Type: Master \t"))
 	} else {
@@ -139,9 +142,9 @@ func (ppu *PPU) DrawPalettes() *ebiten.Image {
 	for palette := uint16(0); palette < 4; palette++ {
 		for index := uint16(0); index < 4; index++ {
 			if index == 0 {
-				img.Set(int(palette*4+index), 0, ppu.Palette[ppu.Bus.PPURead(0x3F00)][0])
+				img.Set(int(palette*4+index), 0, ppu.Palette[ppu.Bus.PPURead(0x3F00, false)][0])
 			} else {
-				img.Set(int(palette*4+index), 0, ppu.Palette[ppu.Bus.PPURead(0x3F00+index+palette*4)%0x40][0])
+				img.Set(int(palette*4+index), 0, ppu.Palette[ppu.Bus.PPURead(0x3F00+index+palette*4, false)%0x40][0])
 			}
 
 		}
@@ -151,9 +154,9 @@ func (ppu *PPU) DrawPalettes() *ebiten.Image {
 	for palette := uint16(0); palette < 8; palette++ {
 		for index := uint16(0); index < 0x40; index++ {
 			if index == 0 {
-				img.Set(int(palette*4+index), 1, ppu.Palette[ppu.Bus.PPURead(0x3F00)][0])
+				img.Set(int(palette*4+index), 1, ppu.Palette[ppu.Bus.PPURead(0x3F00, false)][0])
 			} else {
-				img.Set(int(palette*4+index), 1, ppu.Palette[ppu.Bus.PPURead(0x3F10+index+palette*4)%0x40][0])
+				img.Set(int(palette*4+index), 1, ppu.Palette[ppu.Bus.PPURead(0x3F10+index+palette*4, false)%0x40][0])
 			}
 		}
 	}
@@ -189,7 +192,7 @@ func (ppu *PPU) DrawNametableInBW(table int) *ebiten.Image {
 			const nameTableBaseAddress = 0x2000
 			nameTableOffset := uint16(table * 0x400)
 			tileIndex := row*32 + tile
-			tileByte := uint16(ppu.Bus.PPURead(nameTableBaseAddress + nameTableOffset + tileIndex))
+			tileByte := uint16(ppu.Bus.PPURead(nameTableBaseAddress+nameTableOffset+tileIndex, false))
 			// RRRRCCCC
 			// Background pattern table address (0: $0000; 1: $1000)
 			backgroundTable := uint16(ppu.ppuctrl >> 4 & 0x1)
@@ -207,8 +210,8 @@ func (ppu *PPU) DrawNametableInBW(table int) *ebiten.Image {
 			for tileY := uint16(0); tileY < 8; tileY++ {
 				addressPlane0 := backgroundTable<<12 | tileByte<<4 | 0<<3 | tileY
 				addressPlane1 := backgroundTable<<12 | tileByte<<4 | 1<<3 | tileY
-				plane0 := ppu.Bus.PPURead(addressPlane0)
-				plane1 := ppu.Bus.PPURead(addressPlane1)
+				plane0 := ppu.Bus.PPURead(addressPlane0, false)
+				plane1 := ppu.Bus.PPURead(addressPlane1, false)
 
 				for tileX := uint16(0); tileX < 8; tileX++ {
 					var c color.Color
@@ -231,6 +234,7 @@ func (ppu *PPU) DrawNametableInBW(table int) *ebiten.Image {
 
 	return ebiten.NewImageFromImage(img)
 }
+
 func (ppu *PPU) DrawNametableInColor(table int) *ebiten.Image {
 	width := 32 * 8  // 256
 	height := 30 * 8 // 240
@@ -249,7 +253,7 @@ func (ppu *PPU) DrawNametableInColor(table int) *ebiten.Image {
 			const attributeTableBaseAddress = 0x23C0
 			nameTableOffset := uint16(table * 0x400)
 			tileIndex := row*32 + tile
-			tileByte := uint16(ppu.Bus.PPURead(nameTableBaseAddress + nameTableOffset + tileIndex))
+			tileByte := uint16(ppu.Bus.PPURead(nameTableBaseAddress+nameTableOffset+tileIndex, false))
 			// RRRRCCCC
 			// Background pattern table address (0: $0000; 1: $1000)
 			backgroundTable := uint16(ppu.ppuctrl >> 4 & 0x1)
@@ -257,7 +261,7 @@ func (ppu *PPU) DrawNametableInColor(table int) *ebiten.Image {
 			// Get assigned attributeByte
 			attributeIndex := (tile / 4) + (row/4)*8
 			// tileByte = attributeIndex
-			attributeByte := uint16(ppu.Bus.PPURead(attributeTableBaseAddress + nameTableOffset + attributeIndex))
+			attributeByte := uint16(ppu.Bus.PPURead(attributeTableBaseAddress+nameTableOffset+attributeIndex, false))
 			attribute := uint16(0)
 
 			switch {
@@ -284,12 +288,12 @@ func (ppu *PPU) DrawNametableInColor(table int) *ebiten.Image {
 			for tileY := uint16(0); tileY < 8; tileY++ {
 				addressPlane0 := backgroundTable<<12 | tileByte<<4 | 0<<3 | tileY
 				addressPlane1 := backgroundTable<<12 | tileByte<<4 | 1<<3 | tileY
-				plane0 := ppu.Bus.PPURead(addressPlane0)
-				plane1 := ppu.Bus.PPURead(addressPlane1)
+				plane0 := ppu.Bus.PPURead(addressPlane0, false)
+				plane1 := ppu.Bus.PPURead(addressPlane1, false)
 
 				for tileX := uint16(0); tileX < 8; tileX++ {
 					colorIndex := uint16(((plane1 >> (7 - tileX)) & 0x01 << 1) | (plane0>>(7-tileX))&0x01)
-					c := ppu.Palette[ppu.Bus.PPURead(0x3F00+attribute*4+colorIndex)][colorEmphasis]
+					c := ppu.Palette[ppu.Bus.PPURead(0x3F00+attribute*4+colorIndex, false)][colorEmphasis]
 
 					imgX := int(tile*8 + tileX)
 					imgY := int(row*8 + tileY)

@@ -3,6 +3,10 @@ package apu
 type APU struct {
 }
 
+func New() *APU {
+	return &APU{}
+}
+
 func (apu *APU) Clock() {
 }
 

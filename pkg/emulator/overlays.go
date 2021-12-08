@@ -19,8 +19,16 @@ const (
 	OverlayNametables
 	OverlayPalettes
 	OverlayControllers
+	OverlaySprites
 	OverlayKeybindings
 )
+
+func (e *Emulator) DrawOverlayGame(screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(0, 20)
+	op.GeoM.Scale(4, 4)
+	screen.DrawImage(e.PPU.DrawGameDebug(), op)
+}
 
 func (e *Emulator) DrawOverlayCPU(screen *ebiten.Image) {
 	width, height := ebiten.WindowSize()
@@ -153,6 +161,13 @@ func (e *Emulator) DrawOverlayControllers(screen *ebiten.Image) {
 			screen.DrawImage(button.image, button.options)
 		}
 	}
+}
+
+func (e *Emulator) DrawOverlaySprites(screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(0, 20)
+	op.GeoM.Scale(4, 4)
+	screen.DrawImage(e.PPU.DrawOAMSprites(), op)
 }
 
 func (e *Emulator) DrawOverlayKeybindings(screen *ebiten.Image) {
