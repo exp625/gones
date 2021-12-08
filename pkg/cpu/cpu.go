@@ -82,7 +82,15 @@ func (cpu *CPU) Clock() {
 			}
 		}
 	}
-	cpu.CycleCount--
+	if !cpu.DMA {
+		cpu.CycleCount--
+	} else {
+		if cpu.DMAAddress&0xFF == 0xFF {
+			cpu.DMA = false
+		} else {
+			cpu.DMAAddress++
+		}
+	}
 }
 
 func (cpu *CPU) Reset() {
