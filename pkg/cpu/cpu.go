@@ -75,7 +75,7 @@ func (cpu *CPU) Clock() {
 			} else {
 				if inst.Length != 0 {
 					cpu.log()
-					loc, data, addCycle := inst.AddressMode()
+					loc, data, addCycle := inst.AddressMode(cpu.Bus.CPURead)
 					inst.Execute(loc, data, inst.Length)
 					cpu.CycleCount += inst.ClockCycles + int(addCycle)
 				}

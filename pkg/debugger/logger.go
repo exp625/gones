@@ -47,7 +47,7 @@ func (nes *Debugger) LogCpu() string {
 func (nes *Debugger) addressMnemonic() string {
 	opCode := nes.CPURead(nes.CPU.PC)
 	instruction := nes.CPU.Instructions[opCode]
-	addr, data, _ := instruction.AddressMode()
+	addr, data, _ := instruction.AddressMode(nes.CPURead)
 	switch instruction.AddressModeMnemonic {
 	case "REL":
 		return fmt.Sprintf("$%04X                      ", addr)
