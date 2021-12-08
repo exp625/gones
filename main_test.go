@@ -7,6 +7,7 @@ import (
 	"github.com/exp625/gones/internal/plz"
 	"github.com/exp625/gones/pkg/cpu"
 	"github.com/exp625/gones/pkg/emulator"
+	"github.com/exp625/gones/pkg/logger"
 	"log"
 	"os"
 	"strings"
@@ -25,12 +26,11 @@ func TestCPULogOutput(t *testing.T) {
 	e.CPU.PC = 0xC000
 	e.CPU.P = cpu.FlagUnused | cpu.FlagInterruptDisable
 
-	e.EnsureLogDir(logFileName)
+	fileLogger := &logger.FileLogger{}
+	fileLogger.Name = logFileName
+	e.Logger = fileLogger
+	e.Logger.StartLogging()
 	logFile, err := os.Create(logFileName)
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer plz.Close(logFile)
 
 	// Run same number of instructions as in nestest.log
 	for i := 0; i < 8992; i++ {

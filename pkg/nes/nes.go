@@ -1,15 +1,12 @@
 package nes
 
 import (
-	"fmt"
-	"github.com/exp625/gones/internal/plz"
 	"github.com/exp625/gones/pkg/apu"
 	"github.com/exp625/gones/pkg/cartridge"
 	"github.com/exp625/gones/pkg/controller"
 	"github.com/exp625/gones/pkg/cpu"
 	"github.com/exp625/gones/pkg/ppu"
 	"github.com/exp625/gones/pkg/ram"
-	"io"
 )
 
 // NES struct
@@ -30,9 +27,6 @@ type NES struct {
 
 	MasterClockCount uint64
 	EmulatedTime     float64
-
-	debugging bool
-	Logger    io.ReadWriteCloser
 }
 
 // New creates a new NES instance
@@ -152,7 +146,7 @@ func (nes *NES) CPUWrite(location uint16, data uint8) {
 	}
 }
 
-func (nes *NES) PPURead(location uint16, internal bool) uint8 {
+func (nes *NES) PPURead(location uint16) uint8 {
 	mappedLocation := nes.Cartridge.PPUMapRead(location)
 	switch {
 	case mappedLocation <= 0x1FFF:
@@ -251,14 +245,4 @@ func (nes *NES) IRQ() {
 	nes.CPU.RequestIRQ = true
 }
 
-func (nes *NES) Debugging() bool {
-	return nes.debugging
-}
 
-func (nes *NES) DebugOn() {
-	nes.debugging = true
-}
-
-func (nes *NES) DebugOff() {
-	nes.debugging = false
-}

@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"github.com/exp625/gones/pkg/bus"
+	"github.com/exp625/gones/pkg/logger"
 )
 
 type CPU struct {
@@ -30,6 +31,8 @@ type CPU struct {
 	DMA         bool
 	DMAPrepared bool
 	DMAAddress  uint16
+
+	Logger logger.Loggable
 }
 
 func New() *CPU {
@@ -71,7 +74,7 @@ func (cpu *CPU) Clock() {
 				cpu.CycleCount += 8
 			} else {
 				if inst.Length != 0 {
-					cpu.Bus.Log()
+					cpu.log()
 					loc, data, addCycle := inst.AddressMode()
 					inst.Execute(loc, data, inst.Length)
 					cpu.CycleCount += inst.ClockCycles + int(addCycle)
@@ -144,4 +147,8 @@ func (cpu *CPU) NMI() {
 	low := uint16(cpu.Bus.CPURead(NMIVector))
 	high := uint16(cpu.Bus.CPURead(NMIVector + 1))
 	cpu.PC = (high << 8) | low
+}
+
+func (cpu *CPU) log()  {
+	cpu.Logger.Log()
 }
