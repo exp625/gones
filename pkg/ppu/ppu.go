@@ -15,20 +15,20 @@ type PPU struct {
 	Palette [0x40][8]color.Color
 
 	// Registers
-	Control   uint8
-	Mask    uint8
-	Status     uint8
-	OamAddress uint8
-	OamData    uint8
-	ScrollX       uint8
-	ScrollY        uint8
-	scrollTemp  uint8
+	Control      uint8
+	Mask         uint8
+	Status       uint8
+	OamAddress   uint8
+	OamData      uint8
+	ScrollX      uint8
+	ScrollY      uint8
+	scrollTemp   uint8
 	scrollWrite  bool
 	Address      uint16
 	addressWrite bool
-	addressTemp uint8
-	Data   uint8
-	OamDma uint8
+	addressTemp  uint8
+	Data         uint8
+	OamDma       uint8
 
 	// oam
 	OAM [256]uint8

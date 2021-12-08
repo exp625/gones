@@ -157,6 +157,6 @@ func (cpu *CPU) NMI() {
 	cpu.PC = (high << 8) | low
 }
 
-func (cpu *CPU) log()  {
+func (cpu *CPU) log() {
 	cpu.Logger.Log()
 }

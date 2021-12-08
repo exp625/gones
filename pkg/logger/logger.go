@@ -6,5 +6,3 @@ type Logger interface {
 	StopLogging()
 	LoggingEnabled() bool
 }
-
-

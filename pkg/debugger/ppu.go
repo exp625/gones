@@ -1,13 +1,13 @@
 package debugger
 
 import (
-"fmt"
-"github.com/exp625/gones/internal/plz"
-"github.com/exp625/gones/internal/textutil"
-"github.com/hajimehoshi/ebiten/v2"
-"golang.org/x/image/colornames"
-"image"
-"image/color"
+	"fmt"
+	"github.com/exp625/gones/internal/plz"
+	"github.com/exp625/gones/internal/textutil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"golang.org/x/image/colornames"
+	"image"
+	"image/color"
 )
 
 func (nes *Debugger) DrawPatternTable(table int) *ebiten.Image {
@@ -197,7 +197,7 @@ func (nes *Debugger) DrawNametableInBW(table int) *ebiten.Image {
 			const nameTableBaseAddress = 0x2000
 			nameTableOffset := uint16(table * 0x400)
 			tileIndex := row*32 + tile
-			tileByte := uint16(nes.PPU.Bus.PPURead(nameTableBaseAddress+nameTableOffset+tileIndex))
+			tileByte := uint16(nes.PPU.Bus.PPURead(nameTableBaseAddress + nameTableOffset + tileIndex))
 			// RRRRCCCC
 			// Background pattern table address (0: $0000; 1: $1000)
 			backgroundTable := uint16(nes.PPU.Control >> 4 & 0x1)
@@ -258,7 +258,7 @@ func (nes *Debugger) DrawNametableInColor(table int) *ebiten.Image {
 			const attributeTableBaseAddress = 0x23C0
 			nameTableOffset := uint16(table * 0x400)
 			tileIndex := row*32 + tile
-			tileByte := uint16(nes.PPU.Bus.PPURead(nameTableBaseAddress+nameTableOffset+tileIndex))
+			tileByte := uint16(nes.PPU.Bus.PPURead(nameTableBaseAddress + nameTableOffset + tileIndex))
 			// RRRRCCCC
 			// Background pattern table address (0: $0000; 1: $1000)
 			backgroundTable := uint16(nes.PPU.Control >> 4 & 0x1)
@@ -266,7 +266,7 @@ func (nes *Debugger) DrawNametableInColor(table int) *ebiten.Image {
 			// Get assigned attributeByte
 			attributeIndex := (tile / 4) + (row/4)*8
 			// tileByte = attributeIndex
-			attributeByte := uint16(nes.PPU.Bus.PPURead(attributeTableBaseAddress+nameTableOffset+attributeIndex))
+			attributeByte := uint16(nes.PPU.Bus.PPURead(attributeTableBaseAddress + nameTableOffset + attributeIndex))
 			attribute := uint16(0)
 
 			switch {
@@ -386,7 +386,7 @@ func (nes *Debugger) DrawGameDebug() *ebiten.Image {
 			const attributeTableBaseAddress = 0x23C0
 			nameTableOffset := uint16(table * 0x400)
 			tileIndex := row*32 + tile
-			tileByte := uint16(nes.PPURead(nameTableBaseAddress+nameTableOffset+tileIndex))
+			tileByte := uint16(nes.PPURead(nameTableBaseAddress + nameTableOffset + tileIndex))
 			// RRRRCCCC
 			// Background pattern table address (0: $0000; 1: $1000)
 			backgroundTable := uint16(nes.PPU.Control >> 4 & 0x1)
@@ -394,7 +394,7 @@ func (nes *Debugger) DrawGameDebug() *ebiten.Image {
 			// Get assigned attributeByte
 			attributeIndex := (tile / 4) + (row/4)*8
 			// tileByte = attributeIndex
-			attributeByte := uint16(nes.PPURead(attributeTableBaseAddress+nameTableOffset+attributeIndex))
+			attributeByte := uint16(nes.PPURead(attributeTableBaseAddress + nameTableOffset + attributeIndex))
 			attribute := uint16(0)
 
 			switch {
@@ -487,4 +487,3 @@ func (nes *Debugger) DrawGameDebug() *ebiten.Image {
 	img.DrawImage(ebiten.NewImageFromImage(imgSprites), nil)
 	return ebiten.NewImageFromImage(img)
 }
-

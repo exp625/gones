@@ -36,7 +36,6 @@ func init() {
 	CirclePressedImage = ebiten.NewImageFromImage(circlePressedImageDecoded)
 }
 
-
 func (nes *Debugger) DrawController(port uint8) *ebiten.Image {
 
 	width, height := ebiten.WindowSize()

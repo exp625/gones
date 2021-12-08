@@ -94,4 +94,3 @@ func (nes *Debugger) DrawInstructions(t *textutil.Text) {
 		}
 	}
 }
-

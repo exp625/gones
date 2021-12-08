@@ -17,13 +17,12 @@ func New(nes *nes.NES) *Debugger {
 	return debugger
 }
 
-
 func (nes *Debugger) CPURead(location uint16) uint8 {
 	mappedLocation := nes.Cartridge.CPUMapRead(location)
 	switch {
 	case mappedLocation <= 0x1FFF:
 		// TODO:
-		return nes.RAM.Data[mappedLocation % 0x0800]
+		return nes.RAM.Data[mappedLocation%0x0800]
 	case 0x2000 <= mappedLocation && mappedLocation <= 0x3FFF:
 		// TODO:
 		switch (location - 0x2000) % 0x8 {
@@ -113,4 +112,3 @@ func (nes *Debugger) PPURead(location uint16) uint8 {
 	}
 	return 0
 }
-

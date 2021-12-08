@@ -66,4 +66,3 @@ func (logger *FileLogger) LogLine(logLine string) {
 	}
 	plz.Just(fmt.Fprintln(logger.Logger, logLine))
 }
-

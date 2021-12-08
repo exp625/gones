@@ -250,5 +250,3 @@ func (nes *NES) NMI() {
 func (nes *NES) IRQ() {
 	nes.CPU.RequestIRQ = true
 }
-
-

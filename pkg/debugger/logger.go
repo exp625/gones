@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-func (nes *Debugger) LogCpu() string{
+func (nes *Debugger) LogCpu() string {
 
 	opCode := nes.CPURead(nes.CPU.PC)
 	instruction := nes.CPU.Instructions[opCode]
