@@ -15,20 +15,20 @@ type PPU struct {
 	Palette [0x40][8]color.Color
 
 	// Registers
-	Control      uint8
-	Mask         uint8
-	Status       uint8
-	OamAddress   uint8
-	OamData      uint8
-	ScrollX      uint8
-	ScrollY      uint8
-	Address      uint16
-	Data         uint8
-	OamDma       uint8
+	Control    uint8
+	Mask       uint8
+	Status     uint8
+	OamAddress uint8
+	OamData    uint8
+	ScrollX    uint8
+	ScrollY    uint8
+	Address    uint16
+	Data       uint8
+	OamDma     uint8
 
 	// Latch
-	GenLatch uint8
-	AddrLatch uint8
+	GenLatch       uint8
+	AddrLatch      uint8
 	addrLatchWrite bool
 
 	// oam
@@ -103,7 +103,7 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 		case 1:
 			return true, ppu.GenLatch
 		case 2:
-			ret := ppu.Status & 0b11100000 | ppu.GenLatch & 0b00011111
+			ret := ppu.Status&0b11100000 | ppu.GenLatch&0b00011111
 			ppu.Status &= 0b01111111
 			ppu.GenLatch = ret
 			return true, ret
@@ -163,7 +163,7 @@ func (ppu *PPU) CPUWrite(location uint16, data uint8) {
 			ppu.AddrLatch = data
 			ppu.addrLatchWrite = true
 		} else {
-			ppu.Address = (uint16(ppu.AddrLatch) << 8) | uint16(data) % 0x3FFF
+			ppu.Address = (uint16(ppu.AddrLatch) << 8) | uint16(data)%0x3FFF
 			ppu.addrLatchWrite = false
 		}
 	case 7:
