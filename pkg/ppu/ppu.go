@@ -120,11 +120,15 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 		case 7:
 			ret := ppu.Bus.PPURead(ppu.Address)
 			ppu.GenLatch = ret
-			//if (ppu.Control >> 2 & 0x1) == 1 {
-			//	ppu.Address += 32
-			//} else {
-			//	ppu.Address++
-			//}
+			if location >= 0x3F00 {
+				ppu.GenLatch = ppu.Bus.PPUReadRam(ppu.Address)
+			}
+
+			if (ppu.Control >> 2 & 0x1) == 1 {
+				ppu.Address += 32
+			} else {
+				ppu.Address++
+			}
 			return true, ret
 		}
 	}
