@@ -3,7 +3,9 @@ package cpu
 // ADC https://www.masswerk.at/6502/6502_instruction_set.html#ADC
 // Add Memory to Accumulator with Carry
 // A + M + C -> A, C
-func (cpu *CPU) ADC(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) ADC(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// Get carry
 	var carry uint8
 	if cpu.Get(FlagCarry) {
@@ -30,7 +32,9 @@ func (cpu *CPU) ADC(_ uint16, data uint8, length uint16) {
 // AND https://www.masswerk.at/6502/6502_instruction_set.html#AND
 // AND Memory with Accumulator
 // A AND M -> A
-func (cpu *CPU) AND(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) AND(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// AND Memory with Accumulator
 	temp := cpu.A & data
 	// Store result in A register
@@ -46,7 +50,14 @@ func (cpu *CPU) AND(_ uint16, data uint8, length uint16) {
 // ASL https://www.masswerk.at/6502/6502_instruction_set.html#ASL
 // Shift Left One Bit (Memory or Accumulator)
 // C <- [76543210] <- 0
-func (cpu *CPU) ASL(location uint16, data uint8, length uint16) {
+func (cpu *CPU) ASL(location uint16, length uint16) {
+	// Check if we have Accumulator addressing
+	opcode := cpu.Bus.CPURead(cpu.PC)
+	inst := cpu.Instructions[opcode]
+	data := cpu.A
+	if inst.ClockCycles != 2 {
+		data = cpu.Bus.CPURead(location)
+	}
 	// Get carry from data
 	carry := (data >> 7) & 0x01
 	// Shift one bit left
@@ -58,8 +69,6 @@ func (cpu *CPU) ASL(location uint16, data uint8, length uint16) {
 	// Check if result is zero
 	cpu.Set(FlagZero, (temp&0x00FF) == 0)
 	// Check if we need to store the result in memory or in the A register
-	opcode := cpu.Bus.CPURead(cpu.PC)
-	inst := cpu.Instructions[opcode]
 	if inst.ClockCycles == 2 {
 		// Accumulator Addressing
 		cpu.A = temp
@@ -73,7 +82,7 @@ func (cpu *CPU) ASL(location uint16, data uint8, length uint16) {
 // BCC https://www.masswerk.at/6502/6502_instruction_set.html#BCC
 // Branch on Carry Clear
 // branch on C = 0
-func (cpu *CPU) BCC(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) BCC(location uint16, length uint16) {
 	// Check if C = 0
 	if !cpu.Get(FlagCarry) {
 		// Taking a branch takes one additional cycle
@@ -93,7 +102,7 @@ func (cpu *CPU) BCC(location uint16, _ uint8, length uint16) {
 // BCS https://www.masswerk.at/6502/6502_instruction_set.html#BCS
 // Branch on Carry Set
 // branch on C = 1
-func (cpu *CPU) BCS(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) BCS(location uint16, length uint16) {
 	// Check if C = 1
 	if cpu.Get(FlagCarry) {
 		// Taking a branch takes one additional cycle
@@ -113,7 +122,7 @@ func (cpu *CPU) BCS(location uint16, _ uint8, length uint16) {
 // BEQ https://www.masswerk.at/6502/6502_instruction_set.html#BEQ
 // Branch on Result Zero
 // branch on Z = 1
-func (cpu *CPU) BEQ(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) BEQ(location uint16, length uint16) {
 	// Check if Z = 1
 	if cpu.Get(FlagZero) {
 		// Taking a branch takes one additional cycle
@@ -135,7 +144,9 @@ func (cpu *CPU) BEQ(location uint16, _ uint8, length uint16) {
 // bits 7 and 6 of operand are transferred to bit 7 and 6 of P (N,V);
 // the zero-flag is set to the result of operand AND accumulator.
 // A AND M, M7 -> N, M6 -> V
-func (cpu *CPU) BIT(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) BIT(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// AND Memory with Accumulator
 	temp := cpu.A & data
 	// Check if result is zero
@@ -152,7 +163,7 @@ func (cpu *CPU) BIT(_ uint16, data uint8, length uint16) {
 // BMI https://www.masswerk.at/6502/6502_instruction_set.html#BMI
 // Branch on Result negative
 // branch on N = 1
-func (cpu *CPU) BMI(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) BMI(location uint16, length uint16) {
 	// Check if N = 1
 	if cpu.Get(FlagNegative) {
 		// Taking a branch takes one additional cycle
@@ -172,7 +183,7 @@ func (cpu *CPU) BMI(location uint16, _ uint8, length uint16) {
 // BNE https://www.masswerk.at/6502/6502_instruction_set.html#BMI
 // Branch on Result not Zero
 // branch on Z = 0
-func (cpu *CPU) BNE(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) BNE(location uint16, length uint16) {
 	// Check if Z = 0
 	if !cpu.Get(FlagZero) {
 		// Taking a branch takes one additional cycle
@@ -192,7 +203,7 @@ func (cpu *CPU) BNE(location uint16, _ uint8, length uint16) {
 // BPL https://www.masswerk.at/6502/6502_instruction_set.html#BMI
 // Branch on Result positive
 // branch on N = 0
-func (cpu *CPU) BPL(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) BPL(location uint16, length uint16) {
 	// Check if N = 0
 	if !cpu.Get(FlagNegative) {
 		// Taking a branch takes one additional cycle
@@ -218,7 +229,7 @@ func (cpu *CPU) BPL(location uint16, _ uint8, length uint16) {
 // flag set to 1. However, when retrieved during RTI or by a PLP
 // instruction, the break flag will be ignored.
 // The interrupt disable flag is not set automatically.
-func (cpu *CPU) BRK(uint16, uint8, uint16) {
+func (cpu *CPU) BRK(uint16, uint16) {
 	// Get current pc + 2
 	pc := cpu.PC + 2
 	// Store high bytes of pc to stack
@@ -244,7 +255,7 @@ func (cpu *CPU) BRK(uint16, uint8, uint16) {
 // BVC https://www.masswerk.at/6502/6502_instruction_set.html#BVC
 // Branch on Overflow clear
 // branch on V = 0
-func (cpu *CPU) BVC(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) BVC(location uint16, length uint16) {
 	// Check if V = 0
 	if !cpu.Get(FlagOverflow) {
 		// Taking a branch takes one additional cycle
@@ -264,7 +275,7 @@ func (cpu *CPU) BVC(location uint16, _ uint8, length uint16) {
 // BVS https://www.masswerk.at/6502/6502_instruction_set.html#BVS
 // Branch on Overflow set
 // branch on V = 1
-func (cpu *CPU) BVS(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) BVS(location uint16, length uint16) {
 	// Check if V = 1
 	if cpu.Get(FlagOverflow) {
 		// Taking a branch takes one additional cycle
@@ -284,7 +295,7 @@ func (cpu *CPU) BVS(location uint16, _ uint8, length uint16) {
 // CLC https://www.masswerk.at/6502/6502_instruction_set.html#CLC
 // Clear carry flag
 // 0 -> C
-func (cpu *CPU) CLC(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) CLC(_ uint16, length uint16) {
 	// Clear Flag
 	cpu.Set(FlagCarry, false)
 	// Advance program counter
@@ -294,7 +305,7 @@ func (cpu *CPU) CLC(_ uint16, _ uint8, length uint16) {
 // CLD https://www.masswerk.at/6502/6502_instruction_set.html#CLD
 // Clear decimal mode
 // 0 -> D
-func (cpu *CPU) CLD(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) CLD(_ uint16, length uint16) {
 	// Clear Flag
 	cpu.Set(FlagDecimal, false)
 	// Advance program counter
@@ -304,7 +315,7 @@ func (cpu *CPU) CLD(_ uint16, _ uint8, length uint16) {
 // CLI https://www.masswerk.at/6502/6502_instruction_set.html#CLI
 // Clear interrupt disable bit
 // 0 -> I
-func (cpu *CPU) CLI(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) CLI(_ uint16, length uint16) {
 	// Clear Flag
 	cpu.Set(FlagInterruptDisable, false)
 	// Advance program counter
@@ -314,7 +325,7 @@ func (cpu *CPU) CLI(_ uint16, _ uint8, length uint16) {
 // CLV https://www.masswerk.at/6502/6502_instruction_set.html#CLV
 // Clear overflow flag
 // 0 -> V
-func (cpu *CPU) CLV(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) CLV(_ uint16, length uint16) {
 	// Clear Flag
 	cpu.Set(FlagOverflow, false)
 	// Advance program counter
@@ -324,7 +335,9 @@ func (cpu *CPU) CLV(_ uint16, _ uint8, length uint16) {
 // CMP https://www.masswerk.at/6502/6502_instruction_set.html#CMP
 // Compare Memory with Accumulator
 // A - M
-func (cpu *CPU) CMP(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) CMP(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// A - M
 	temp := cpu.A - data
 	// Check if 8th bit is one
@@ -339,7 +352,9 @@ func (cpu *CPU) CMP(_ uint16, data uint8, length uint16) {
 // CPX https://www.masswerk.at/6502/6502_instruction_set.html#CPX
 // Compare Memory with X
 // X - M
-func (cpu *CPU) CPX(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) CPX(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// X - M
 	temp := cpu.X - data
 	// Check if 8th bit is one
@@ -355,7 +370,9 @@ func (cpu *CPU) CPX(_ uint16, data uint8, length uint16) {
 // CPY https://www.masswerk.at/6502/6502_instruction_set.html#CPY
 // Compare Memory with Y
 // Y - M
-func (cpu *CPU) CPY(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) CPY(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// Y - M
 	temp := cpu.Y - data
 	// Check if 8th bit is one
@@ -371,7 +388,7 @@ func (cpu *CPU) CPY(_ uint16, data uint8, length uint16) {
 // DEC https://www.masswerk.at/6502/6502_instruction_set.html#DEC
 // Decrement Memory by One
 // M - 1 -> M
-func (cpu *CPU) DEC(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) DEC(location uint16, length uint16) {
 	// M - 1 -> M
 	temp := cpu.Bus.CPURead(location) - 1
 	cpu.Bus.CPUWrite(location, temp)
@@ -386,7 +403,7 @@ func (cpu *CPU) DEC(location uint16, _ uint8, length uint16) {
 // DEX https://www.masswerk.at/6502/6502_instruction_set.html#DEX
 // Decrement X by One
 // X - 1 -> X
-func (cpu *CPU) DEX(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) DEX(_ uint16, length uint16) {
 	// X - 1 -> X
 	temp := cpu.X - 1
 	cpu.X = temp
@@ -401,7 +418,7 @@ func (cpu *CPU) DEX(_ uint16, _ uint8, length uint16) {
 // DEY https://www.masswerk.at/6502/6502_instruction_set.html#DEY
 // Decrement Y by One
 // Y - 1 -> Y
-func (cpu *CPU) DEY(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) DEY(_ uint16, length uint16) {
 	// Y - 1 -> Y
 	temp := cpu.Y - 1
 	cpu.Y = temp
@@ -416,7 +433,7 @@ func (cpu *CPU) DEY(_ uint16, _ uint8, length uint16) {
 // EOR https://www.masswerk.at/6502/6502_instruction_set.html#EOR
 // Exclusive-OR Memory with Accumulator
 // A ^ M -> A
-func (cpu *CPU) EOR(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) EOR(location uint16, length uint16) {
 	// A ^ M -> A
 	temp := cpu.A ^ cpu.Bus.CPURead(location)
 	cpu.A = temp
@@ -431,7 +448,7 @@ func (cpu *CPU) EOR(location uint16, _ uint8, length uint16) {
 // INC https://www.masswerk.at/6502/6502_instruction_set.html#INC
 // Increment Memory by One
 // M + 1 -> M
-func (cpu *CPU) INC(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) INC(location uint16, length uint16) {
 	// M + 1 -> M
 	temp := cpu.Bus.CPURead(location) + 1
 	cpu.Bus.CPUWrite(location, temp)
@@ -446,7 +463,7 @@ func (cpu *CPU) INC(location uint16, _ uint8, length uint16) {
 // INX https://www.masswerk.at/6502/6502_instruction_set.html#INX
 // Increment X by One
 // X + 1 -> X
-func (cpu *CPU) INX(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) INX(_ uint16, length uint16) {
 	// X + 1 -> X
 	temp := cpu.X + 1
 	cpu.X = temp
@@ -461,7 +478,7 @@ func (cpu *CPU) INX(_ uint16, _ uint8, length uint16) {
 // INY https://www.masswerk.at/6502/6502_instruction_set.html#INY
 // Increment Y by One
 // Y + 1 -> Y
-func (cpu *CPU) INY(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) INY(_ uint16, length uint16) {
 	// Y + 1 -> Y
 	temp := cpu.Y + 1
 	cpu.Y = temp
@@ -475,7 +492,7 @@ func (cpu *CPU) INY(_ uint16, _ uint8, length uint16) {
 
 // JMP https://www.masswerk.at/6502/6502_instruction_set.html#JMP
 // Jump to New Location
-func (cpu *CPU) JMP(location uint16, _ uint8, _ uint16) {
+func (cpu *CPU) JMP(location uint16, _ uint16) {
 	// Jump to New Location
 	cpu.PC = location
 }
@@ -483,7 +500,7 @@ func (cpu *CPU) JMP(location uint16, _ uint8, _ uint16) {
 // JSR https://www.masswerk.at/6502/6502_instruction_set.html#JSR
 // Jump to New Location
 // push (PC+2)
-func (cpu *CPU) JSR(location uint16, _ uint8, _ uint16) {
+func (cpu *CPU) JSR(location uint16, _ uint16) {
 	// Get PC+2
 	pc := cpu.PC + 2
 	// Store high bytes of pc+2 to stack
@@ -499,7 +516,9 @@ func (cpu *CPU) JSR(location uint16, _ uint8, _ uint16) {
 // LDA https://www.masswerk.at/6502/6502_instruction_set.html#LDA
 // Load Accumulator with Memory
 // M -> A
-func (cpu *CPU) LDA(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) LDA(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// M -> A
 	cpu.A = data
 	// Check if 8th bit is one
@@ -513,7 +532,9 @@ func (cpu *CPU) LDA(_ uint16, data uint8, length uint16) {
 // LDX https://www.masswerk.at/6502/6502_instruction_set.html#LDX
 // Load X with Memory
 // M -> X
-func (cpu *CPU) LDX(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) LDX(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// M -> X
 	cpu.X = data
 	// Check if 8th bit is one
@@ -527,7 +548,9 @@ func (cpu *CPU) LDX(_ uint16, data uint8, length uint16) {
 // LDY https://www.masswerk.at/6502/6502_instruction_set.html#LDY
 // Load Y with Memory
 // M -> Y
-func (cpu *CPU) LDY(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) LDY(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// M -> Y
 	cpu.Y = data
 	// Check if 8th bit is one
@@ -541,15 +564,20 @@ func (cpu *CPU) LDY(_ uint16, data uint8, length uint16) {
 // LSR https://www.masswerk.at/6502/6502_instruction_set.html#LSR
 // Shift One Bit Right (Memory or Accumulator)
 // 0 -> [76543210] -> C
-func (cpu *CPU) LSR(location uint16, data uint8, length uint16) {
+func (cpu *CPU) LSR(location uint16, length uint16) {
+	// Check if we have Accumulator addressing
+	opcode := cpu.Bus.CPURead(cpu.PC)
+	inst := cpu.Instructions[opcode]
+	data := cpu.A
+	if inst.ClockCycles != 2 {
+		data = cpu.Bus.CPURead(location)
+	}
 	temp := data >> 1
 	cpu.Set(FlagCarry, data&0x01 == 1)
 	cpu.Set(FlagNegative, false)
 	// Check if result is zero
 	cpu.Set(FlagZero, (temp&0x00FF) == 0)
 	// Check if we need to store the result in memory or in the A register
-	opcode := cpu.Bus.CPURead(cpu.PC)
-	inst := cpu.Instructions[opcode]
 	if inst.ClockCycles == 2 {
 		// Accumulator Addressing
 		cpu.A = temp
@@ -562,7 +590,7 @@ func (cpu *CPU) LSR(location uint16, data uint8, length uint16) {
 
 // NOP https://www.masswerk.at/6502/6502_instruction_set.html#NOP
 // No Operation
-func (cpu *CPU) NOP(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) NOP(_ uint16, length uint16) {
 	// Advance program counter
 	cpu.PC += length
 	return
@@ -571,7 +599,7 @@ func (cpu *CPU) NOP(_ uint16, _ uint8, length uint16) {
 // ORA https://www.masswerk.at/6502/6502_instruction_set.html#ORA
 // OR Memory with Accumulator
 // A | M -> A
-func (cpu *CPU) ORA(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) ORA(location uint16, length uint16) {
 	// A | M -> A
 	temp := cpu.A | cpu.Bus.CPURead(location)
 	cpu.A = temp
@@ -586,7 +614,7 @@ func (cpu *CPU) ORA(location uint16, _ uint8, length uint16) {
 // PHA https://www.masswerk.at/6502/6502_instruction_set.html#PHA
 // Push Accumulator on Stack
 // push A
-func (cpu *CPU) PHA(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) PHA(_ uint16, length uint16) {
 	// Push A onto stack
 	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), cpu.A)
 	cpu.S--
@@ -598,7 +626,7 @@ func (cpu *CPU) PHA(_ uint16, _ uint8, length uint16) {
 // Push Processor Status on Stack
 // The status register will be pushed with the break flag and bit 5 set to 1.
 // push P
-func (cpu *CPU) PHP(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) PHP(_ uint16, length uint16) {
 	// push P with bit 5 and 6 set to 1
 	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), cpu.P|FlagBreak|FlagUnused)
 	cpu.S--
@@ -609,7 +637,7 @@ func (cpu *CPU) PHP(_ uint16, _ uint8, length uint16) {
 // PLA https://www.masswerk.at/6502/6502_instruction_set.html#PLA
 // Pull Accumulator from Stack
 // pull A
-func (cpu *CPU) PLA(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) PLA(_ uint16, length uint16) {
 	// pull A
 	cpu.S++
 	cpu.A = cpu.Bus.CPURead(StackPage | uint16(cpu.S))
@@ -625,7 +653,7 @@ func (cpu *CPU) PLA(_ uint16, _ uint8, length uint16) {
 // Pull Processor Status  from Stack
 // The status register will be pulled with the break flag and bit 5 ignored
 // pull P
-func (cpu *CPU) PLP(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) PLP(_ uint16, length uint16) {
 	// pull p
 	cpu.S++
 	temp := cpu.Bus.CPURead(StackPage | uint16(cpu.S))
@@ -639,7 +667,14 @@ func (cpu *CPU) PLP(_ uint16, _ uint8, length uint16) {
 // ROL https://www.masswerk.at/6502/6502_instruction_set.html#ROL
 // Rotate One Bit Left (Memory or Accumulator)
 // C <- [76543210] <- C
-func (cpu *CPU) ROL(location uint16, data uint8, length uint16) {
+func (cpu *CPU) ROL(location uint16, length uint16) {
+	// Check if we have Accumulator addressing
+	opcode := cpu.Bus.CPURead(cpu.PC)
+	inst := cpu.Instructions[opcode]
+	data := cpu.A
+	if inst.ClockCycles != 2 {
+		data = cpu.Bus.CPURead(location)
+	}
 	// Get carry
 	var carry uint8
 	if cpu.Get(FlagCarry) {
@@ -653,8 +688,6 @@ func (cpu *CPU) ROL(location uint16, data uint8, length uint16) {
 	// Check if result is zero
 	cpu.Set(FlagZero, (temp&0x00FF) == 0)
 	// Check if we need to store the result in memory or in the A register
-	opcode := cpu.Bus.CPURead(cpu.PC)
-	inst := cpu.Instructions[opcode]
 	if inst.ClockCycles == 2 {
 		// Accumulator Addressing
 		cpu.A = temp
@@ -668,7 +701,14 @@ func (cpu *CPU) ROL(location uint16, data uint8, length uint16) {
 // ROR https://www.masswerk.at/6502/6502_instruction_set.html#ROR
 // Rotate One Bit Right (Memory or Accumulator)
 // C -> [76543210] -> C
-func (cpu *CPU) ROR(location uint16, data uint8, length uint16) {
+func (cpu *CPU) ROR(location uint16, length uint16) {
+	// Check if we have Accumulator addressing
+	opcode := cpu.Bus.CPURead(cpu.PC)
+	inst := cpu.Instructions[opcode]
+	data := cpu.A
+	if inst.ClockCycles != 2 {
+		data = cpu.Bus.CPURead(location)
+	}
 	// Get carry
 	var carry uint8
 	if cpu.Get(FlagCarry) {
@@ -682,8 +722,6 @@ func (cpu *CPU) ROR(location uint16, data uint8, length uint16) {
 	// Check if result is zero
 	cpu.Set(FlagZero, (temp&0x00FF) == 0)
 	// Check if we need to store the result in memory or in the A register
-	opcode := cpu.Bus.CPURead(cpu.PC)
-	inst := cpu.Instructions[opcode]
 	if inst.ClockCycles == 2 {
 		// Accumulator Addressing
 		cpu.A = temp
@@ -698,7 +736,7 @@ func (cpu *CPU) ROR(location uint16, data uint8, length uint16) {
 // Return from Interrupt
 // The status register is pulled with the break flag and bit 5 ignored. Then PC is pulled from the stack.
 // pull P, pull PC
-func (cpu *CPU) RTI(uint16, uint8, uint16) {
+func (cpu *CPU) RTI(uint16, uint16) {
 	// pull P from stack
 	cpu.S++
 	status := cpu.Bus.CPURead(0x0100 + uint16(cpu.S))
@@ -719,7 +757,7 @@ func (cpu *CPU) RTI(uint16, uint8, uint16) {
 // RTS https://www.masswerk.at/6502/6502_instruction_set.html#RTS
 // Return from Subroutine
 // pull PC, PC+1 -> PC
-func (cpu *CPU) RTS(uint16, uint8, uint16) {
+func (cpu *CPU) RTS(uint16, uint16) {
 	// pull low bits of pc from stack
 	cpu.S++
 	low := uint16(cpu.Bus.CPURead(0x0100 + uint16(cpu.S)))
@@ -735,7 +773,9 @@ func (cpu *CPU) RTS(uint16, uint8, uint16) {
 // SBC https://www.masswerk.at/6502/6502_instruction_set.html#SBC
 // Subtract Memory from Accumulator with Borrow
 // A - M - ^C -> A
-func (cpu *CPU) SBC(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) SBC(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// Get carry
 	var carry uint8
 	if cpu.Get(FlagCarry) {
@@ -764,7 +804,7 @@ func (cpu *CPU) SBC(_ uint16, data uint8, length uint16) {
 // SEC https://www.masswerk.at/6502/6502_instruction_set.html#SEC
 // Set Carry flag
 // 1 -> C
-func (cpu *CPU) SEC(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) SEC(_ uint16, length uint16) {
 	// Set Flag
 	cpu.Set(FlagCarry, true)
 	// Advance program counter
@@ -774,7 +814,7 @@ func (cpu *CPU) SEC(_ uint16, _ uint8, length uint16) {
 // SED https://www.masswerk.at/6502/6502_instruction_set.html#SED
 // Set Decimal flag
 // 1 -> D
-func (cpu *CPU) SED(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) SED(_ uint16, length uint16) {
 	// Set Flag
 	cpu.Set(FlagDecimal, true)
 	// Advance program counter
@@ -784,7 +824,7 @@ func (cpu *CPU) SED(_ uint16, _ uint8, length uint16) {
 // SEI https://www.masswerk.at/6502/6502_instruction_set.html#SEI
 // Set Interrupt Disable Status
 // 1 -> I
-func (cpu *CPU) SEI(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) SEI(_ uint16, length uint16) {
 	// Set Flag
 	cpu.Set(FlagInterruptDisable, true)
 	// Advance program counter
@@ -794,7 +834,7 @@ func (cpu *CPU) SEI(_ uint16, _ uint8, length uint16) {
 // STA https://www.masswerk.at/6502/6502_instruction_set.html#STA
 // Store Accumulator in Memory
 // A -> M
-func (cpu *CPU) STA(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) STA(location uint16, length uint16) {
 	// A -> M
 	cpu.Bus.CPUWrite(location, cpu.A)
 	// Advance program counter
@@ -804,7 +844,7 @@ func (cpu *CPU) STA(location uint16, _ uint8, length uint16) {
 // STX https://www.masswerk.at/6502/6502_instruction_set.html#STX
 // Store X in Memory
 // X -> M
-func (cpu *CPU) STX(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) STX(location uint16, length uint16) {
 	// X -> M
 	cpu.Bus.CPUWrite(location, cpu.X)
 	// Advance program counter
@@ -814,7 +854,7 @@ func (cpu *CPU) STX(location uint16, _ uint8, length uint16) {
 // STY https://www.masswerk.at/6502/6502_instruction_set.html#STY
 // Store Y in Memory
 // Y -> M
-func (cpu *CPU) STY(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) STY(location uint16, length uint16) {
 	// Y -> M
 	cpu.Bus.CPUWrite(location, cpu.Y)
 	// Advance program counter
@@ -824,7 +864,7 @@ func (cpu *CPU) STY(location uint16, _ uint8, length uint16) {
 // TAX https://www.masswerk.at/6502/6502_instruction_set.html#TAX
 // Transfer Accumulator to Index X
 // A -> X
-func (cpu *CPU) TAX(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) TAX(_ uint16, length uint16) {
 	// A -> X
 	cpu.X = cpu.A
 	// Check if 8th bit is one
@@ -838,7 +878,7 @@ func (cpu *CPU) TAX(_ uint16, _ uint8, length uint16) {
 // TAY https://www.masswerk.at/6502/6502_instruction_set.html#TAY
 // Transfer Accumulator to Index Y
 // A -> Y
-func (cpu *CPU) TAY(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) TAY(_ uint16, length uint16) {
 	cpu.Y = cpu.A
 	// Check if 8th bit is one
 	cpu.Set(FlagNegative, (cpu.Y>>7)&0x01 == 1)
@@ -851,7 +891,7 @@ func (cpu *CPU) TAY(_ uint16, _ uint8, length uint16) {
 // TSX https://www.masswerk.at/6502/6502_instruction_set.html#TSX
 // Transfer stack pointer to x
 // S -> X
-func (cpu *CPU) TSX(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) TSX(_ uint16, length uint16) {
 	// S -> X
 	cpu.X = cpu.S
 	// Check if 8th bit is one
@@ -865,7 +905,7 @@ func (cpu *CPU) TSX(_ uint16, _ uint8, length uint16) {
 // TXA https://www.masswerk.at/6502/6502_instruction_set.html#TXA
 // Transfer X to A
 // X -> A
-func (cpu *CPU) TXA(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) TXA(_ uint16, length uint16) {
 	// X -> A
 	val := cpu.X
 	cpu.A = val
@@ -880,7 +920,7 @@ func (cpu *CPU) TXA(_ uint16, _ uint8, length uint16) {
 // TXS https://www.masswerk.at/6502/6502_instruction_set.html#TXS
 // Transfer X to stack pointer
 // X -> S
-func (cpu *CPU) TXS(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) TXS(_ uint16, length uint16) {
 	// X -> SP
 	cpu.S = cpu.X
 	// Advance program counter
@@ -890,7 +930,7 @@ func (cpu *CPU) TXS(_ uint16, _ uint8, length uint16) {
 // TYA https://www.masswerk.at/6502/6502_instruction_set.html#TYA
 // Transfer Y to A
 // Y -> A
-func (cpu *CPU) TYA(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) TYA(_ uint16, length uint16) {
 	// Y -> A
 	cpu.A = cpu.Y
 	// Check if 8th bit is one

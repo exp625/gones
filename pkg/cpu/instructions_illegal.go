@@ -3,7 +3,9 @@ package cpu
 // ALR https://www.masswerk.at/6502/6502_instruction_set.html#ALR
 // AND oper + LSR
 // A AND oper, 0 -> [76543210] -> C
-func (cpu *CPU) ALR(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) ALR(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// AND Memory with Operand
 	temp := cpu.A & data
 	// Check if 8th bit is one
@@ -20,7 +22,9 @@ func (cpu *CPU) ALR(_ uint16, data uint8, length uint16) {
 // ANC https://www.masswerk.at/6502/6502_instruction_set.html#ANC
 // AND oper + set C as ASL
 // A AND oper, bit(7) -> C
-func (cpu *CPU) ANC(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) ANC(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// AND Memory with Operand
 	temp := cpu.A & data
 	// Check if 8th bit is one
@@ -35,18 +39,20 @@ func (cpu *CPU) ANC(_ uint16, data uint8, length uint16) {
 
 // ANE  https://www.masswerk.at/6502/6502_instruction_set.html#ANE
 // Unstable / Unimplemented
-func (cpu *CPU) ANE(_ uint16, _ uint8, _ uint16) {}
+func (cpu *CPU) ANE(_ uint16, _ uint16) {}
 
 // ARR https://www.masswerk.at/6502/6502_instruction_set.html#ARR
 // Unused by NES Games
-func (cpu *CPU) ARR(_ uint16, _ uint8, _ uint16) {}
+func (cpu *CPU) ARR(_ uint16, _ uint16) {}
 
 // DCP https://www.masswerk.at/6502/6502_instruction_set.html#DCP
 // DEC oper + CMP oper
 // M - 1 -> M, A - M
-func (cpu *CPU) DCP(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) DCP(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// M - 1 -> M
-	temp1 := cpu.Bus.CPURead(location) - 1
+	temp1 := data - 1
 	cpu.Bus.CPUWrite(location, temp1)
 	// A - M
 	temp2 := cpu.A - temp1
@@ -61,7 +67,7 @@ func (cpu *CPU) DCP(location uint16, _ uint8, length uint16) {
 
 // ILLNOP https://www.masswerk.at/6502/6502_instruction_set.html#NOPs
 // Instructions effecting in 'no operations' in various address modes. Operands are ignored
-func (cpu *CPU) ILLNOP(_ uint16, _ uint8, length uint16) {
+func (cpu *CPU) ILLNOP(_ uint16, length uint16) {
 	// Advance program counter
 	cpu.PC += length
 	return
@@ -71,9 +77,11 @@ func (cpu *CPU) ILLNOP(_ uint16, _ uint8, length uint16) {
 // INC oper + SBC oper
 // M + 1 -> M, A - M - C -> A
 // Also ISB for logging
-func (cpu *CPU) ISC(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) ISC(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// M + 1 -> M
-	temp1 := cpu.Bus.CPURead(location) + 1
+	temp1 := data + 1
 	cpu.Bus.CPUWrite(location, temp1)
 
 	// Get carry
@@ -104,7 +112,9 @@ func (cpu *CPU) ISC(location uint16, _ uint8, length uint16) {
 // LAS  https://www.masswerk.at/6502/6502_instruction_set.html#LAS
 // LDA/TSX oper
 // M AND SP -> A, X, SP
-func (cpu *CPU) LAS(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) LAS(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// M AND SP -> A, X, SP
 	temp := data & cpu.S
 	cpu.A = temp
@@ -121,7 +131,9 @@ func (cpu *CPU) LAS(_ uint16, data uint8, length uint16) {
 // LAX  https://www.masswerk.at/6502/6502_instruction_set.html#LAX
 // LDA oper + LDX oper
 // M -> A -> X
-func (cpu *CPU) LAX(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) LAX(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// M -> A -> X
 	cpu.A = data
 	cpu.X = data
@@ -135,12 +147,14 @@ func (cpu *CPU) LAX(_ uint16, data uint8, length uint16) {
 
 // LXA  https://www.masswerk.at/6502/6502_instruction_set.html#LXA
 // Unstable / Unimplemented
-func (cpu *CPU) LXA(_ uint16, _ uint8, _ uint16) {}
+func (cpu *CPU) LXA(_ uint16, _ uint16) {}
 
 // RLA  https://www.masswerk.at/6502/6502_instruction_set.html#RLA
 // ROL oper + AND oper
 // M = C <- [76543210] <- C, A AND M -> A
-func (cpu *CPU) RLA(location uint16, data uint8, length uint16) {
+func (cpu *CPU) RLA(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// Get carry
 	var carry uint8
 	if cpu.Get(FlagCarry) {
@@ -165,7 +179,9 @@ func (cpu *CPU) RLA(location uint16, data uint8, length uint16) {
 // RRA  https://www.masswerk.at/6502/6502_instruction_set.html#RRA
 // ROR oper + ADC oper
 // M = C -> [76543210] -> C, A + M + C -> A, C
-func (cpu *CPU) RRA(location uint16, data uint8, length uint16) {
+func (cpu *CPU) RRA(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// Get carry
 	var carry uint8
 	if cpu.Get(FlagCarry) {
@@ -202,7 +218,7 @@ func (cpu *CPU) RRA(location uint16, data uint8, length uint16) {
 // SAX  https://www.masswerk.at/6502/6502_instruction_set.html#SAX
 // A and X are put on the bus at the same time (resulting effectively in an AND operation) and stored in M
 // A AND X -> M
-func (cpu *CPU) SAX(location uint16, _ uint8, length uint16) {
+func (cpu *CPU) SAX(location uint16, length uint16) {
 	// A AND X -> M
 	temp := cpu.A & cpu.X
 	cpu.Bus.CPUWrite(location, temp)
@@ -213,7 +229,9 @@ func (cpu *CPU) SAX(location uint16, _ uint8, length uint16) {
 // SBX  https://www.masswerk.at/6502/6502_instruction_set.html#SBX
 // CMP and DEX at once, sets flags like CMP
 // (A AND X) - oper -> X
-func (cpu *CPU) SBX(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) SBX(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// (A AND X) - oper -> X
 	temp := (cpu.A & cpu.X) - data
 	cpu.X = temp
@@ -229,20 +247,22 @@ func (cpu *CPU) SBX(_ uint16, data uint8, length uint16) {
 
 // SHA  https://www.masswerk.at/6502/6502_instruction_set.html#SHA
 // Unstable / Unimplemented
-func (cpu *CPU) SHA(_ uint16, _ uint8, _ uint16) {}
+func (cpu *CPU) SHA(_ uint16, _ uint16) {}
 
 // SHX  https://www.masswerk.at/6502/6502_instruction_set.html#SHX
 // Unstable / Unimplemented
-func (cpu *CPU) SHX(_ uint16, _ uint8, _ uint16) {}
+func (cpu *CPU) SHX(_ uint16, _ uint16) {}
 
 // SHY  https://www.masswerk.at/6502/6502_instruction_set.html#SHY
 // Unstable / Unimplemented
-func (cpu *CPU) SHY(_ uint16, _ uint8, _ uint16) {}
+func (cpu *CPU) SHY(_ uint16, _ uint16) {}
 
 // SRE  https://www.masswerk.at/6502/6502_instruction_set.html#SRE
 // LSR oper + EOR oper
 // M = 0 -> [76543210] -> C, A EOR M -> A
-func (cpu *CPU) SRE(location uint16, data uint8, length uint16) {
+func (cpu *CPU) SRE(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	carry := data & 0x01
 	cpu.Set(FlagCarry, carry == 1)
 	temp1 := data >> 1
@@ -256,9 +276,11 @@ func (cpu *CPU) SRE(location uint16, data uint8, length uint16) {
 // SLO  https://www.masswerk.at/6502/6502_instruction_set.html#SLO
 // ASL oper + ORA oper
 // M = C <- [76543210] <- 0, A OR M -> A
-func (cpu *CPU) SLO(location uint16, data uint8, length uint16) {
+func (cpu *CPU) SLO(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// M = C <- [76543210] <- 0
-	// Get carry from data
+	// Get carry from data#
 	carry := (data >> 7) & 0x01
 	// Shift one bit left
 	temp1 := data << 1
@@ -279,12 +301,14 @@ func (cpu *CPU) SLO(location uint16, data uint8, length uint16) {
 
 // TAS  https://www.masswerk.at/6502/6502_instruction_set.html#TAS
 // Unstable / Unimplemented
-func (cpu *CPU) TAS(_ uint16, _ uint8, _ uint16) {}
+func (cpu *CPU) TAS(_ uint16, _ uint16) {}
 
 // USBC  https://www.masswerk.at/6502/6502_instruction_set.html#USBC
 // SBC oper + NOP
 // A - M - C -> A
-func (cpu *CPU) USBC(_ uint16, data uint8, length uint16) {
+func (cpu *CPU) USBC(location uint16, length uint16) {
+	// Get data from location determined by the address mode
+	data := cpu.Bus.CPURead(location)
 	// Get carry
 	var carry uint8
 	if cpu.Get(FlagCarry) {

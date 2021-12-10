@@ -52,7 +52,8 @@ func (nes *Debugger) DrawInstructions(t *textutil.Text) {
 		plz.Just(fmt.Fprint(t, "", nes.CPU.Mnemonics[nes.CPURead(nes.CPU.PC+offset)], " "))
 
 		if inst.Length != 0 {
-			addr, data, _ := inst.AddressMode(nes.CPURead)
+			addr, _ := inst.AddressMode(nes.CPURead)
+			data := nes.CPURead(addr)
 			if j == 0 {
 				// Display Address
 				switch nes.CPU.Mnemonics[nes.CPURead(nes.CPU.PC)][1] {
