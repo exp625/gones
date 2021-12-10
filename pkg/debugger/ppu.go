@@ -147,9 +147,9 @@ func (nes *Debugger) DrawPalettes() *ebiten.Image {
 	for palette := uint16(0); palette < 4; palette++ {
 		for index := uint16(0); index < 4; index++ {
 			if index == 0 {
-				img.Set(int(palette*4+index), 0, nes.PPU.Palette[nes.PPU.Bus.PPURead(0x3F00)][0])
+				img.Set(int(palette*4+index), 0, nes.PPU.Palette[nes.PPURead(0x3F00)][0])
 			} else {
-				img.Set(int(palette*4+index), 0, nes.PPU.Palette[nes.PPU.Bus.PPURead(0x3F00+index+palette*4)%0x40][0])
+				img.Set(int(palette*4+index), 0, nes.PPU.Palette[nes.PPURead(0x3F00+index+palette*4)%0x40][0])
 			}
 
 		}
@@ -159,9 +159,9 @@ func (nes *Debugger) DrawPalettes() *ebiten.Image {
 	for palette := uint16(0); palette < 8; palette++ {
 		for index := uint16(0); index < 0x40; index++ {
 			if index == 0 {
-				img.Set(int(palette*4+index), 1, nes.PPU.Palette[nes.PPU.Bus.PPURead(0x3F00)][0])
+				img.Set(int(palette*4+index), 1, nes.PPU.Palette[nes.PPURead(0x3F00)][0])
 			} else {
-				img.Set(int(palette*4+index), 1, nes.PPU.Palette[nes.PPU.Bus.PPURead(0x3F10+index+palette*4)%0x40][0])
+				img.Set(int(palette*4+index), 1, nes.PPU.Palette[nes.PPURead(0x3F10+index+palette*4)%0x40][0])
 			}
 		}
 	}
@@ -197,7 +197,7 @@ func (nes *Debugger) DrawNametableInBW(table int) *ebiten.Image {
 			const nameTableBaseAddress = 0x2000
 			nameTableOffset := uint16(table * 0x400)
 			tileIndex := row*32 + tile
-			tileByte := uint16(nes.PPU.Bus.PPURead(nameTableBaseAddress + nameTableOffset + tileIndex))
+			tileByte := uint16(nes.PPURead(nameTableBaseAddress + nameTableOffset + tileIndex))
 			// RRRRCCCC
 			// Background pattern table address (0: $0000; 1: $1000)
 			backgroundTable := uint16(nes.PPU.Control >> 4 & 0x1)
@@ -215,8 +215,8 @@ func (nes *Debugger) DrawNametableInBW(table int) *ebiten.Image {
 			for tileY := uint16(0); tileY < 8; tileY++ {
 				addressPlane0 := backgroundTable<<12 | tileByte<<4 | 0<<3 | tileY
 				addressPlane1 := backgroundTable<<12 | tileByte<<4 | 1<<3 | tileY
-				plane0 := nes.PPU.Bus.PPURead(addressPlane0)
-				plane1 := nes.PPU.Bus.PPURead(addressPlane1)
+				plane0 := nes.PPURead(addressPlane0)
+				plane1 := nes.PPURead(addressPlane1)
 
 				for tileX := uint16(0); tileX < 8; tileX++ {
 					var c color.Color
@@ -258,7 +258,7 @@ func (nes *Debugger) DrawNametableInColor(table int) *ebiten.Image {
 			const attributeTableBaseAddress = 0x23C0
 			nameTableOffset := uint16(table * 0x400)
 			tileIndex := row*32 + tile
-			tileByte := uint16(nes.PPU.Bus.PPURead(nameTableBaseAddress + nameTableOffset + tileIndex))
+			tileByte := uint16(nes.PPURead(nameTableBaseAddress + nameTableOffset + tileIndex))
 			// RRRRCCCC
 			// Background pattern table address (0: $0000; 1: $1000)
 			backgroundTable := uint16(nes.PPU.Control >> 4 & 0x1)
@@ -266,7 +266,7 @@ func (nes *Debugger) DrawNametableInColor(table int) *ebiten.Image {
 			// Get assigned attributeByte
 			attributeIndex := (tile / 4) + (row/4)*8
 			// tileByte = attributeIndex
-			attributeByte := uint16(nes.PPU.Bus.PPURead(attributeTableBaseAddress + nameTableOffset + attributeIndex))
+			attributeByte := uint16(nes.PPURead(attributeTableBaseAddress + nameTableOffset + attributeIndex))
 			attribute := uint16(0)
 
 			switch {
@@ -293,12 +293,12 @@ func (nes *Debugger) DrawNametableInColor(table int) *ebiten.Image {
 			for tileY := uint16(0); tileY < 8; tileY++ {
 				addressPlane0 := backgroundTable<<12 | tileByte<<4 | 0<<3 | tileY
 				addressPlane1 := backgroundTable<<12 | tileByte<<4 | 1<<3 | tileY
-				plane0 := nes.PPU.Bus.PPURead(addressPlane0)
-				plane1 := nes.PPU.Bus.PPURead(addressPlane1)
+				plane0 := nes.PPURead(addressPlane0)
+				plane1 := nes.PPURead(addressPlane1)
 
 				for tileX := uint16(0); tileX < 8; tileX++ {
 					colorIndex := uint16(((plane1 >> (7 - tileX)) & 0x01 << 1) | (plane0>>(7-tileX))&0x01)
-					c := nes.PPU.Palette[nes.PPU.Bus.PPURead(0x3F00+attribute*4+colorIndex)][colorEmphasis]
+					c := nes.PPU.Palette[nes.PPURead(0x3F00+attribute*4+colorIndex)][colorEmphasis]
 
 					imgX := int(tile*8 + tileX)
 					imgY := int(row*8 + tileY)
