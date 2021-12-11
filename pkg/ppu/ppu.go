@@ -123,7 +123,6 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 			if location >= 0x3F00 {
 				ppu.GenLatch = ppu.Bus.PPUReadRam(ppu.Address)
 			}
-
 			if (ppu.Control >> 2 & 0x1) == 1 {
 				ppu.Address += 32
 			} else {

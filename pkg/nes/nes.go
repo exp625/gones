@@ -159,10 +159,10 @@ func (nes *NES) PPURead(location uint16) uint8 {
 		_, data := nes.Cartridge.PPURead(mappedLocation)
 		return data
 	case 0x2000 <= mappedLocation && mappedLocation <= 0x3EFF:
-		return nes.PPUReadPalette(location)
+		return nes.PPUReadRam(location)
 	// $3F00-3FFF is not configurable, always mapped to the internal palette control.
 	case 0x3F00 <= location:
-		return nes.PPUReadRam(location)
+		return nes.PPUReadPalette(location)
 	}
 	return 0
 }
