@@ -70,10 +70,18 @@ func New(romFile string, debug bool) (*Emulator, error) {
 	return e, nil
 }
 
+func (e *Emulator) Close() error {
+	return e.Player.Close()
+}
+
 func (e *Emulator) Init() error {
 	// Setup Audio
 	if e.AudioContext == nil {
-		e.AudioContext = audio.NewContext(AudioSampleRate)
+		if audio.CurrentContext() == nil {
+			e.AudioContext = audio.NewContext(AudioSampleRate)
+		} else {
+			e.AudioContext = audio.CurrentContext()
+		}
 	}
 	if e.Player == nil {
 		// Pass the (infinite) stream to NewPlayer.

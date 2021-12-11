@@ -15,6 +15,7 @@ import (
 	"time"
 )
 
+// TestCPULogOutput runs the CPU Output against the nestest.log
 func TestCPULogOutput(t *testing.T) {
 	logFileName := time.Now().Format("log/2006-01-02_15-04-05_nes.log")
 	nesFileName := "test/nestest.nes"
@@ -115,4 +116,137 @@ func TestCPULogOutput(t *testing.T) {
 		previouslyGotLine = gotLine
 		previouslyExpectedLine = expectedLine
 	}
+	e.Close()
+}
+
+// TestVRAMAccess test PPU palette RAM read/write and mirroring test
+func TestPPUPaletteRam(t *testing.T) {
+	nesFileName := "test/palette_ram.nes"
+	e, err := emulator.New(nesFileName, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Run emulator until the infinite loop is reached
+	for e.CPU.PC != 0xE412 {
+		e.Clock()
+	}
+	// Get the result
+	result := e.CPURead(0x00F0)
+	switch result {
+	case 1:
+		// Test passed
+		return
+	case 2:
+		t.Fatal("Palette read shouldn't be buffered like other VRAM")
+	case 3:
+		t.Fatal("Palette write/read doesn't work")
+	case 4:
+		t.Fatal("Palette should be mirrored within $3f00-$3fff")
+	case 5:
+		t.Fatal("Write to $10 should be mirrored at $00")
+	case 6:
+		t.Fatal("Write to $00 should be mirrored at $10")
+	default:
+		t.Fatal("TestPPUPaletteRam failed")
+	}
+	e.Close()
+}
+
+// TestSpriteRam tests sprite RAM access via $2003, $2004, and $4014
+func TestSpriteRam(t *testing.T) {
+	nesFileName := "test/sprite_ram.nes"
+	e, err := emulator.New(nesFileName, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Run emulator until the infinite loop is reached
+	for e.CPU.PC != 0xE467 {
+		e.Clock()
+	}
+	// Get the result
+	result := e.CPURead(0x00F0)
+	switch result {
+	case 1:
+		// Test passed
+		return
+	case 2:
+		t.Fatal("Basic read/write doesn't work")
+	case 3:
+		t.Fatal("Address should increment on $2004 write")
+	case 4:
+		t.Fatal("Address should not increment on $2004 read")
+	case 5:
+		t.Fatal("Third sprite bytes should be masked with $e3 on read ")
+	case 6:
+		t.Fatal("$4014 DMA copy doesn't work at all")
+	case 7:
+		t.Fatal("$4014 DMA copy should start at value in $2003 and wrap")
+	case 8:
+		t.Fatal("$4014 DMA copy should leave value in $2003 intact")
+	default:
+		t.Fatal("TestVRAMAccess failed")
+	}
+	e.Close()
+}
+
+// TestVBLFlag tests if the VBL flag ($2002.7) is cleared by the PPU around 2270 CPU clocks after NMI occurs.
+func TestVBLFlag(t *testing.T) {
+	nesFileName := "test/vbl_clear_time.nes"
+	e, err := emulator.New(nesFileName, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Run emulator until the infinite loop is reached
+	for e.CPU.PC != 0xE3B3 {
+		e.Clock()
+	}
+	// Get the result
+	result := e.CPURead(0x00F0)
+	switch result {
+	case 1:
+		// Test passed
+		return
+	case 2:
+		t.Fatal(" VBL flag cleared too soon")
+	case 3:
+		t.Fatal("VBL flag cleared too late")
+	default:
+		t.Fatal("TestVRAMAccess failed")
+	}
+	e.Close()
+}
+
+// TestVRAMAccess tests PPU VRAM read/write and internal read buffer operation
+func TestVRAMAccess(t *testing.T) {
+	nesFileName := "test/vram_access.nes"
+	e, err := emulator.New(nesFileName, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Run emulator until the infinite loop is reached
+	for e.CPU.PC != 0xE48D {
+		e.Clock()
+	}
+	// Get the result
+	result := e.CPURead(0x00F0)
+	switch result {
+	case 1:
+		// Test passed
+		return
+	case 2:
+		t.Fatal("VRAM reads should be delayed in a buffer")
+	case 3:
+		t.Fatal("Basic Write/read doesn't work")
+	case 4:
+		t.Fatal("Read buffer shouldn't be affected by VRAM write")
+	case 5:
+		t.Fatal("Read buffer shouldn't be affected by palette write")
+	case 6:
+		t.Fatal("Palette read should also read VRAM into read buffer")
+	case 7:
+		t.Fatal("Shadow VRAM read unaffected by palette transparent color mirroring")
+	default:
+		t.Fatal("TestVRAMAccess failed")
+	}
+	e.Close()
 }
