@@ -15,20 +15,21 @@ type PPU struct {
 	Palette [0x40][8]color.Color
 
 	// Registers
-	ppuctrl        uint8
-	ppumask        uint8
-	ppustatus      uint8
-	oamaddr        uint8
-	oamdata        uint8
-	ppuscrollx     uint8
-	ppuscrolly     uint8
-	ppuscrolltemp  uint8
-	ppuscrollwrite bool
-	ppuaddr        uint16
-	ppuaddrwrite   bool
-	ppuaddrtemp    uint8
-	ppudata        uint8
-	oamdma         uint8
+	Control    uint8
+	Mask       uint8
+	Status     uint8
+	OamAddress uint8
+	OamData    uint8
+	ScrollX    uint8
+	ScrollY    uint8
+	Address    uint16
+	Data       uint8
+	OamDma     uint8
+
+	// Latch
+	GenLatch       uint8
+	AddrLatch      uint8
+	addrLatchWrite bool
 
 	// oam
 	OAM [256]uint8
@@ -43,31 +44,39 @@ func New() *PPU {
 }
 
 func (ppu *PPU) Clock() {
-	if ppu.ScanLine < 261 {
-		if ppu.Position < 340 {
-			ppu.Position++
-		} else {
-			ppu.Position = 0
-			ppu.ScanLine++
-		}
-	} else {
-		ppu.Position = 0
-		ppu.ScanLine = 0
-		ppu.FrameCount++
-		if ppu.FrameCount%2 != 0 {
-			ppu.Position++
-		}
-	}
 
+	// Set VBL Flag and trigger NMI on line 241 dot 1
 	if ppu.ScanLine == 241 && ppu.Position == 1 {
-		ppu.ppustatus |= 0b10000000
-		if ppu.ppuctrl>>7&0x1 == 1 {
+		ppu.Status = ppu.Status | 0b10000000
+		if ppu.Control>>7&0x1 == 1 {
 			ppu.Bus.NMI()
 		}
 	}
 
+
+	// Rendering
+
+
+	// Advance counters
+	if ppu.Position < 340 {
+		ppu.Position++
+	} else {
+		if ppu.ScanLine < 261 {
+			ppu.ScanLine++
+			ppu.Position = 0
+		} else {
+			ppu.Position = 0
+			ppu.ScanLine = 0
+			ppu.FrameCount++
+			if ppu.FrameCount%2 != 0 {
+				ppu.Position++
+			}
+		}
+	}
+
+	// Clear Flags on line 261 dot 1
 	if ppu.ScanLine == 261 && ppu.Position == 1 {
-		ppu.ppustatus &= 0b00011111
+		ppu.Status = 0b00000000
 	}
 }
 
@@ -76,20 +85,18 @@ func (ppu *PPU) Reset() {
 	ppu.Position = 0
 	ppu.FrameCount = 0
 
-	ppu.ppuctrl = 0
-	ppu.ppumask = 0
-	ppu.ppustatus = 0
-	ppu.oamaddr = 0
-	ppu.oamdata = 0
-	ppu.ppuscrollx = 0
-	ppu.ppuscrolly = 0
-	ppu.ppuscrolltemp = 0
-	ppu.ppuscrollwrite = false
-	ppu.ppuaddr = 0
-	ppu.ppuaddrwrite = false
-	ppu.ppuaddrtemp = 0
-	ppu.ppudata = 0
-	ppu.oamdma = 0
+	ppu.Control = 0
+	ppu.Mask = 0
+	ppu.Status = 0
+	ppu.OamAddress = 0
+	ppu.OamData = 0
+	ppu.ScrollX = 0
+	ppu.ScrollY = 0
+	ppu.AddrLatch = 0
+	ppu.addrLatchWrite = false
+	ppu.Address = 0
+	ppu.Data = 0
+	ppu.OamDma = 0
 
 	for i := 0; i < 256; i++ {
 		ppu.OAM[i] = 0
@@ -100,72 +107,78 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 	if location >= 0x2000 && location <= 0x3FFF {
 		switch (location - 0x2000) % 0x8 {
 		case 0:
-			return true, 0
+			return true, ppu.GenLatch
 		case 1:
-			return true, 0
+			return true, ppu.GenLatch
 		case 2:
-			ret := ppu.ppustatus
-			if !ppu.Bus.Debugging() {
-				ppu.ppustatus &= 0b01111111
-			}
+			ret := ppu.Status&0b11100000 | ppu.GenLatch&0b00011111
+			ppu.Status = ppu.Status & 0b01100000
+			ppu.GenLatch = ret
 			return true, ret
 		case 3:
-			return true, ppu.oamaddr
+			return true, ppu.GenLatch
 		case 4:
-			return true, ppu.OAM[ppu.oamdata]
+			ret := ppu.OAM[ppu.OamAddress]
+			ppu.GenLatch = ret
+			return true, ret
 		case 5:
-			return true, 0
+			return true, ppu.GenLatch
 		case 6:
-			return true, ppu.ppudata
+			return true, ppu.GenLatch
 		case 7:
-			return true, ppu.Bus.PPURead(ppu.ppuaddr)
-
+			ret := ppu.Bus.PPURead(ppu.Address)
+			ppu.GenLatch = ret
+			if location >= 0x3F00 {
+				ppu.GenLatch = ppu.Bus.PPUReadRam(ppu.Address)
+			}
+			if (ppu.Control >> 2 & 0x1) == 1 {
+				ppu.Address += 32
+			} else {
+				ppu.Address++
+			}
+			return true, ret
 		}
 	}
 	return false, 0
 }
 
 func (ppu *PPU) CPUWrite(location uint16, data uint8) {
+	ppu.GenLatch = data
 	switch (location - 0x2000) % 0x8 {
 	case 0:
-		ppu.ppuctrl = data
+		ppu.Control = data
 	case 1:
-		ppu.ppumask = data
+		ppu.Mask = data
 	case 2:
 		// Do nothing
 	case 3:
-		// Do nothing
+		ppu.OamAddress = data
 	case 4:
-		ppu.OAM[ppu.oamaddr] = data
-		ppu.oamaddr++
+		ppu.OAM[ppu.OamAddress] = data
+		ppu.OamAddress++
 	case 5:
-		if !ppu.ppuscrollwrite {
-			ppu.ppuscrolltemp = data
-			ppu.ppuscrollwrite = true
+		if !ppu.addrLatchWrite {
+			ppu.AddrLatch = data
+			ppu.addrLatchWrite = true
 		} else {
-			ppu.ppuscrollx = ppu.ppuscrolltemp
-			ppu.ppuscrolly = data
-			ppu.ppuscrollwrite = false
+			ppu.ScrollX = ppu.AddrLatch
+			ppu.ScrollY = data
+			ppu.addrLatchWrite = false
 		}
 	case 6:
-		if !ppu.ppuaddrwrite {
-			ppu.ppuaddrtemp = data
-			ppu.ppuaddrwrite = true
+		if !ppu.addrLatchWrite {
+			ppu.AddrLatch = data
+			ppu.addrLatchWrite = true
 		} else {
-			ppu.ppuaddr = (uint16(ppu.ppuaddrtemp) << 8) | uint16(data)
-			ppu.ppuaddrwrite = false
+			ppu.Address = (uint16(ppu.AddrLatch) << 8) | uint16(data)%0x3FFF
+			ppu.addrLatchWrite = false
 		}
 	case 7:
-		ppu.Bus.PPUWrite(ppu.ppuaddr, data)
-		if (ppu.ppuctrl >> 2 & 0x1) == 1 {
-			ppu.ppuaddr += 32
+		ppu.Bus.PPUWrite(ppu.Address, data)
+		if (ppu.Control >> 2 & 0x1) == 1 {
+			ppu.Address += 32
 		} else {
-			ppu.ppuaddr++
+			ppu.Address++
 		}
 	}
-}
-
-func (ppu *PPU) DMAWrite(data uint8) {
-	ppu.OAM[ppu.oamaddr] = data
-	ppu.oamaddr++
 }

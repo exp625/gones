@@ -281,10 +281,10 @@ func (e *Emulator) ShowScreenPressedFunc(screen Overlay) func() {
 }
 
 func (e *Emulator) StartLoggingPressed() {
-	if e.LoggingEnabled {
-		e.StopLogging()
+	if e.Logger.LoggingEnabled() {
+		e.Logger.StopLogging()
 	} else {
-		e.StartLogging()
+		e.Logger.StartLogging()
 	}
 }
 

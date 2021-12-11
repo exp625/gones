@@ -3,6 +3,8 @@ package emulator
 import (
 	"github.com/exp625/gones/internal/textutil"
 	"github.com/exp625/gones/pkg/cartridge"
+	"github.com/exp625/gones/pkg/debugger"
+	"github.com/exp625/gones/pkg/logger"
 	"github.com/exp625/gones/pkg/nes"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
@@ -24,11 +26,11 @@ const (
 // Emulator struct
 type Emulator struct {
 	*nes.NES
-
+	Debugger *debugger.Debugger
+	Logger   logger.Logger
 	Bindings []*BindingGroup
 
 	AutoRunEnabled bool
-	LoggingEnabled bool
 
 	ActiveOverlay Overlay
 
@@ -62,14 +64,24 @@ func New(romFile string, debug bool) (*Emulator, error) {
 	if err := e.Init(); err != nil {
 		return nil, err
 	}
-
+	e.Debugger = debugger.New(e.NES)
+	e.Logger = &logger.FileLogger{}
+	e.CPU.Logger = e
 	return e, nil
+}
+
+func (e *Emulator) Close() error {
+	return e.Player.Close()
 }
 
 func (e *Emulator) Init() error {
 	// Setup Audio
 	if e.AudioContext == nil {
-		e.AudioContext = audio.NewContext(AudioSampleRate)
+		if audio.CurrentContext() == nil {
+			e.AudioContext = audio.NewContext(AudioSampleRate)
+		} else {
+			e.AudioContext = audio.CurrentContext()
+		}
 	}
 	if e.Player == nil {
 		// Pass the (infinite) stream to NewPlayer.
@@ -99,12 +111,6 @@ func (e *Emulator) Update() error {
 }
 
 func (e *Emulator) Draw(screen *ebiten.Image) {
-	switch e.ActiveOverlay {
-	case OverlayGame:
-		e.DebugOff()
-	default:
-		e.DebugOn()
-	}
 
 	e.DrawHeader(screen)
 
@@ -127,7 +133,6 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 		e.DrawOverlayKeybindings(screen)
 	}
 
-	e.DebugOff()
 }
 
 func (e *Emulator) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
@@ -150,4 +155,11 @@ func (e *Emulator) HandleInput() {
 			}
 		}
 	}
+}
+
+func (e *Emulator) Log() {
+	if e.Logger.LoggingEnabled() {
+		e.Logger.LogLine(e.Debugger.LogCpu())
+	}
+
 }

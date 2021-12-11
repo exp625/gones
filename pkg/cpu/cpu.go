@@ -2,6 +2,7 @@ package cpu
 
 import (
 	"github.com/exp625/gones/pkg/bus"
+	"github.com/exp625/gones/pkg/logger"
 )
 
 type CPU struct {
@@ -30,6 +31,8 @@ type CPU struct {
 	DMA         bool
 	DMAPrepared bool
 	DMAAddress  uint16
+
+	Logger logger.Loggable
 }
 
 func New() *CPU {
@@ -50,14 +53,21 @@ func (cpu *CPU) Clock() {
 	cpu.ClockCount++
 	if cpu.CycleCount == 0 {
 		if cpu.DMA {
+			if cpu.DMAAddress&0xFF == 0xFF {
+				cpu.DMA = false
+			}
 			if !cpu.DMAPrepared {
 				cpu.CycleCount++
 				if cpu.CycleCount%2 != 0 {
 					cpu.CycleCount++
 				}
 				cpu.DMAPrepared = true
+			} else {
+				cpu.Bus.CPUWrite(0x2004, cpu.Bus.CPURead(cpu.DMAAddress))
+				cpu.DMAAddress++
+				// Transfer takes one clock cycle
+				cpu.CycleCount++
 			}
-			cpu.Bus.DMAWrite(cpu.Bus.CPURead(cpu.DMAAddress))
 		} else {
 			opcode := cpu.Bus.CPURead(cpu.PC)
 			inst := cpu.Instructions[opcode]
@@ -71,9 +81,9 @@ func (cpu *CPU) Clock() {
 				cpu.CycleCount += 8
 			} else {
 				if inst.Length != 0 {
-					cpu.Bus.Log()
-					loc, data, addCycle := inst.AddressMode()
-					inst.Execute(loc, data, inst.Length)
+					cpu.log()
+					loc, addCycle := inst.AddressMode(cpu.Bus.CPURead)
+					inst.Execute(loc, inst.Length)
 					cpu.CycleCount += inst.ClockCycles + int(addCycle)
 				}
 			}
@@ -144,4 +154,8 @@ func (cpu *CPU) NMI() {
 	low := uint16(cpu.Bus.CPURead(NMIVector))
 	high := uint16(cpu.Bus.CPURead(NMIVector + 1))
 	cpu.PC = (high << 8) | low
+}
+
+func (cpu *CPU) log() {
+	cpu.Logger.Log()
 }

@@ -1,19 +1,15 @@
-package nes
+package debugger
 
 import (
 	"fmt"
-	"github.com/exp625/gones/internal/plz"
 )
 
-func (nes *NES) Log() {
-	if nes.Logger == nil {
-		return
-	}
+func (nes *Debugger) LogCpu() string {
 
 	opCode := nes.CPURead(nes.CPU.PC)
 	instruction := nes.CPU.Instructions[opCode]
 	if instruction.Length == 0 {
-		return
+		return "ERR"
 	}
 
 	legalPrefix := " "
@@ -45,14 +41,14 @@ func (nes *NES) Log() {
 		cpuRegisters,
 		ppuRegisters,
 	)
-
-	plz.Just(fmt.Fprintln(nes.Logger, logLine))
+	return logLine
 }
 
-func (nes *NES) addressMnemonic() string {
+func (nes *Debugger) addressMnemonic() string {
 	opCode := nes.CPURead(nes.CPU.PC)
 	instruction := nes.CPU.Instructions[opCode]
-	addr, data, _ := instruction.AddressMode()
+	addr, _ := instruction.AddressMode(nes.CPURead)
+	data := nes.CPURead(addr)
 	switch instruction.AddressModeMnemonic {
 	case "REL":
 		return fmt.Sprintf("$%04X                      ", addr)
