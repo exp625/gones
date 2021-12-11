@@ -44,31 +44,39 @@ func New() *PPU {
 }
 
 func (ppu *PPU) Clock() {
-	if ppu.ScanLine < 261 {
-		if ppu.Position < 340 {
-			ppu.Position++
-		} else {
-			ppu.Position = 0
-			ppu.ScanLine++
-		}
-	} else {
-		ppu.Position = 0
-		ppu.ScanLine = 0
-		ppu.FrameCount++
-		if ppu.FrameCount%2 != 0 {
-			ppu.Position++
-		}
-	}
 
+	// Set VBL Flag and trigger NMI on line 241 dot 1
 	if ppu.ScanLine == 241 && ppu.Position == 1 {
-		ppu.Status |= 0b10000000
+		ppu.Status = ppu.Status | 0b10000000
 		if ppu.Control>>7&0x1 == 1 {
 			ppu.Bus.NMI()
 		}
 	}
 
+
+	// Rendering
+
+
+	// Advance counters
+	if ppu.Position < 340 {
+		ppu.Position++
+	} else {
+		if ppu.ScanLine < 261 {
+			ppu.ScanLine++
+			ppu.Position = 0
+		} else {
+			ppu.Position = 0
+			ppu.ScanLine = 0
+			ppu.FrameCount++
+			if ppu.FrameCount%2 != 0 {
+				ppu.Position++
+			}
+		}
+	}
+
+	// Clear Flags on line 261 dot 1
 	if ppu.ScanLine == 261 && ppu.Position == 1 {
-		ppu.Status &= 0b00011111
+		ppu.Status = 0b00000000
 	}
 }
 
@@ -104,7 +112,7 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 			return true, ppu.GenLatch
 		case 2:
 			ret := ppu.Status&0b11100000 | ppu.GenLatch&0b00011111
-			ppu.Status &= 0b01111111
+			ppu.Status = ppu.Status & 0b01100000
 			ppu.GenLatch = ret
 			return true, ret
 		case 3:
