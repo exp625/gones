@@ -1,15 +1,20 @@
 package emulator
 
 import (
+	"github.com/exp625/gones/internal/config"
 	"github.com/exp625/gones/internal/textutil"
 	"github.com/exp625/gones/pkg/cartridge"
 	"github.com/exp625/gones/pkg/debugger"
+	"github.com/exp625/gones/pkg/file_explorer"
 	"github.com/exp625/gones/pkg/logger"
 	"github.com/exp625/gones/pkg/nes"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"io"
+	"log"
 	"os"
+	"path/filepath"
 	"time"
 )
 
@@ -33,6 +38,7 @@ type Emulator struct {
 	AutoRunEnabled bool
 
 	ActiveOverlay Overlay
+	FileExplorer  *file_explorer.FileExplorer
 
 	RequestedSteps int
 	AutoRunCycles  int
@@ -52,8 +58,25 @@ func New(romFile string, debug bool) (*Emulator, error) {
 	}
 	c := cartridge.Load(bytes)
 
+	var directory string
+	lastROMFile, ok := config.Get(config.LastROMFile)
+	if ok {
+		directory = filepath.Dir(lastROMFile)
+	} else {
+		directory, err = os.UserHomeDir()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	explorer, err := file_explorer.New(directory)
+	if err != nil {
+		return nil, err
+	}
+
 	e := &Emulator{
-		NES: nes.New(NESClockTime, NESAudioSampleTime),
+		NES:          nes.New(NESClockTime, NESAudioSampleTime),
+		FileExplorer: explorer,
 	}
 	e.Bindings = DefaultBindings(e)
 	if debug {
@@ -107,6 +130,41 @@ func (e *Emulator) Update() error {
 	}
 	e.AutoRunStarted = time.Now()
 
+	if e.ActiveOverlay == OverlayROMChooser {
+		if err := e.FileExplorer.Update(); err != nil {
+			return err
+		}
+	}
+
+	if e.FileExplorer.Ready {
+		absolutePath, err := e.FileExplorer.Get()
+		if err != nil {
+			return err
+		}
+		file, err := os.Open(absolutePath)
+		if err != nil {
+			log.Println("could not open file: ", err.Error())
+			return nil
+		}
+		defer func() {
+			if err := file.Close(); err != nil {
+				log.Println("could not close file: ", err.Error())
+			}
+		}()
+		bytes, err := io.ReadAll(file)
+		if err != nil {
+			log.Println("failed to read file: ", err.Error())
+			return nil
+		}
+		c := cartridge.Load(bytes)
+		e.Reset()
+		e.InsertCartridge(c)
+		e.ActiveOverlay = OverlayGame
+		if err := config.Set(config.LastROMFile, absolutePath); err != nil {
+			log.Println("failed to set last ROM file in config: ", err.Error())
+		}
+	}
+
 	return nil
 }
 
@@ -131,6 +189,8 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 		e.DrawOverlaySprites(screen)
 	case OverlayKeybindings:
 		e.DrawOverlayKeybindings(screen)
+	case OverlayROMChooser:
+		e.DrawROMChooser(screen)
 	}
 
 }

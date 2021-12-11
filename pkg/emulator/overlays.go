@@ -19,6 +19,7 @@ const (
 	OverlayControllers
 	OverlaySprites
 	OverlayKeybindings
+	OverlayROMChooser
 )
 
 func (e *Emulator) DrawOverlayGame(screen *ebiten.Image) {
@@ -125,4 +126,8 @@ func (e *Emulator) DrawOverlayKeybindings(screen *ebiten.Image) {
 		}
 	}
 	text.Draw(screen)
+}
+
+func (e *Emulator) DrawROMChooser(screen *ebiten.Image) {
+	e.FileExplorer.Draw(screen)
 }
