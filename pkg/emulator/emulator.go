@@ -69,8 +69,8 @@ func New(romFile string, debug bool) (*Emulator, error) {
 		}
 	}
 
-	explorer, err := file_explorer.New(directory)
-	if err != nil {
+	explorer := file_explorer.New()
+	if err := explorer.Select(directory); err != nil {
 		return nil, err
 	}
 

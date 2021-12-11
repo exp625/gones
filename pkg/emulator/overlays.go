@@ -6,6 +6,7 @@ import (
 	"github.com/exp625/gones/internal/textutil"
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/font/basicfont"
+	"image/color"
 )
 
 type Overlay int
@@ -129,5 +130,31 @@ func (e *Emulator) DrawOverlayKeybindings(screen *ebiten.Image) {
 }
 
 func (e *Emulator) DrawROMChooser(screen *ebiten.Image) {
-	e.FileExplorer.Draw(screen)
+	gray := color.Gray{Y: 20}
+	screen.Fill(gray)
+
+	const pad = 20
+	lines := []string{
+		fmt.Sprintf("%s\n", e.FileExplorer.Directory),
+		"<LEFT> to go to the parent directory\n",
+		"<RIGHT> to go into the selected directory\n",
+		"<UP>/<DOWN> to browse through the current directory\n",
+		"<ENTER> to choose the currently selected file/directory\n",
+		"<A-Z>/<0-9> to quickly selected a file/directory starting with the letter/number",
+	}
+	text := textutil.New(basicfont.Face7x13, screen.Bounds().Dx()-2*pad, len(lines)*basicfont.Face7x13.Height+2*pad, pad, pad, 1)
+	for _, line := range lines {
+		plz.Just(text.WriteString(line))
+	}
+	text.Draw(screen)
+
+	img := ebiten.NewImage(screen.Bounds().Dx()-2*pad, screen.Bounds().Dy()-(len(lines)*basicfont.Face7x13.Height)-3*pad)
+	img.Fill(color.Gray{Y: 70})
+
+	e.FileExplorer.Draw(img)
+
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(pad, float64(len(lines)*basicfont.Face7x13.Height+2*pad))
+
+	screen.DrawImage(img, op)
 }

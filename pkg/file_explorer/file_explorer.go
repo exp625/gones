@@ -16,23 +16,18 @@ import (
 type FileExplorer struct {
 	// Ready indicates that the user has selected a file/directory. Retrieve the selected file/directory via Get().
 	Ready         bool
-	directory     string
+	Directory     string
 	entries       *[]os.DirEntry
 	selected      int
 	selectedCache map[string]int
 	wait          int
 }
 
-func New(directory string) (*FileExplorer, error) {
-	absolutePath, err := filepath.Abs(directory)
-	if err != nil {
-		return nil, err
-	}
+func New() *FileExplorer {
 	f := &FileExplorer{
-		directory:     absolutePath,
 		selectedCache: make(map[string]int),
 	}
-	return f, nil
+	return f
 }
 
 func (f *FileExplorer) Get() (string, error) {
@@ -40,7 +35,7 @@ func (f *FileExplorer) Get() (string, error) {
 		return "", fmt.Errorf("not ready")
 	}
 	s := (*f.entries)[f.selected]
-	result, err := filepath.Abs(filepath.Join(f.directory, s.Name()))
+	result, err := filepath.Abs(filepath.Join(f.Directory, s.Name()))
 	f.Ready = false
 	return result, err
 }
@@ -49,75 +44,10 @@ func (f *FileExplorer) Update() error {
 	if f.Ready {
 		return nil
 	}
-
-	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
-		f.Ready = true
+	if err := f.handleInput(); err != nil {
+		return err
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
-		if err := f.Select(filepath.Dir(f.directory)); err != nil {
-			return err
-		}
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
-		s := (*f.entries)[f.selected]
-		if s.IsDir() {
-			if err := f.Select(filepath.Join(f.directory, s.Name())); err != nil {
-				return err
-			}
-		}
-	}
-	if repeatingKeyPressed(ebiten.KeyArrowUp) {
-		f.selected -= 1
-	}
-	if repeatingKeyPressed(ebiten.KeyArrowDown) {
-		f.selected += 1
-	}
-
-outer:
-	for letter, key := range fileNameKeys {
-		if inpututil.IsKeyJustPressed(key) {
-			for index := 0; index < len(*f.entries); index++ {
-				entryIndex := (index + f.selected + 1) % len(*f.entries)
-				entry := (*f.entries)[entryIndex]
-				if strings.HasPrefix(strings.ToUpper(entry.Name()), letter) {
-					f.selected = entryIndex
-					break outer
-				}
-			}
-		}
-	}
-
-	entries, err := os.ReadDir(f.directory)
-	if err != nil {
-		entries = make([]os.DirEntry, 0)
-	}
-	e := make([]os.DirEntry, len(entries))
-	f.entries = &e
-
-	i := 0
-	for _, entry := range entries {
-		if !entry.IsDir() {
-			continue
-		}
-		(*f.entries)[i] = entry
-		i++
-	}
-	for _, entry := range entries {
-		if entry.IsDir() {
-			continue
-		}
-		(*f.entries)[i] = entry
-		i++
-	}
-
-	l := len(*f.entries) - 1
-	if f.selected > l {
-		f.selected = l
-	}
-	if f.selected < 0 {
-		f.selected = 0
-	}
-
+	f.updateEntries()
 	return nil
 }
 
@@ -168,18 +98,92 @@ func (f *FileExplorer) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func (f *FileExplorer) Select(directory string) error {
-	f.selectedCache[f.directory] = f.selected
+	f.selectedCache[f.Directory] = f.selected
 	absolutePath, err := filepath.Abs(directory)
 	if err != nil {
 		return err
 	}
-	f.directory = absolutePath
+	f.Directory = absolutePath
 	previouslySelected, ok := f.selectedCache[absolutePath]
 	if !ok || (ok && previouslySelected > len(*f.entries)-1) {
 		previouslySelected = 0
 	}
 	f.selected = previouslySelected
 	return nil
+}
+
+func (f *FileExplorer) handleInput() error {
+	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
+		f.Ready = true
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
+		if err := f.Select(filepath.Dir(f.Directory)); err != nil {
+			return err
+		}
+	}
+	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
+		s := (*f.entries)[f.selected]
+		if s.IsDir() {
+			if err := f.Select(filepath.Join(f.Directory, s.Name())); err != nil {
+				return err
+			}
+		}
+	}
+	if repeatingKeyPressed(ebiten.KeyArrowUp) {
+		f.selected -= 1
+	}
+	if repeatingKeyPressed(ebiten.KeyArrowDown) {
+		f.selected += 1
+	}
+
+outer:
+	for letter, key := range fileNameKeys {
+		if inpututil.IsKeyJustPressed(key) {
+			for index := 0; index < len(*f.entries); index++ {
+				entryIndex := (index + f.selected + 1) % len(*f.entries)
+				entry := (*f.entries)[entryIndex]
+				if strings.HasPrefix(strings.ToUpper(entry.Name()), letter) {
+					f.selected = entryIndex
+					break outer
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+func (f *FileExplorer) updateEntries() {
+	entries, err := os.ReadDir(f.Directory)
+	if err != nil {
+		entries = make([]os.DirEntry, 0)
+	}
+	e := make([]os.DirEntry, len(entries))
+	f.entries = &e
+
+	i := 0
+	for _, entry := range entries {
+		if !entry.IsDir() {
+			continue
+		}
+		(*f.entries)[i] = entry
+		i++
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		(*f.entries)[i] = entry
+		i++
+	}
+
+	l := len(*f.entries) - 1
+	if f.selected > l {
+		f.selected = l
+	}
+	if f.selected < 0 {
+		f.selected = 0
+	}
 }
 
 func repeatingKeyPressed(key ebiten.Key) bool {
