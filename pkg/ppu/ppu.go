@@ -110,7 +110,7 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 		case 3:
 			return true, ppu.GenLatch
 		case 4:
-			ret := ppu.OAM[ppu.OamData]
+			ret := ppu.OAM[ppu.OamAddress]
 			ppu.GenLatch = ret
 			return true, ret
 		case 5:
