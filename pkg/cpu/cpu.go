@@ -53,14 +53,21 @@ func (cpu *CPU) Clock() {
 	cpu.ClockCount++
 	if cpu.CycleCount == 0 {
 		if cpu.DMA {
+			if cpu.DMAAddress&0xFF == 0xFF {
+				cpu.DMA = false
+			}
 			if !cpu.DMAPrepared {
 				cpu.CycleCount++
 				if cpu.CycleCount%2 != 0 {
 					cpu.CycleCount++
 				}
 				cpu.DMAPrepared = true
+			} else {
+				cpu.Bus.CPUWrite(0x2004, cpu.Bus.CPURead(cpu.DMAAddress))
+				cpu.DMAAddress++
+				// Transfer takes one clock cycle
+				cpu.CycleCount++
 			}
-			cpu.Bus.DMAWrite(cpu.Bus.CPURead(cpu.DMAAddress))
 		} else {
 			opcode := cpu.Bus.CPURead(cpu.PC)
 			inst := cpu.Instructions[opcode]
@@ -82,15 +89,7 @@ func (cpu *CPU) Clock() {
 			}
 		}
 	}
-	if !cpu.DMA {
-		cpu.CycleCount--
-	} else {
-		if cpu.DMAAddress&0xFF == 0xFF {
-			cpu.DMA = false
-		} else {
-			cpu.DMAAddress++
-		}
-	}
+	cpu.CycleCount--
 }
 
 func (cpu *CPU) Reset() {

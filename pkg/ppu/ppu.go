@@ -174,8 +174,3 @@ func (ppu *PPU) CPUWrite(location uint16, data uint8) {
 		}
 	}
 }
-
-func (ppu *PPU) DMAWrite(data uint8) {
-	ppu.OAM[ppu.OamAddress] = data
-	ppu.OamAddress++
-}
