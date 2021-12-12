@@ -248,7 +248,7 @@ func (nes *Debugger) DrawNametableInColor(table int) *ebiten.Image {
 	lowRight := image.Point{X: width, Y: height}
 	img := image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
 
-	colorEmphasis := nes.PPU.Mask >> 5
+	colorEmphasis := nes.PPU.Mask.Emphasize()
 	// greyscale := nes.PPU.Mask & 0x1
 
 	for row := uint16(0); row < 30; row++ {
@@ -261,7 +261,7 @@ func (nes *Debugger) DrawNametableInColor(table int) *ebiten.Image {
 			tileByte := uint16(nes.PPURead(nameTableBaseAddress + nameTableOffset + tileIndex))
 			// RRRRCCCC
 			// Background pattern table address (0: $0000; 1: $1000)
-			backgroundTable := uint16(nes.PPU.Control >> 4 & 0x1)
+			backgroundTable := uint16(nes.PPU.Control.PatternTable())
 
 			// Get assigned attributeByte
 			attributeIndex := (tile / 4) + (row/4)*8

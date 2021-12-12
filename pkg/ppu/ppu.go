@@ -15,14 +15,14 @@ type PPU struct {
 	Palette [0x40][8]color.Color
 
 	// Registers
-	Control    uint8
-	Mask       uint8
-	Status     uint8
+	Control    ControlRegister
+	Mask       MaskRegister
+	Status     StatusRegister
 	OamAddress uint8
 	OamData    uint8
 	ScrollX    uint8
 	ScrollY    uint8
-	Address    uint16
+	Address    AddressRegister
 	Data       uint8
 	OamDma     uint8
 
@@ -53,9 +53,7 @@ func (ppu *PPU) Clock() {
 		}
 	}
 
-
 	// Rendering
-
 
 	// Advance counters
 	if ppu.Position < 340 {
@@ -111,7 +109,7 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 		case 1:
 			return true, ppu.GenLatch
 		case 2:
-			ret := ppu.Status&0b11100000 | ppu.GenLatch&0b00011111
+			ret := uint8(ppu.Status) | ppu.GenLatch&0b00011111
 			ppu.Status = ppu.Status & 0b01100000
 			ppu.GenLatch = ret
 			return true, ret
@@ -126,10 +124,10 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 		case 6:
 			return true, ppu.GenLatch
 		case 7:
-			ret := ppu.Bus.PPURead(ppu.Address)
+			ret := ppu.Bus.PPURead(uint16(ppu.Address))
 			ppu.GenLatch = ret
 			if location >= 0x3F00 {
-				ppu.GenLatch = ppu.Bus.PPUReadRam(ppu.Address)
+				ppu.GenLatch = ppu.Bus.PPUReadRam(uint16(ppu.Address))
 			}
 			if (ppu.Control >> 2 & 0x1) == 1 {
 				ppu.Address += 32
@@ -146,9 +144,9 @@ func (ppu *PPU) CPUWrite(location uint16, data uint8) {
 	ppu.GenLatch = data
 	switch (location - 0x2000) % 0x8 {
 	case 0:
-		ppu.Control = data
+		ppu.Control = ControlRegister(data)
 	case 1:
-		ppu.Mask = data
+		ppu.Mask = MaskRegister(data)
 	case 2:
 		// Do nothing
 	case 3:
@@ -170,11 +168,11 @@ func (ppu *PPU) CPUWrite(location uint16, data uint8) {
 			ppu.AddrLatch = data
 			ppu.addrLatchWrite = true
 		} else {
-			ppu.Address = (uint16(ppu.AddrLatch) << 8) | uint16(data)%0x3FFF
+			ppu.Address = AddressRegister((uint16(ppu.AddrLatch) << 8) | uint16(data)%0x3FFF)
 			ppu.addrLatchWrite = false
 		}
 	case 7:
-		ppu.Bus.PPUWrite(ppu.Address, data)
+		ppu.Bus.PPUWrite(uint16(ppu.Address), data)
 		if (ppu.Control >> 2 & 0x1) == 1 {
 			ppu.Address += 32
 		} else {

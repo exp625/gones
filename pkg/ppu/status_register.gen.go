@@ -2,40 +2,49 @@
 
 package ppu
 
-type StatusRegister uint16
+type StatusRegister uint8
 
-func (S *StatusRegister) CoarseXScroll() uint8 {
-	return uint8((*S >> 11) & 0x1f)
+func (S *StatusRegister) VerticalBlank() bool {
+	const bit = 1 << 7
+	return *S&bit == bit
 }
 
-func (S *StatusRegister) SetCoarseXScroll(value uint8) {
-	const mask = uint16(((1 << 5) - 1) << 11)
-	*S = StatusRegister((uint16(*S) & ^mask) | uint16(value)<<11)
+func (S *StatusRegister) SetVerticalBlank(value bool) {
+	const bit = uint8(1) << 7
+	valueInt := uint8(0)
+	if value {
+		valueInt = 1
+	}
+
+	*S = StatusRegister((uint8(*S) & ^bit) | valueInt<<7)
 }
 
-func (S *StatusRegister) CoarseYScroll() uint8 {
-	return uint8((*S >> 6) & 0x1f)
+func (S *StatusRegister) SpriteZeroHit() bool {
+	const bit = 1 << 6
+	return *S&bit == bit
 }
 
-func (S *StatusRegister) SetCoarseYScroll(value uint8) {
-	const mask = uint16(((1 << 5) - 1) << 6)
-	*S = StatusRegister((uint16(*S) & ^mask) | uint16(value)<<6)
+func (S *StatusRegister) SetSpriteZeroHit(value bool) {
+	const bit = uint8(1) << 6
+	valueInt := uint8(0)
+	if value {
+		valueInt = 1
+	}
+
+	*S = StatusRegister((uint8(*S) & ^bit) | valueInt<<6)
 }
 
-func (S *StatusRegister) NameTable() uint8 {
-	return uint8((*S >> 4) & 0x3)
+func (S *StatusRegister) SpriteOverflow() bool {
+	const bit = 1 << 5
+	return *S&bit == bit
 }
 
-func (S *StatusRegister) SetNameTable(value uint8) {
-	const mask = uint16(((1 << 2) - 1) << 4)
-	*S = StatusRegister((uint16(*S) & ^mask) | uint16(value)<<4)
-}
+func (S *StatusRegister) SetSpriteOverflow(value bool) {
+	const bit = uint8(1) << 5
+	valueInt := uint8(0)
+	if value {
+		valueInt = 1
+	}
 
-func (S *StatusRegister) FineYScroll() uint8 {
-	return uint8((*S >> 1) & 0x7)
-}
-
-func (S *StatusRegister) SetFineYScroll(value uint8) {
-	const mask = uint16(((1 << 3) - 1) << 1)
-	*S = StatusRegister((uint16(*S) & ^mask) | uint16(value)<<1)
+	*S = StatusRegister((uint8(*S) & ^bit) | valueInt<<5)
 }

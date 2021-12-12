@@ -16,8 +16,11 @@ type GenConf struct {
 
 func main() {
 	for _, entry := range []GenConf{
-		{templates.PPUStatusRegister{}, "pkg/ppu/status_register.gen.go", "ppu", "StatusRegister"},
 		{templates.CPUStatusRegister{}, "pkg/cpu/status_register.gen.go", "cpu", "StatusRegister"},
+		{templates.PPUControlRegister{}, "pkg/ppu/control_register.gen.go", "ppu", "ControlRegister"},
+		{templates.PPUMaskRegister{}, "pkg/ppu/mask_register.gen.go", "ppu", "MaskRegister"},
+		{templates.PPUStatusRegister{}, "pkg/ppu/status_register.gen.go", "ppu", "StatusRegister"},
+		{templates.PPUAddressRegister{}, "pkg/ppu/address_register.gen.go", "ppu", "AddressRegister"},
 	} {
 		if err := GenerateBitfield(entry); err != nil {
 			log.Fatal(err)

@@ -31,7 +31,7 @@ func (nes *Debugger) CPURead(location uint16) uint8 {
 		case 1:
 			return 0
 		case 2:
-			return nes.PPU.Status
+			return uint8(nes.PPU.Status)
 		case 3:
 			return 0
 		case 4:
@@ -41,7 +41,7 @@ func (nes *Debugger) CPURead(location uint16) uint8 {
 		case 6:
 			return 0
 		case 7:
-			return nes.PPURead(nes.PPU.Address)
+			return nes.PPURead(uint16(nes.PPU.Address))
 		default:
 			panic("go is wrong")
 		}
