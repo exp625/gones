@@ -19,7 +19,10 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	file, err := os.Open(filePath)
+	if err := os.MkdirAll(filepath.Dir(filePath), 0777); err != nil {
+		log.Fatal(err)
+	}
+	file, err := os.OpenFile(filePath, os.O_CREATE, 0666)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -29,8 +32,16 @@ func init() {
 		}
 	}()
 
-	if err := json.NewDecoder(file).Decode(&config); err != nil {
-		log.Fatal(err)
+	// Check if file is empty
+	stat, _ := file.Stat()
+	if stat.Size() == 0 {
+		// File is empty, create empty config
+		config = make(map[string]string, 0)
+	} else {
+		// File is not empty, try to parse config
+		if err := json.NewDecoder(file).Decode(&config); err != nil {
+			log.Fatal(err)
+		}
 	}
 }
 
