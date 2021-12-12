@@ -25,7 +25,7 @@ func TestCPULogOutput(t *testing.T) {
 		t.Fatal(err)
 	}
 	e.CPU.PC = 0xC000
-	e.CPU.P = cpu.FlagUnused | cpu.FlagInterruptDisable
+	e.CPU.P = cpu.StatusRegister(cpu.FlagUnused | cpu.FlagInterruptDisable)
 
 	fileLogger := &logger.FileLogger{}
 	fileLogger.Name = logFileName

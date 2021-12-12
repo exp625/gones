@@ -7,6 +7,7 @@ import (
 	"os"
 )
 
+//go:generate go run gen/cmd/main.go
 func main() {
 	romFile := "test/nestest.nes"
 	if len(os.Args) == 2 {

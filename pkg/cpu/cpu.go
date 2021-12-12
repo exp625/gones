@@ -17,7 +17,7 @@ type CPU struct {
 	// Stack Pointer
 	S uint8
 	// Status register
-	P uint8
+	P StatusRegister
 
 	Bus bus.Bus
 
@@ -75,7 +75,7 @@ func (cpu *CPU) Clock() {
 				cpu.NMI()
 				cpu.RequestNMI = false
 				cpu.CycleCount += 7
-			} else if cpu.RequestIRQ && !cpu.Get(FlagInterruptDisable) {
+			} else if cpu.RequestIRQ && !cpu.P.InterruptDisable() {
 				cpu.IRQ()
 				cpu.RequestIRQ = false
 				cpu.CycleCount += 8
@@ -101,7 +101,7 @@ func (cpu *CPU) Reset() {
 	cpu.X = 0
 	cpu.Y = 0
 	// Set status flags
-	cpu.P = FlagUnused | FlagBreak | FlagInterruptDisable
+	cpu.P = StatusRegister(FlagUnused | FlagBreak | FlagInterruptDisable)
 	// Set stack pointer
 	cpu.S = 0xFD
 	// Load the program counter from the reset vector
@@ -122,11 +122,11 @@ func (cpu *CPU) IRQ() {
 	// Set flags and store current pc onto stack
 	// From https://wiki.nesdev.org/w/index.php?title=Status_flags
 	// In the byte pushed, bit 5 is always set to 1, and bit 4 is 1 if from an instruction (PHP or BRK) or 0 if from an interrupt line being pulled low (/IRQ or /NMI).
-	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), cpu.P|FlagInterruptDisable)
+	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), uint8(cpu.P)|FlagInterruptDisable)
 	cpu.S--
 	// Set Interrupt disable flag
 	// We don't want another interrupt inside the interrupt handler
-	cpu.Set(FlagInterruptDisable, true)
+	cpu.P.SetInterruptDisable(true)
 	// Get pc from IRQ/BRK vector and jump to location
 	low := uint16(cpu.Bus.CPURead(IRQVector))
 	high := uint16(cpu.Bus.CPURead(IRQVector + 1))
@@ -145,11 +145,11 @@ func (cpu *CPU) NMI() {
 	// Set flags and store current pc onto stack
 	// From https://wiki.nesdev.org/w/index.php?title=Status_flags
 	// In the byte pushed, bit 5 is always set to 1, and bit 4 is 1 if from an instruction (PHP or BRK) or 0 if from an interrupt line being pulled low (/IRQ or /NMI).
-	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), cpu.P|FlagInterruptDisable)
+	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), uint8(cpu.P)|FlagInterruptDisable)
 	cpu.S--
 	// Set Interrupt disable flag
 	// We don't want another interrupt inside the interrupt handler
-	cpu.Set(FlagInterruptDisable, true)
+	cpu.P.SetInterruptDisable(true)
 	// Get pc from NMI vector and jump to location
 	low := uint16(cpu.Bus.CPURead(NMIVector))
 	high := uint16(cpu.Bus.CPURead(NMIVector + 1))

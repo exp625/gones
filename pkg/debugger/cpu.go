@@ -13,7 +13,7 @@ func (nes *Debugger) DrawCPU(t *textutil.Text) {
 
 	arr := "CZIDB-VN"
 	for i := 0; i < 8; i++ {
-		if nes.CPU.Get(1 << i) {
+		if (uint8(nes.CPU.P)>>i)&0x1 == 1 {
 			t.Color(colornames.Green)
 		} else {
 			t.Color(colornames.Red)

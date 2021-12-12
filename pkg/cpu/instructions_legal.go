@@ -8,7 +8,7 @@ func (cpu *CPU) ADC(location uint16, length uint16) {
 	data := cpu.Bus.CPURead(location)
 	// Get carry
 	var carry uint8
-	if cpu.Get(FlagCarry) {
+	if cpu.P.Carry() {
 		carry = 1
 	}
 	// Perform calculation in 16 bit
@@ -17,14 +17,14 @@ func (cpu *CPU) ADC(location uint16, length uint16) {
 	// Store last 8th bits to A register
 	cpu.A = uint8(temp & 0x00FF)
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if last 8th bits are zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Check if result is greater than 255. If true we have a carry
-	cpu.Set(FlagCarry, temp > 255)
+	cpu.P.SetCarry(temp > 255)
 	// http://www.6502.org/tutorials/vflag.html
 	// V indicates whether the result of an addition or subtraction is outside the range -128 to 127, i.e. whether there is a twos complement overflow
-	cpu.Set(FlagOverflow, tempSigned < -128 || tempSigned > 127)
+	cpu.P.SetOverflow(tempSigned < -128 || tempSigned > 127)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -40,9 +40,9 @@ func (cpu *CPU) AND(location uint16, length uint16) {
 	// Store result in A register
 	cpu.A = temp
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -63,11 +63,11 @@ func (cpu *CPU) ASL(location uint16, length uint16) {
 	// Shift one bit left
 	temp := data << 1
 	// Set carry
-	cpu.Set(FlagCarry, carry == 1)
+	cpu.P.SetCarry(carry == 1)
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Check if we need to store the result in memory or in the A register
 	if inst.ClockCycles == 2 {
 		// Accumulator Addressing
@@ -84,7 +84,7 @@ func (cpu *CPU) ASL(location uint16, length uint16) {
 // branch on C = 0
 func (cpu *CPU) BCC(location uint16, length uint16) {
 	// Check if C = 0
-	if !cpu.Get(FlagCarry) {
+	if !cpu.P.Carry() {
 		// Taking a branch takes one additional cycle
 		cpu.CycleCount++
 		if (cpu.PC+length)&0xFF00 != location&0xFF00 {
@@ -104,7 +104,7 @@ func (cpu *CPU) BCC(location uint16, length uint16) {
 // branch on C = 1
 func (cpu *CPU) BCS(location uint16, length uint16) {
 	// Check if C = 1
-	if cpu.Get(FlagCarry) {
+	if cpu.P.Carry() {
 		// Taking a branch takes one additional cycle
 		cpu.CycleCount++
 		if (cpu.PC+length)&0xFF00 != location&0xFF00 {
@@ -124,7 +124,7 @@ func (cpu *CPU) BCS(location uint16, length uint16) {
 // branch on Z = 1
 func (cpu *CPU) BEQ(location uint16, length uint16) {
 	// Check if Z = 1
-	if cpu.Get(FlagZero) {
+	if cpu.P.Zero() {
 		// Taking a branch takes one additional cycle
 		cpu.CycleCount++
 		if (cpu.PC+length)&0xFF00 != location&0xFF00 {
@@ -150,12 +150,12 @@ func (cpu *CPU) BIT(location uint16, length uint16) {
 	// AND Memory with Accumulator
 	temp := cpu.A & data
 	// Check if result is zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Transfer bit 7 to N
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (data>>7)&0x01 == 1)
+	cpu.P.SetNegative((data>>7)&0x01 == 1)
 	// Transfer bit 6 to V
-	cpu.Set(FlagOverflow, (data>>6)&0x01 == 1)
+	cpu.P.SetOverflow((data>>6)&0x01 == 1)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -165,7 +165,7 @@ func (cpu *CPU) BIT(location uint16, length uint16) {
 // branch on N = 1
 func (cpu *CPU) BMI(location uint16, length uint16) {
 	// Check if N = 1
-	if cpu.Get(FlagNegative) {
+	if cpu.P.Negative() {
 		// Taking a branch takes one additional cycle
 		cpu.CycleCount++
 		if (cpu.PC+length)&0xFF00 != location&0xFF00 {
@@ -185,7 +185,7 @@ func (cpu *CPU) BMI(location uint16, length uint16) {
 // branch on Z = 0
 func (cpu *CPU) BNE(location uint16, length uint16) {
 	// Check if Z = 0
-	if !cpu.Get(FlagZero) {
+	if !cpu.P.Zero() {
 		// Taking a branch takes one additional cycle
 		cpu.CycleCount++
 		if (cpu.PC+length)&0xFF00 != location&0xFF00 {
@@ -205,7 +205,7 @@ func (cpu *CPU) BNE(location uint16, length uint16) {
 // branch on N = 0
 func (cpu *CPU) BPL(location uint16, length uint16) {
 	// Check if N = 0
-	if !cpu.Get(FlagNegative) {
+	if !cpu.P.Negative() {
 		// Taking a branch takes one additional cycle
 		cpu.CycleCount++
 		if (cpu.PC+length)&0xFF00 != location&0xFF00 {
@@ -241,11 +241,11 @@ func (cpu *CPU) BRK(uint16, uint16) {
 	// Set flags and store current pc onto stack
 	// From https://wiki.nesdev.org/w/index.php?title=Status_flags
 	// In the byte pushed, bit 5 is always set to 1, and bit 4 is 1 if from an instruction (PHP or BRK) or 0 if from an interrupt line being pulled low (/IRQ or /NMI).
-	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), cpu.P|FlagBreak|FlagInterruptDisable)
+	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), uint8(cpu.P)|FlagBreak|FlagInterruptDisable)
 	cpu.S--
 	// Set Interrupt disable flag
 	// We don't want another interrupt inside the interrupt handler
-	cpu.Set(FlagInterruptDisable, true)
+	cpu.P.SetInterruptDisable(true)
 	// Get pc from IRQ/BRK vector and jump to location
 	low := uint16(cpu.Bus.CPURead(IRQVector))
 	high := uint16(cpu.Bus.CPURead(IRQVector + 1))
@@ -257,7 +257,7 @@ func (cpu *CPU) BRK(uint16, uint16) {
 // branch on V = 0
 func (cpu *CPU) BVC(location uint16, length uint16) {
 	// Check if V = 0
-	if !cpu.Get(FlagOverflow) {
+	if !cpu.P.Overflow() {
 		// Taking a branch takes one additional cycle
 		cpu.CycleCount++
 		if (cpu.PC+length)&0xFF00 != location&0xFF00 {
@@ -277,7 +277,7 @@ func (cpu *CPU) BVC(location uint16, length uint16) {
 // branch on V = 1
 func (cpu *CPU) BVS(location uint16, length uint16) {
 	// Check if V = 1
-	if cpu.Get(FlagOverflow) {
+	if cpu.P.Overflow() {
 		// Taking a branch takes one additional cycle
 		cpu.CycleCount++
 		if (cpu.PC+length)&0xFF00 != location&0xFF00 {
@@ -297,7 +297,7 @@ func (cpu *CPU) BVS(location uint16, length uint16) {
 // 0 -> C
 func (cpu *CPU) CLC(_ uint16, length uint16) {
 	// Clear Flag
-	cpu.Set(FlagCarry, false)
+	cpu.P.SetCarry(false)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -307,7 +307,7 @@ func (cpu *CPU) CLC(_ uint16, length uint16) {
 // 0 -> D
 func (cpu *CPU) CLD(_ uint16, length uint16) {
 	// Clear Flag
-	cpu.Set(FlagDecimal, false)
+	cpu.P.SetDecimal(false)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -317,7 +317,7 @@ func (cpu *CPU) CLD(_ uint16, length uint16) {
 // 0 -> I
 func (cpu *CPU) CLI(_ uint16, length uint16) {
 	// Clear Flag
-	cpu.Set(FlagInterruptDisable, false)
+	cpu.P.SetInterruptDisable(false)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -327,7 +327,7 @@ func (cpu *CPU) CLI(_ uint16, length uint16) {
 // 0 -> V
 func (cpu *CPU) CLV(_ uint16, length uint16) {
 	// Clear Flag
-	cpu.Set(FlagOverflow, false)
+	cpu.P.SetOverflow(false)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -341,10 +341,10 @@ func (cpu *CPU) CMP(location uint16, length uint16) {
 	// A - M
 	temp := cpu.A - data
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
-	cpu.Set(FlagZero, temp == 0)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
+	cpu.P.SetZero(temp == 0)
 	// From Wiki: After SBC or CMP, this flag will be set if no borrow was the result, or alternatively a "greater than or equal" result.
-	cpu.Set(FlagCarry, cpu.A >= data)
+	cpu.P.SetCarry(cpu.A >= data)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -358,11 +358,11 @@ func (cpu *CPU) CPX(location uint16, length uint16) {
 	// X - M
 	temp := cpu.X - data
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, temp == 0)
+	cpu.P.SetZero(temp == 0)
 	// From Wiki: After SBC or CMP, this flag will be set if no borrow was the result, or alternatively a "greater than or equal" result.
-	cpu.Set(FlagCarry, cpu.X >= data)
+	cpu.P.SetCarry(cpu.X >= data)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -376,11 +376,11 @@ func (cpu *CPU) CPY(location uint16, length uint16) {
 	// Y - M
 	temp := cpu.Y - data
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, temp == 0)
+	cpu.P.SetZero(temp == 0)
 	// From Wiki: After SBC or CMP, this flag will be set if no borrow was the result, or alternatively a "greater than or equal" result.
-	cpu.Set(FlagCarry, cpu.Y >= data)
+	cpu.P.SetCarry(cpu.Y >= data)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -393,9 +393,9 @@ func (cpu *CPU) DEC(location uint16, length uint16) {
 	temp := cpu.Bus.CPURead(location) - 1
 	cpu.Bus.CPUWrite(location, temp)
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, temp == 0)
+	cpu.P.SetZero(temp == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -408,9 +408,9 @@ func (cpu *CPU) DEX(_ uint16, length uint16) {
 	temp := cpu.X - 1
 	cpu.X = temp
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, temp == 0)
+	cpu.P.SetZero(temp == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -423,9 +423,9 @@ func (cpu *CPU) DEY(_ uint16, length uint16) {
 	temp := cpu.Y - 1
 	cpu.Y = temp
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, temp == 0)
+	cpu.P.SetZero(temp == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -438,9 +438,9 @@ func (cpu *CPU) EOR(location uint16, length uint16) {
 	temp := cpu.A ^ cpu.Bus.CPURead(location)
 	cpu.A = temp
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, temp == 0)
+	cpu.P.SetZero(temp == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -453,9 +453,9 @@ func (cpu *CPU) INC(location uint16, length uint16) {
 	temp := cpu.Bus.CPURead(location) + 1
 	cpu.Bus.CPUWrite(location, temp)
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -468,9 +468,9 @@ func (cpu *CPU) INX(_ uint16, length uint16) {
 	temp := cpu.X + 1
 	cpu.X = temp
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -483,9 +483,9 @@ func (cpu *CPU) INY(_ uint16, length uint16) {
 	temp := cpu.Y + 1
 	cpu.Y = temp
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -522,9 +522,9 @@ func (cpu *CPU) LDA(location uint16, length uint16) {
 	// M -> A
 	cpu.A = data
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (data>>7)&0x01 == 1)
+	cpu.P.SetNegative((data>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, data == 0)
+	cpu.P.SetZero(data == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -538,9 +538,9 @@ func (cpu *CPU) LDX(location uint16, length uint16) {
 	// M -> X
 	cpu.X = data
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (data>>7)&0x01 == 1)
+	cpu.P.SetNegative((data>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, data == 0)
+	cpu.P.SetZero(data == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -554,9 +554,9 @@ func (cpu *CPU) LDY(location uint16, length uint16) {
 	// M -> Y
 	cpu.Y = data
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (data>>7)&0x01 == 1)
+	cpu.P.SetNegative((data>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, data == 0)
+	cpu.P.SetZero(data == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -573,10 +573,10 @@ func (cpu *CPU) LSR(location uint16, length uint16) {
 		data = cpu.Bus.CPURead(location)
 	}
 	temp := data >> 1
-	cpu.Set(FlagCarry, data&0x01 == 1)
-	cpu.Set(FlagNegative, false)
+	cpu.P.SetCarry(data&0x01 == 1)
+	cpu.P.SetNegative(false)
 	// Check if result is zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Check if we need to store the result in memory or in the A register
 	if inst.ClockCycles == 2 {
 		// Accumulator Addressing
@@ -604,9 +604,9 @@ func (cpu *CPU) ORA(location uint16, length uint16) {
 	temp := cpu.A | cpu.Bus.CPURead(location)
 	cpu.A = temp
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -628,7 +628,7 @@ func (cpu *CPU) PHA(_ uint16, length uint16) {
 // push P
 func (cpu *CPU) PHP(_ uint16, length uint16) {
 	// push P with bit 5 and 6 set to 1
-	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), cpu.P|FlagBreak|FlagUnused)
+	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), uint8(cpu.P)|FlagBreak|FlagUnused)
 	cpu.S--
 	// Advance program counter
 	cpu.PC += length
@@ -642,9 +642,9 @@ func (cpu *CPU) PLA(_ uint16, length uint16) {
 	cpu.S++
 	cpu.A = cpu.Bus.CPURead(StackPage | uint16(cpu.S))
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (cpu.A>>7)&0x01 == 1)
+	cpu.P.SetNegative((cpu.A>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, cpu.A == 0)
+	cpu.P.SetZero(cpu.A == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -659,7 +659,7 @@ func (cpu *CPU) PLP(_ uint16, length uint16) {
 	temp := cpu.Bus.CPURead(StackPage | uint16(cpu.S))
 	// Ignore bit 4 and 5 from Stack but keep the value of bit 4 and 5 on the PC
 	// Only bit 4 and 5 | Value from Stack without bit 4 and 5
-	cpu.P = (cpu.P & (FlagBreak | FlagUnused)) | temp & ^(FlagBreak|FlagUnused)
+	cpu.P = StatusRegister((uint8(cpu.P) & (FlagBreak | FlagUnused)) | temp & ^(FlagBreak|FlagUnused))
 	// Advance program counter
 	cpu.PC += length
 }
@@ -677,16 +677,16 @@ func (cpu *CPU) ROL(location uint16, length uint16) {
 	}
 	// Get carry
 	var carry uint8
-	if cpu.Get(FlagCarry) {
+	if cpu.P.Carry() {
 		carry = 1
 	}
 	// C <- [76543210] <- C
 	temp := data<<1 + carry
-	cpu.Set(FlagCarry, (data>>7)&0x01 == 1)
+	cpu.P.SetCarry((data>>7)&0x01 == 1)
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Check if we need to store the result in memory or in the A register
 	if inst.ClockCycles == 2 {
 		// Accumulator Addressing
@@ -711,16 +711,16 @@ func (cpu *CPU) ROR(location uint16, length uint16) {
 	}
 	// Get carry
 	var carry uint8
-	if cpu.Get(FlagCarry) {
+	if cpu.P.Carry() {
 		carry = 0x80
 	}
 	// C <- [76543210] <- C
 	temp := data>>1 + carry
-	cpu.Set(FlagCarry, data&0x01 == 1)
+	cpu.P.SetCarry(data&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagNegative, temp&0x80 == 0x80)
+	cpu.P.SetNegative(temp&0x80 == 0x80)
 	// Check if result is zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Check if we need to store the result in memory or in the A register
 	if inst.ClockCycles == 2 {
 		// Accumulator Addressing
@@ -742,7 +742,7 @@ func (cpu *CPU) RTI(uint16, uint16) {
 	status := cpu.Bus.CPURead(0x0100 + uint16(cpu.S))
 	// Ignore bit 4 and 5 from Stack but keep the value of bit 4 and 5 on the PC
 	// Only bit 4 and 5 | Value from Stack without bit 4 and 5
-	cpu.P = (cpu.P & (FlagBreak | FlagUnused)) | status & ^(FlagBreak|FlagUnused)
+	cpu.P = StatusRegister((uint8(cpu.P) & (FlagBreak | FlagUnused)) | status & ^(FlagBreak|FlagUnused))
 	// pull low bits of pc from stack
 	cpu.S++
 	low := uint16(cpu.Bus.CPURead(0x0100 + uint16(cpu.S)))
@@ -778,7 +778,7 @@ func (cpu *CPU) SBC(location uint16, length uint16) {
 	data := cpu.Bus.CPURead(location)
 	// Get carry
 	var carry uint8
-	if cpu.Get(FlagCarry) {
+	if cpu.P.Carry() {
 		carry = 1
 	}
 	// A - M - ^C = A + ^M + C
@@ -789,14 +789,14 @@ func (cpu *CPU) SBC(location uint16, length uint16) {
 	// Store last 8th bits to A register
 	cpu.A = uint8(temp & 0x00FF)
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if last 8th bits are zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Check if result is greater thant 255. If true we have a carry
-	cpu.Set(FlagCarry, temp > 255)
+	cpu.P.SetCarry(temp > 255)
 	// http://www.6502.org/tutorials/vflag.html
 	// V indicates whether the result of an addition or subtraction is outside the range -128 to 127, i.e. whether there is a twos complement overflow
-	cpu.Set(FlagOverflow, tempSigned < -128 || tempSigned > 127)
+	cpu.P.SetOverflow(tempSigned < -128 || tempSigned > 127)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -806,7 +806,7 @@ func (cpu *CPU) SBC(location uint16, length uint16) {
 // 1 -> C
 func (cpu *CPU) SEC(_ uint16, length uint16) {
 	// Set Flag
-	cpu.Set(FlagCarry, true)
+	cpu.P.SetCarry(true)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -816,7 +816,7 @@ func (cpu *CPU) SEC(_ uint16, length uint16) {
 // 1 -> D
 func (cpu *CPU) SED(_ uint16, length uint16) {
 	// Set Flag
-	cpu.Set(FlagDecimal, true)
+	cpu.P.SetDecimal(true)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -826,7 +826,7 @@ func (cpu *CPU) SED(_ uint16, length uint16) {
 // 1 -> I
 func (cpu *CPU) SEI(_ uint16, length uint16) {
 	// Set Flag
-	cpu.Set(FlagInterruptDisable, true)
+	cpu.P.SetInterruptDisable(true)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -868,9 +868,9 @@ func (cpu *CPU) TAX(_ uint16, length uint16) {
 	// A -> X
 	cpu.X = cpu.A
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (cpu.X>>7)&0x01 == 1)
+	cpu.P.SetNegative((cpu.X>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, cpu.X == 0)
+	cpu.P.SetZero(cpu.X == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -881,9 +881,9 @@ func (cpu *CPU) TAX(_ uint16, length uint16) {
 func (cpu *CPU) TAY(_ uint16, length uint16) {
 	cpu.Y = cpu.A
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (cpu.Y>>7)&0x01 == 1)
+	cpu.P.SetNegative((cpu.Y>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, cpu.Y == 0)
+	cpu.P.SetZero(cpu.Y == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -895,9 +895,9 @@ func (cpu *CPU) TSX(_ uint16, length uint16) {
 	// S -> X
 	cpu.X = cpu.S
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (cpu.X>>7)&0x01 == 1)
+	cpu.P.SetNegative((cpu.X>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, cpu.X == 0)
+	cpu.P.SetZero(cpu.X == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -910,9 +910,9 @@ func (cpu *CPU) TXA(_ uint16, length uint16) {
 	val := cpu.X
 	cpu.A = val
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (val>>7)&0x01 == 1)
+	cpu.P.SetNegative((val>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, val == 0)
+	cpu.P.SetZero(val == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -934,9 +934,9 @@ func (cpu *CPU) TYA(_ uint16, length uint16) {
 	// Y -> A
 	cpu.A = cpu.Y
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (cpu.A>>7)&0x01 == 1)
+	cpu.P.SetNegative((cpu.A>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, cpu.A == 0)
+	cpu.P.SetZero(cpu.A == 0)
 	// Advance program counter
 	cpu.PC += length
 }

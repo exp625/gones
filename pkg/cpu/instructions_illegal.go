@@ -9,11 +9,11 @@ func (cpu *CPU) ALR(location uint16, length uint16) {
 	// AND Memory with Operand
 	temp := cpu.A & data
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Set Carry flag
-	cpu.Set(FlagCarry, (temp&0x01) == 1)
+	cpu.P.SetCarry((temp & 0x01) == 1)
 	// Advance program counter
 	cpu.PC += length
 
@@ -28,11 +28,11 @@ func (cpu *CPU) ANC(location uint16, length uint16) {
 	// AND Memory with Operand
 	temp := cpu.A & data
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Set Carry flag
-	cpu.Set(FlagCarry, (temp>>7)&0x01 == 1)
+	cpu.P.SetCarry((temp>>7)&0x01 == 1)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -57,10 +57,10 @@ func (cpu *CPU) DCP(location uint16, length uint16) {
 	// A - M
 	temp2 := cpu.A - temp1
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp2>>7)&0x01 == 1)
-	cpu.Set(FlagZero, temp2 == 0)
+	cpu.P.SetNegative((temp2>>7)&0x01 == 1)
+	cpu.P.SetZero(temp2 == 0)
 	// From Wiki: After SBC or CMP, this flag will be set if no borrow was the result, or alternatively a "greater than or equal" result.
-	cpu.Set(FlagCarry, cpu.A >= temp1)
+	cpu.P.SetCarry(cpu.A >= temp1)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -86,7 +86,7 @@ func (cpu *CPU) ISC(location uint16, length uint16) {
 
 	// Get carry
 	var carry uint8
-	if cpu.Get(FlagCarry) {
+	if cpu.P.Carry() {
 		carry = 1
 	}
 	// A - M - ^C = A + ^M + C
@@ -97,14 +97,14 @@ func (cpu *CPU) ISC(location uint16, length uint16) {
 	// Store last 8th bits to A register
 	cpu.A = uint8(temp & 0x00FF)
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if last 8th bits are zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Check if result is greater thant 255. If true we have a carry
-	cpu.Set(FlagCarry, temp > 255)
+	cpu.P.SetCarry(temp > 255)
 	// http://www.6502.org/tutorials/vflag.html
 	// V indicates whether the result of an addition or subtraction is outside the range -128 to 127, i.e. whether there is a twos complement overflow
-	cpu.Set(FlagOverflow, tempSigned < -128 || tempSigned > 127)
+	cpu.P.SetOverflow(tempSigned < -128 || tempSigned > 127)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -121,9 +121,9 @@ func (cpu *CPU) LAS(location uint16, length uint16) {
 	cpu.X = temp
 	cpu.S = temp
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, temp == 0)
+	cpu.P.SetZero(temp == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -138,9 +138,9 @@ func (cpu *CPU) LAX(location uint16, length uint16) {
 	cpu.A = data
 	cpu.X = data
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (data>>7)&0x01 == 1)
+	cpu.P.SetNegative((data>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, data == 0)
+	cpu.P.SetZero(data == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -157,21 +157,21 @@ func (cpu *CPU) RLA(location uint16, length uint16) {
 	data := cpu.Bus.CPURead(location)
 	// Get carry
 	var carry uint8
-	if cpu.Get(FlagCarry) {
+	if cpu.P.Carry() {
 		carry = 1
 	}
 	// M = C <- [76543210] <- C
 	temp1 := data<<1 + carry
 	cpu.Bus.CPUWrite(location, temp1)
-	cpu.Set(FlagCarry, (data>>7)&0x01 == 1)
+	cpu.P.SetCarry((data>>7)&0x01 == 1)
 	// A AND M -> A
 	temp2 := cpu.A & temp1
 	// Store result in A register
 	cpu.A = temp2
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp2>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp2>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, (temp2&0x00FF) == 0)
+	cpu.P.SetZero((temp2 & 0x00FF) == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -184,17 +184,17 @@ func (cpu *CPU) RRA(location uint16, length uint16) {
 	data := cpu.Bus.CPURead(location)
 	// Get carry
 	var carry uint8
-	if cpu.Get(FlagCarry) {
+	if cpu.P.Carry() {
 		carry = 0x80
 	}
 	// M = C -> [76543210] -> C
 	temp1 := data>>1 + carry
 	cpu.Bus.CPUWrite(location, temp1)
-	cpu.Set(FlagCarry, data&0x01 == 1)
+	cpu.P.SetCarry(data&0x01 == 1)
 
 	// A + M + C -> A, C
 	// Get carry
-	if cpu.Get(FlagCarry) {
+	if cpu.P.Carry() {
 		carry = 1
 	}
 	// Perform calculation in 16 bit
@@ -203,14 +203,14 @@ func (cpu *CPU) RRA(location uint16, length uint16) {
 	// Store last 8th bits to A register
 	cpu.A = uint8(temp & 0x00FF)
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if last 8th bits are zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Check if result is greater than 255. If true we have a carry
-	cpu.Set(FlagCarry, temp > 255)
+	cpu.P.SetCarry(temp > 255)
 	// http://www.6502.org/tutorials/vflag.html
 	// V indicates whether the result of an addition or subtraction is outside the range -128 to 127, i.e. whether there is a twos complement overflow
-	cpu.Set(FlagOverflow, tempSigned < -128 || tempSigned > 127)
+	cpu.P.SetOverflow(tempSigned < -128 || tempSigned > 127)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -236,11 +236,11 @@ func (cpu *CPU) SBX(location uint16, length uint16) {
 	temp := (cpu.A & cpu.X) - data
 	cpu.X = temp
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
-	cpu.Set(FlagZero, temp == 0)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
+	cpu.P.SetZero(temp == 0)
 	// Sets flag like CMP
 	// From Wiki: After SBC or CMP, this flag will be set if no borrow was the result, or alternatively a "greater than or equal" result.
-	cpu.Set(FlagCarry, cpu.A >= data)
+	cpu.P.SetCarry(cpu.A >= data)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -264,7 +264,7 @@ func (cpu *CPU) SRE(location uint16, length uint16) {
 	// Get data from location determined by the address mode
 	data := cpu.Bus.CPURead(location)
 	carry := data & 0x01
-	cpu.Set(FlagCarry, carry == 1)
+	cpu.P.SetCarry(carry == 1)
 	temp1 := data >> 1
 	cpu.Bus.CPUWrite(location, temp1)
 	temp2 := cpu.A ^ temp1
@@ -286,15 +286,15 @@ func (cpu *CPU) SLO(location uint16, length uint16) {
 	temp1 := data << 1
 	cpu.Bus.CPUWrite(location, temp1)
 	// Set carry
-	cpu.Set(FlagCarry, carry == 1)
+	cpu.P.SetCarry(carry == 1)
 
 	// A OR M -> A
 	temp2 := cpu.A | temp1
 	cpu.A = temp2
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp2>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp2>>7)&0x01 == 1)
 	// Check if result is zero
-	cpu.Set(FlagZero, (temp2&0x00FF) == 0)
+	cpu.P.SetZero((temp2 & 0x00FF) == 0)
 	// Advance program counter
 	cpu.PC += length
 }
@@ -311,7 +311,7 @@ func (cpu *CPU) USBC(location uint16, length uint16) {
 	data := cpu.Bus.CPURead(location)
 	// Get carry
 	var carry uint8
-	if cpu.Get(FlagCarry) {
+	if cpu.P.Carry() {
 		carry = 1
 	}
 	// A - M - ^C = A + ^M + C
@@ -322,14 +322,14 @@ func (cpu *CPU) USBC(location uint16, length uint16) {
 	// Store last 8th bits to A register
 	cpu.A = uint8(temp & 0x00FF)
 	// Check if 8th bit is one
-	cpu.Set(FlagNegative, (temp>>7)&0x01 == 1)
+	cpu.P.SetNegative((temp>>7)&0x01 == 1)
 	// Check if last 8th bits are zero
-	cpu.Set(FlagZero, (temp&0x00FF) == 0)
+	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Check if result is greater thant 255. If true we have a carry
-	cpu.Set(FlagCarry, temp > 255)
+	cpu.P.SetCarry(temp > 255)
 	// http://www.6502.org/tutorials/vflag.html
 	// V indicates whether the result of an addition or subtraction is outside the range -128 to 127, i.e. whether there is a twos complement overflow
-	cpu.Set(FlagOverflow, tempSigned < -128 || tempSigned > 127)
+	cpu.P.SetOverflow(tempSigned < -128 || tempSigned > 127)
 	// Advance program counter
 	cpu.PC += length
 }

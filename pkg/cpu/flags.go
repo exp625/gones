@@ -10,15 +10,3 @@ const (
 	FlagOverflow
 	FlagNegative
 )
-
-func (cpu *CPU) Set(flag uint8, value bool) {
-	if value {
-		cpu.P = cpu.P | flag
-	} else {
-		cpu.P = cpu.P & ^flag
-	}
-}
-
-func (cpu *CPU) Get(flag uint8) bool {
-	return cpu.P&flag == flag
-}
