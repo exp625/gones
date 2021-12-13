@@ -48,7 +48,7 @@ func (ppu *PPU) Clock() {
 	// Set VBL Flag and trigger NMI on line 241 dot 1
 	if ppu.ScanLine == 241 && ppu.Position == 1 {
 		ppu.Status = ppu.Status | 0b10000000
-		if ppu.Control>>7&0x1 == 1 {
+		if ppu.Control.NMI() {
 			ppu.Bus.NMI()
 		}
 	}
@@ -109,7 +109,7 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 		case 1:
 			return true, ppu.GenLatch
 		case 2:
-			ret := uint8(ppu.Status) | ppu.GenLatch&0b00011111
+			ret := uint8(ppu.Status)&0b11100000 | ppu.GenLatch&0b00011111
 			ppu.Status = ppu.Status & 0b01100000
 			ppu.GenLatch = ret
 			return true, ret
@@ -125,9 +125,13 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 			return true, ppu.GenLatch
 		case 7:
 			ret := ppu.Bus.PPURead(uint16(ppu.Address))
-			ppu.GenLatch = ret
-			if location >= 0x3F00 {
+			if ppu.Address >= 0x3F00 {
 				ppu.GenLatch = ppu.Bus.PPUReadRam(uint16(ppu.Address))
+			} else {
+				// VRAM reads should be delayed in a buffer
+				temp := ppu.GenLatch
+				ppu.GenLatch = ret
+				ret = temp
 			}
 			if (ppu.Control >> 2 & 0x1) == 1 {
 				ppu.Address += 32
@@ -141,7 +145,6 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 }
 
 func (ppu *PPU) CPUWrite(location uint16, data uint8) {
-	ppu.GenLatch = data
 	switch (location - 0x2000) % 0x8 {
 	case 0:
 		ppu.Control = ControlRegister(data)
@@ -173,7 +176,7 @@ func (ppu *PPU) CPUWrite(location uint16, data uint8) {
 		}
 	case 7:
 		ppu.Bus.PPUWrite(uint16(ppu.Address), data)
-		if (ppu.Control >> 2 & 0x1) == 1 {
+		if ppu.Control.VRAMIncrement() {
 			ppu.Address += 32
 		} else {
 			ppu.Address++

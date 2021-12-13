@@ -155,10 +155,14 @@ func (nes *NES) PPURead(location uint16) uint8 {
 		_, data := nes.Cartridge.PPURead(mappedLocation)
 		return data
 	case 0x2000 <= mappedLocation && mappedLocation <= 0x3EFF:
-		return nes.PPUReadRam(location)
+		// TODO: Why don't we use 'mappedLocation' here?
+		return nes.PPUReadRam(mappedLocation)
 	// $3F00-3FFF is not configurable, always mapped to the internal palette control.
 	case 0x3F00 <= location:
-		return nes.PPUReadPalette(location)
+		// TODO: Why don't we use 'mappedLocation' here?
+		//  I guess because of the comment above?
+		//  Would be clearer to me, if we used 'mappedLocation' anyways.
+		return nes.PPUReadPalette(mappedLocation)
 	}
 	return 0
 }
@@ -209,6 +213,9 @@ func (nes *NES) PPUWrite(location uint16, data uint8) {
 	case 0x2000 <= mappedLocation && mappedLocation <= 0x3EFF:
 		nes.PPUWriteRam(mappedLocation, data)
 	// $3F00-3FFF is not configurable, always mapped to the internal palette control.
+	// TODO: Why don't we use 'mappedLocation' here?
+	//  I guess because of the comment above?
+	//  Would be clearer to me, if we used 'mappedLocation' anyways.
 	case 0x3F00 <= location:
 		nes.PPUWritePalette(mappedLocation, data)
 	}
