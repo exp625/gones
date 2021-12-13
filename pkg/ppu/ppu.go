@@ -44,7 +44,6 @@ func New() *PPU {
 }
 
 func (ppu *PPU) Clock() {
-
 	// Set VBL Flag and trigger NMI on line 241 dot 1
 	if ppu.ScanLine == 241 && ppu.Position == 1 {
 		ppu.Status = ppu.Status | 0b10000000
@@ -74,7 +73,9 @@ func (ppu *PPU) Clock() {
 
 	// Clear Flags on line 261 dot 1
 	if ppu.ScanLine == 261 && ppu.Position == 1 {
-		ppu.Status = 0b00000000
+		ppu.Status.SetVerticalBlank(false)
+		ppu.Status.SetSpriteZeroHit(false)
+		ppu.Status.SetSpriteOverflow(false)
 	}
 }
 
@@ -110,7 +111,8 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 			return true, ppu.GenLatch
 		case 2:
 			ret := uint8(ppu.Status)&0b11100000 | ppu.GenLatch&0b00011111
-			ppu.Status = ppu.Status & 0b01100000
+			ppu.Status.SetVerticalBlank(false)
+			ppu.AddrLatch = 0
 			ppu.GenLatch = ret
 			return true, ret
 		case 3:

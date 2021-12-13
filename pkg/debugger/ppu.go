@@ -36,14 +36,17 @@ func (nes *Debugger) DrawPatternTable(table int) *ebiten.Image {
 				plane0 := nes.PPURead(addressPlane0)
 				plane1 := nes.PPURead(addressPlane1)
 
-				colorEmphasis := nes.PPU.Mask >> 5
+				colorEmphasis := nes.PPU.Mask.Emphasize()
 				pallets := [4]color.Color{
 					nes.PPU.Palette[nes.PPURead(0x3F00)%0x40][colorEmphasis],
 					nes.PPU.Palette[nes.PPURead(0x3F01)%0x40][colorEmphasis],
 					nes.PPU.Palette[nes.PPURead(0x3F02)%0x40][colorEmphasis],
 					nes.PPU.Palette[nes.PPURead(0x3F03)%0x40][colorEmphasis],
 				}
-				if nes.PPURead(0x3F00)%0x40 == 0 && nes.PPURead(0x3F01)%0x40 == 0 && nes.PPURead(0x3F02)%0x40 == 0 && nes.PPURead(0x3F03)%0x40 == 0 {
+				if nes.PPURead(0x3F00)%0x40 == 0 &&
+					nes.PPURead(0x3F01)%0x40 == 0 &&
+					nes.PPURead(0x3F02)%0x40 == 0 &&
+					nes.PPURead(0x3F03)%0x40 == 0 {
 					// Pallet no initialized
 					pallets = [4]color.Color{
 						color.RGBA{0, 0, 0, 255},

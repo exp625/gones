@@ -32,35 +32,40 @@ func (m *Mapper001) CPUMapRead(location uint16) uint16 {
 }
 
 func (m *Mapper001) CPURead(location uint16) (bool, uint8) {
-	if location >= 0x6000 && location <= 0x7FFF {
+	if 0x6000 <= location && location <= 0x7FFF {
 		// Read to 0x6001 should result in array index 1
 		return true, m.prgRam[location-0x6000]
 	}
-	if location >= 0x8000 && location <= 0xBFFF {
-		switch m.control >> 2 & 0b11 {
+
+	if 0x8000 <= location && location <= 0xBFFF {
+		switch (m.control >> 2) & 0b11 {
 		case 2:
-			return true, m.cartridge.PrgRom[(location-0x8000)+0x4000*0]
+			// 2: fix first bank at $8000 and switch 16 KB bank at $C000
+			return true, m.cartridge.PrgRom[location-0x8000]
 		case 3:
+			// 3: fix last bank at $C000 and switch 16 KB bank at $8000
 			return true, m.cartridge.PrgRom[(location-0x8000)+0x4000*uint16(m.prgBank)]
 		default:
+			// 0, 1: switch 32 KB at $8000, ignoring low bit of bank number
 			return true, m.cartridge.PrgRom[(location-0x8000)+0x4000*uint16(m.prgBank&0b110)]
 		}
 	}
 
 	if location >= 0xC000 {
-		switch m.control >> 2 & 0b11 {
+		switch (m.control >> 2) & 0b11 {
 		case 2:
+			// 2: fix first bank at $8000 and switch 16 KB bank at $C000
 			return true, m.cartridge.PrgRom[(location-0xC000)+0x4000*uint16(m.prgBank)]
 		case 3:
-			// 3: fix last bank at $C000 and switch 16 KB bank at $8000)
+			// 3: fix last bank at $C000 and switch 16 KB bank at $8000
 			return true, m.cartridge.PrgRom[(location-0xC000)+0x4000*uint16(m.cartridge.PrgRomSize-1)]
 		default:
-			// 0, 1: switch 32 KB at $8000, ignoring low bit of bank number;
+			// 0, 1: switch 32 KB at $8000, ignoring low bit of bank number
 			return true, m.cartridge.PrgRom[(location-0xC000)+0x4000*uint16(m.prgBank&0b1110)+0x4000]
 		}
 	}
-	return false, 0
 
+	return false, 0
 }
 
 func (m *Mapper001) CPUMapWrite(location uint16) uint16 {
@@ -107,13 +112,13 @@ func (m *Mapper001) PPUMapRead(location uint16) uint16 {
 
 func (m *Mapper001) PPURead(location uint16) (bool, uint8) {
 	if location <= 0x0FFF {
-		if m.control>>5&0b1 == 0 {
+		if m.control>>4&0b1 == 0 {
 			return true, m.cartridge.ChrRom[location+0x1000*uint16(m.chrBank0&0b1110)]
 		} else {
 			return true, m.cartridge.ChrRom[location+0x1000*uint16(m.chrBank0)]
 		}
 	} else if location <= 0x1FFF {
-		if m.control>>5&0b1 == 0 {
+		if m.control>>4&0b1 == 0 {
 			return true, m.cartridge.ChrRom[(location-0x1000)+0x1000*uint16(m.chrBank0&0b1110)+0x1000]
 		} else {
 			return true, m.cartridge.ChrRom[(location-0x1000)+0x1000*uint16(m.chrBank1)]
