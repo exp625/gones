@@ -41,7 +41,7 @@ func (nes *Debugger) CPURead(location uint16) uint8 {
 		case 6:
 			return 0
 		case 7:
-			return nes.PPURead(uint16(nes.PPU.Address))
+			return nes.PPURead(uint16(nes.PPU.CurrentVRAMAddress))
 		default:
 			panic("go is wrong")
 		}

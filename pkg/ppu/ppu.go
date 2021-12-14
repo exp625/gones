@@ -20,17 +20,19 @@ type PPU struct {
 	Status     StatusRegister
 	OamAddress uint8
 	OamData    uint8
-	ScrollX    uint8
-	ScrollY    uint8
-	Address    AddressRegister
 	Data       uint8
 	OamDma     uint8
 
+	// Render Registers
+	CurrentVRAMAddress   AddressRegister
+	TemporaryVRAMAddress AddressRegister
+	FineXScroll          uint8
+	// Current write mode. 0 for first, 1 for second.
+	WriteToggle uint8
+
 	// Latch
-	GenLatch       uint8
-	ReadLatch      uint8
-	AddrLatch      uint8
-	addrLatchWrite bool
+	GenLatch  uint8
+	ReadLatch uint8
 
 	// oam
 	OAM [256]uint8
@@ -90,13 +92,12 @@ func (ppu *PPU) Reset() {
 	ppu.Status = 0
 	ppu.OamAddress = 0
 	ppu.OamData = 0
-	ppu.ScrollX = 0
-	ppu.ScrollY = 0
-	ppu.AddrLatch = 0
-	ppu.addrLatchWrite = false
-	ppu.Address = 0
+	ppu.CurrentVRAMAddress = 0
 	ppu.Data = 0
 	ppu.OamDma = 0
+
+	// Reset render register
+	ppu.WriteToggle = 0
 
 	for i := 0; i < 256; i++ {
 		ppu.OAM[i] = 0
@@ -113,8 +114,8 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 		case 2:
 			ret := uint8(ppu.Status)&0b11100000 | ppu.GenLatch&0b00011111
 			ppu.Status.SetVerticalBlank(false)
-			ppu.AddrLatch = 0
 			ppu.GenLatch = ret
+			ppu.WriteToggle = 0
 			return true, ret
 		case 3:
 			return true, ppu.GenLatch
@@ -128,21 +129,21 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 			return true, ppu.GenLatch
 		case 7:
 			var ret uint8
-			if uint16(ppu.Address) >= 0x3F00 {
+			if uint16(ppu.CurrentVRAMAddress) >= 0x3F00 {
 				// Pallet read
-				ret = ppu.Bus.PPURead(uint16(ppu.Address))
-				ppu.ReadLatch = ppu.Bus.PPUReadRam(uint16(ppu.Address))
+				ret = ppu.Bus.PPURead(uint16(ppu.CurrentVRAMAddress))
+				ppu.ReadLatch = ppu.Bus.PPUReadRam(uint16(ppu.CurrentVRAMAddress))
 				ppu.GenLatch = ret
 			} else {
 				// VRAM read
 				ret = ppu.ReadLatch
-				ppu.ReadLatch = ppu.Bus.PPURead(uint16(ppu.Address))
+				ppu.ReadLatch = ppu.Bus.PPURead(uint16(ppu.CurrentVRAMAddress))
 				ppu.GenLatch = ret
 			}
 			if (ppu.Control >> 2 & 0x1) == 1 {
-				ppu.Address += 32
+				ppu.CurrentVRAMAddress += 32
 			} else {
-				ppu.Address++
+				ppu.CurrentVRAMAddress++
 			}
 			return true, ret
 		}
@@ -151,8 +152,12 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 }
 
 func (ppu *PPU) CPUWrite(location uint16, data uint8) {
+	if (location-0x2000)%0x8 != 7 {
+		ppu.GenLatch = data
+	}
 	switch (location - 0x2000) % 0x8 {
 	case 0:
+		ppu.TemporaryVRAMAddress.SetNameTable(data & 0b11)
 		ppu.Control = ControlRegister(data)
 	case 1:
 		ppu.Mask = MaskRegister(data)
@@ -164,28 +169,40 @@ func (ppu *PPU) CPUWrite(location uint16, data uint8) {
 		ppu.OAM[ppu.OamAddress] = data
 		ppu.OamAddress++
 	case 5:
-		if !ppu.addrLatchWrite {
-			ppu.AddrLatch = data
-			ppu.addrLatchWrite = true
+		if ppu.WriteToggle == 0 {
+			ppu.TemporaryVRAMAddress.SetCoarseXScroll(data >> 3)
+			ppu.FineXScroll = data & 0b111
+			ppu.WriteToggle = 1
 		} else {
-			ppu.ScrollX = ppu.AddrLatch
-			ppu.ScrollY = data
-			ppu.addrLatchWrite = false
+			ppu.TemporaryVRAMAddress.SetCoarseYScroll(data >> 3)
+			ppu.TemporaryVRAMAddress.SetFineYScroll(data & 0b111)
+			ppu.WriteToggle = 0
 		}
 	case 6:
-		if !ppu.addrLatchWrite {
-			ppu.AddrLatch = data
-			ppu.addrLatchWrite = true
+		// ABCDEFGH
+		// IJKLMNOP
+		// 00CDEFGH IJKLMNOP
+		// 0yyyNNYY YYYXXXXX
+
+		// 00CDEFGH YYYXXXXX
+		// 00CDEFGH IJKLMNOP
+		if ppu.WriteToggle == 0 {
+			ppu.TemporaryVRAMAddress.SetFineYScroll((data >> 4) & 0b11)                                                             //ABCD & 0b11 -> CD
+			ppu.TemporaryVRAMAddress.SetNameTable((data >> 2) & 0b11)                                                               // ABCDEF & 0b11 -> EF
+			ppu.TemporaryVRAMAddress.SetCoarseYScroll((data&0b11)<<3 | (ppu.TemporaryVRAMAddress.CoarseYScroll() & uint8(0b00111))) // GH000 | 00YYY -> GHYYY
+			ppu.WriteToggle = 1
 		} else {
-			ppu.Address = AddressRegister((uint16(ppu.AddrLatch) << 8) | uint16(data)%0x3FFF)
-			ppu.addrLatchWrite = false
+			ppu.TemporaryVRAMAddress.SetCoarseXScroll(data & 0b11111)
+			ppu.TemporaryVRAMAddress.SetCoarseYScroll((data >> 5) | ppu.TemporaryVRAMAddress.CoarseYScroll()&0b11000) // IJK | YY000 -> GHIJK
+			ppu.CurrentVRAMAddress = ppu.TemporaryVRAMAddress
+			ppu.WriteToggle = 0
 		}
 	case 7:
-		ppu.Bus.PPUWrite(uint16(ppu.Address), data)
+		ppu.Bus.PPUWrite(uint16(ppu.CurrentVRAMAddress), data)
 		if ppu.Control.VRAMIncrement() {
-			ppu.Address += 32
+			ppu.CurrentVRAMAddress += 32
 		} else {
-			ppu.Address++
+			ppu.CurrentVRAMAddress++
 		}
 	}
 }

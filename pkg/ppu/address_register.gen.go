@@ -4,38 +4,38 @@ package ppu
 
 type AddressRegister uint16
 
-func (A *AddressRegister) CoarseXScroll() uint8 {
-	return uint8((*A >> 11) & 0x1f)
-}
-
-func (A *AddressRegister) SetCoarseXScroll(value uint8) {
-	const mask = uint16(((1 << 5) - 1) << 11)
-	*A = AddressRegister((uint16(*A) & ^mask) | uint16(value)<<11)
-}
-
-func (A *AddressRegister) CoarseYScroll() uint8 {
-	return uint8((*A >> 6) & 0x1f)
-}
-
-func (A *AddressRegister) SetCoarseYScroll(value uint8) {
-	const mask = uint16(((1 << 5) - 1) << 6)
-	*A = AddressRegister((uint16(*A) & ^mask) | uint16(value)<<6)
-}
-
-func (A *AddressRegister) NameTable() uint8 {
-	return uint8((*A >> 4) & 0x3)
-}
-
-func (A *AddressRegister) SetNameTable(value uint8) {
-	const mask = uint16(((1 << 2) - 1) << 4)
-	*A = AddressRegister((uint16(*A) & ^mask) | uint16(value)<<4)
-}
-
 func (A *AddressRegister) FineYScroll() uint8 {
-	return uint8((*A >> 1) & 0x7)
+	return uint8((*A >> 12) & 0x7)
 }
 
 func (A *AddressRegister) SetFineYScroll(value uint8) {
-	const mask = uint16(((1 << 3) - 1) << 1)
-	*A = AddressRegister((uint16(*A) & ^mask) | uint16(value)<<1)
+	const mask = uint16(((1 << 3) - 1) << 12)
+	*A = AddressRegister((uint16(*A) & ^mask) | uint16(value)<<12)
+}
+
+func (A *AddressRegister) NameTable() uint8 {
+	return uint8((*A >> 10) & 0x3)
+}
+
+func (A *AddressRegister) SetNameTable(value uint8) {
+	const mask = uint16(((1 << 2) - 1) << 10)
+	*A = AddressRegister((uint16(*A) & ^mask) | uint16(value)<<10)
+}
+
+func (A *AddressRegister) CoarseYScroll() uint8 {
+	return uint8((*A >> 5) & 0x1f)
+}
+
+func (A *AddressRegister) SetCoarseYScroll(value uint8) {
+	const mask = uint16(((1 << 5) - 1) << 5)
+	*A = AddressRegister((uint16(*A) & ^mask) | uint16(value)<<5)
+}
+
+func (A *AddressRegister) CoarseXScroll() uint8 {
+	return uint8((*A >> 0) & 0x1f)
+}
+
+func (A *AddressRegister) SetCoarseXScroll(value uint8) {
+	const mask = uint16(((1 << 5) - 1) << 0)
+	*A = AddressRegister((uint16(*A) & ^mask) | uint16(value)<<0)
 }

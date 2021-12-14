@@ -113,7 +113,7 @@ func (nes *Debugger) DrawPPUInfo(t *textutil.Text) {
 	plz.Just(fmt.Fprintf(t, "PPUSTATUS: %02X \tVBLANK: %t \tSprite 0 Hit: %t \t Sprite Overflow: %t \n",
 		nes.PPU.Status, (nes.PPU.Status>>7)&0x1 == 1, (nes.PPU.Status>>6)&0x1 == 1, (nes.PPU.Status>>5)&0x1 == 1))
 	plz.Just(fmt.Fprintf(t, "\t\t\t\tX-Scroll %02X \tY-Scroll: %02X \n",
-		nes.PPU.ScrollX, nes.PPU.ScrollY))
+		nes.PPU.TemporaryVRAMAddress.CoarseXScroll(), nes.PPU.TemporaryVRAMAddress.CoarseYScroll()))
 
 }
 
