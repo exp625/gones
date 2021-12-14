@@ -31,7 +31,7 @@ func (nes *Debugger) LogCpu() string {
 	instructionMnemonic := fmt.Sprintf("%s%s", legalPrefix, instruction.ExecuteMnemonic)
 	addressMnemonic := nes.addressMnemonic()
 	cpuRegisters := fmt.Sprintf("A:%02X X:%02X Y:%02X P:%02X SP:%02X", nes.CPU.A, nes.CPU.X, nes.CPU.Y, nes.CPU.P, nes.CPU.S)
-	ppuRegisters := fmt.Sprintf("PPU:%3d,%3d CYC:%d", nes.PPU.ScanLine, nes.PPU.Position, nes.CPU.ClockCount)
+	ppuRegisters := fmt.Sprintf("PPU:%3d,%3d CYC:%d", nes.PPU.ScanLine, nes.PPU.Dot, nes.CPU.ClockCount)
 
 	logLine := fmt.Sprintf("%s  %s %s %s %s %s",
 		programCounter,

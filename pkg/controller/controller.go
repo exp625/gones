@@ -1,5 +1,7 @@
 package controller
 
+import "github.com/exp625/gones/internal/shift_register"
+
 type Button uint8
 
 const (
@@ -14,10 +16,9 @@ const (
 )
 
 type Controller struct {
-	Buttons         uint8
-	register        uint8
-	serialMode      bool
-	serialReadCount uint8
+	Buttons    uint8
+	register   shift_register.ShiftRegister8
+	serialMode bool
 }
 
 func New() *Controller {
@@ -26,19 +27,16 @@ func New() *Controller {
 
 func (c *Controller) SetMode(mode bool) {
 	if c.serialMode == true && mode == false {
-		c.register = c.Buttons
-		c.serialReadCount = 0
+		c.register.Set(c.Buttons)
 	}
 	c.serialMode = mode
 }
 
 func (c *Controller) SerialRead() uint8 {
-	bit := uint8(1)
-	if c.serialMode && c.serialReadCount < 8 {
-		bit = (c.register >> c.serialReadCount) & 0b1
-		c.serialReadCount++
+	if c.serialMode {
+		return c.register.ShiftRight(1)
 	}
-	return bit
+	return 1
 }
 func (c *Controller) Press(b Button) {
 	c.Buttons = c.Buttons | uint8(b)
