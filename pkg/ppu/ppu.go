@@ -1,7 +1,9 @@
 package ppu
 
 import (
+	"github.com/exp625/gones/internal/shift_register"
 	"github.com/exp625/gones/pkg/bus"
+	"image"
 	"image/color"
 )
 
@@ -30,6 +32,23 @@ type PPU struct {
 	// Current write mode. 0 for first, 1 for second.
 	WriteToggle uint8
 
+	// Shift registers
+	TileOneHigh       shift_register.ShiftRegister8
+	TileOneLow        shift_register.ShiftRegister8
+	TileTwoHigh       shift_register.ShiftRegister8
+	TileTwoLow        shift_register.ShiftRegister8
+	TileAttributeHigh shift_register.ShiftRegister8
+	TileAttributeLow  shift_register.ShiftRegister8
+
+	// Render Latches
+	NameTableLatch  uint8
+	AttributeLatch  uint8
+	BGTileLowLatch  uint8
+	BGTileHighLatch uint8
+
+	// Frame buffer
+	ActiveFrame *image.RGBA
+	RenderFrame *image.RGBA
 	// Latch
 	GenLatch  uint8
 	ReadLatch uint8
@@ -43,14 +62,67 @@ type PPU struct {
 func New() *PPU {
 	p := &PPU{}
 	p.GeneratePalette()
+
+	upLeft := image.Point{X: 0, Y: 0}
+	lowRight := image.Point{X: 256, Y: 240}
+	p.ActiveFrame = image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
+	p.RenderFrame = image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
+	p.ActiveFrame.Set(10, 10, color.White)
+
 	return p
+}
+
+func (ppu *PPU) SwapFrameBuffer() {
+	ppu.ActiveFrame, ppu.RenderFrame = ppu.RenderFrame, ppu.ActiveFrame
 }
 
 func (ppu *PPU) Clock() {
 
-	// Rendering
+	if ppu.IsVisibleLine() || ppu.IsPrerenderLine() {
+		switch ppu.Dot % 8 {
+		case 0:
+		// Idle
+		case 1:
+			// Fill shift registers
+			ppu.TileAttributeHigh.Set(ppu.AttributeLatch)
+			ppu.TileAttributeLow.Set(ppu.AttributeLatch)
+			ppu.TileOneLow.Set(ppu.TileTwoLow.Get())
+			ppu.TileOneHigh.Set(ppu.TileTwoHigh.Get())
+			ppu.TileTwoLow.Set(ppu.BGTileLowLatch)
+			ppu.TileTwoHigh.Set(ppu.BGTileHighLatch)
 
-	if ppu.IsVisibleFrameOrPreRender() {
+			// Fill nametable latch
+			ppu.NameTableLatch = ppu.Bus.PPURead(0x2000 | (uint16(ppu.CurrentVRAMAddress) & 0x0FFF))
+		case 3:
+			// Fill attribute latch
+			ppu.AttributeLatch = ppu.Bus.PPURead(
+				uint16(ppu.CurrentVRAMAddress.NameTable())<<10 | 0b1111<<6 |
+					uint16(ppu.CurrentVRAMAddress.CoarseYScroll())&0b11100<<1 |
+					uint16(ppu.CurrentVRAMAddress.CoarseXScroll()&0b11100>>2))
+		case 5:
+			// Fill BG low tile
+			ppu.BGTileLowLatch = ppu.Bus.PPURead(uint16(ppu.CurrentVRAMAddress.NameTable())<<10 | uint16(ppu.NameTableLatch)<<4 | 0<<3 | uint16(ppu.CurrentVRAMAddress.FineYScroll()))
+		case 7:
+			// Fill BG high tile
+			ppu.BGTileHighLatch = ppu.Bus.PPURead(uint16(ppu.CurrentVRAMAddress.NameTable())<<10 | uint16(ppu.NameTableLatch)<<4 | 1<<3 | uint16(ppu.CurrentVRAMAddress.FineYScroll()))
+
+		}
+	}
+
+	if ppu.Dot <= 256 && ppu.IsVisibleLine() {
+		// nes.PPURead(0x3F00+attribute*4+colorIndex)
+		palletIndex :=
+		(
+			pixelColor := ppu.Palette[palletIndex][ppu.Mask.Emphasize()]
+
+		// Mux
+		ppu.TileAttributeHigh.ShiftLeft(ppu.TileOneHigh.ShiftLeft(0))
+		ppu.TileAttributeLow.ShiftLeft(ppu.TileOneLow.ShiftLeft(0))
+
+		ppu.RenderFrame.Set(int(ppu.Dot), int(ppu.ScanLine), pixelColor)
+	}
+
+	if ppu.IsVisibleLine() || ppu.IsPrerenderLine() {
 		// Increment vertical position on dot 256 of each scanline
 		if ppu.Dot == 256 && ppu.Mask.ShowBackground() {
 			ppu.IncrementVerticalPosition()
@@ -106,12 +178,17 @@ func (ppu *PPU) Clock() {
 			if ppu.FrameCount%2 != 0 {
 				ppu.Dot++
 			}
+			ppu.SwapFrameBuffer()
 		}
 	}
 }
 
-func (ppu *PPU) IsVisibleFrameOrPreRender() bool {
-	return ppu.ScanLine == 261 || ppu.ScanLine <= 239
+func (ppu *PPU) IsVisibleLine() bool {
+	return ppu.ScanLine == 261
+}
+
+func (ppu *PPU) IsPrerenderLine() bool {
+	return ppu.ScanLine <= 239
 }
 
 func (ppu *PPU) IncrementVerticalPosition() {

@@ -27,7 +27,7 @@ func (e *Emulator) DrawOverlayGame(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(0, 20)
 	op.GeoM.Scale(4, 4)
-	screen.DrawImage(e.Debugger.DrawGameDebug(), op)
+	screen.DrawImage(ebiten.NewImageFromImage(e.PPU.ActiveFrame), op)
 }
 
 func (e *Emulator) DrawOverlayCPU(screen *ebiten.Image) {
