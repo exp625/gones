@@ -50,29 +50,31 @@ func (ppu *PPU) Clock() {
 
 	// Rendering
 
-	// Between dot 328 of a scanline, and 256 of the next scanline increment horizontal position
-	if (256 >= ppu.Dot || ppu.Dot >= 328) && ppu.Mask.ShowBackground() {
-		ppu.IncrementHorizontalPosition()
-	}
+	if ppu.IsVisibleFrameOrPreRender() {
+		// Increment vertical position on dot 256 of each scanline
+		if ppu.Dot == 256 && ppu.Mask.ShowBackground() {
+			ppu.IncrementVerticalPosition()
+		}
 
-	// Increment vertical position on dot 256 of each scanline
-	if ppu.Dot == 256 && ppu.Mask.ShowBackground() {
-		ppu.IncrementVerticalPosition()
-	}
+		// Copy horizontal position on dot 257 of each scanline
+		if ppu.Dot == 257 && ppu.Mask.ShowBackground() {
+			ppu.CurrentVRAMAddress.SetCoarseXScroll(ppu.TemporaryVRAMAddress.CoarseXScroll())
+			ppu.CurrentVRAMAddress.SetNameTable(ppu.TemporaryVRAMAddress.NameTable()&0b1 | ppu.CurrentVRAMAddress.NameTable()&0b10)
+			ppu.Control.SetNameTableAddress(ppu.CurrentVRAMAddress.NameTable())
+		}
 
-	// Copy horizontal position on dot 257 of each scanline
-	if ppu.Dot == 257 && ppu.Mask.ShowBackground() {
-		ppu.CurrentVRAMAddress.SetCoarseXScroll(ppu.TemporaryVRAMAddress.CoarseXScroll())
-		ppu.CurrentVRAMAddress.SetNameTable(ppu.TemporaryVRAMAddress.NameTable()&0b1 | ppu.CurrentVRAMAddress.NameTable()&0b10)
-		ppu.Control.SetNameTableAddress(ppu.CurrentVRAMAddress.NameTable())
-	}
+		// During dots 280 to 304 of the pre-render scanline (end of vblank), copy horizontal position
+		if ppu.ScanLine == 261 && 280 <= ppu.Dot && ppu.Dot <= 304 && ppu.Mask.ShowBackground() {
+			ppu.CurrentVRAMAddress.SetCoarseXScroll(ppu.TemporaryVRAMAddress.CoarseXScroll())
+			ppu.CurrentVRAMAddress.SetNameTable(ppu.TemporaryVRAMAddress.NameTable()&0b10 | ppu.CurrentVRAMAddress.NameTable()&0b1)
+			ppu.Control.SetNameTableAddress(ppu.CurrentVRAMAddress.NameTable())
+			ppu.CurrentVRAMAddress.SetFineYScroll(ppu.TemporaryVRAMAddress.FineYScroll())
+		}
 
-	// During dots 280 to 304 of the pre-render scanline (end of vblank), copy horizontal position
-	if 280 <= ppu.Dot && ppu.Dot <= 304 && ppu.Mask.ShowBackground() {
-		ppu.CurrentVRAMAddress.SetCoarseXScroll(ppu.TemporaryVRAMAddress.CoarseXScroll())
-		ppu.CurrentVRAMAddress.SetNameTable(ppu.TemporaryVRAMAddress.NameTable()&0b10 | ppu.CurrentVRAMAddress.NameTable()&0b1)
-		ppu.Control.SetNameTableAddress(ppu.CurrentVRAMAddress.NameTable())
-		ppu.CurrentVRAMAddress.SetFineYScroll(ppu.TemporaryVRAMAddress.FineYScroll())
+		// Between dot 328 of a scanline, and 256 of the next scanline increment horizontal position
+		if ppu.Mask.ShowBackground() && ppu.Dot%8 == 0 {
+			ppu.IncrementHorizontalPosition()
+		}
 	}
 
 	// Set VBL Flag and trigger NMI on line 241 dot 1
@@ -108,6 +110,10 @@ func (ppu *PPU) Clock() {
 	}
 }
 
+func (ppu *PPU) IsVisibleFrameOrPreRender() bool {
+	return ppu.ScanLine == 261 || ppu.ScanLine <= 239
+}
+
 func (ppu *PPU) IncrementVerticalPosition() {
 	if ppu.CurrentVRAMAddress.FineYScroll() < 7 {
 		ppu.CurrentVRAMAddress.SetFineYScroll(ppu.CurrentVRAMAddress.FineYScroll() + 1)
@@ -129,11 +135,12 @@ func (ppu *PPU) IncrementVerticalPosition() {
 }
 
 func (ppu *PPU) IncrementHorizontalPosition() {
-	if ppu.CurrentVRAMAddress.CoarseXScroll() == 0b11111 {
+	if ppu.CurrentVRAMAddress.CoarseXScroll() == 31 {
 		ppu.CurrentVRAMAddress.SetCoarseXScroll(0)
 		// Switch horizontal nametable address bit
 		ppu.CurrentVRAMAddress.SetNameTable(ppu.CurrentVRAMAddress.NameTable() ^ 0b1)
 		ppu.Control.SetNameTableAddress(ppu.CurrentVRAMAddress.NameTable())
+		// kurz reboot
 	} else {
 		ppu.CurrentVRAMAddress.SetCoarseXScroll(ppu.CurrentVRAMAddress.CoarseXScroll() + 1)
 	}

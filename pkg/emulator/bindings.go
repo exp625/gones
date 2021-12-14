@@ -35,7 +35,7 @@ func DefaultBindings(e *Emulator) []*BindingGroup {
 			},
 			{
 				Help:       "Choose a NEW ROM to load into the emulator",
-				DefaultKey: ebiten.KeyEscape,
+				DefaultKey: ebiten.KeyHome,
 				OnPressed:  e.ShowScreenPressedFunc(OverlayROMChooser),
 			},
 			{
