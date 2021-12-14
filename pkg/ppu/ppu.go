@@ -47,6 +47,34 @@ func New() *PPU {
 }
 
 func (ppu *PPU) Clock() {
+
+	// Rendering
+
+	// Between dot 328 of a scanline, and 256 of the next scanline increment horizontal position
+	if (256 >= ppu.Dot || ppu.Dot >= 328) && ppu.Mask.ShowBackground() {
+		ppu.IncrementHorizontalPosition()
+	}
+
+	// Increment vertical position on dot 256 of each scanline
+	if ppu.Dot == 256 && ppu.Mask.ShowBackground() {
+		ppu.IncrementVerticalPosition()
+	}
+
+	// Copy horizontal position on dot 257 of each scanline
+	if ppu.Dot == 257 && ppu.Mask.ShowBackground() {
+		ppu.CurrentVRAMAddress.SetCoarseXScroll(ppu.TemporaryVRAMAddress.CoarseXScroll())
+		ppu.CurrentVRAMAddress.SetNameTable(ppu.TemporaryVRAMAddress.NameTable()&0b1 | ppu.CurrentVRAMAddress.NameTable()&0b10)
+		ppu.Control.SetNameTableAddress(ppu.CurrentVRAMAddress.NameTable())
+	}
+
+	// During dots 280 to 304 of the pre-render scanline (end of vblank), copy horizontal position
+	if 280 <= ppu.Dot && ppu.Dot <= 304 && ppu.Mask.ShowBackground() {
+		ppu.CurrentVRAMAddress.SetCoarseXScroll(ppu.TemporaryVRAMAddress.CoarseXScroll())
+		ppu.CurrentVRAMAddress.SetNameTable(ppu.TemporaryVRAMAddress.NameTable()&0b10 | ppu.CurrentVRAMAddress.NameTable()&0b1)
+		ppu.Control.SetNameTableAddress(ppu.CurrentVRAMAddress.NameTable())
+		ppu.CurrentVRAMAddress.SetFineYScroll(ppu.TemporaryVRAMAddress.FineYScroll())
+	}
+
 	// Set VBL Flag and trigger NMI on line 241 dot 1
 	if ppu.ScanLine == 241 && ppu.Dot == 1 {
 		ppu.Status = ppu.Status | 0b10000000
@@ -55,7 +83,12 @@ func (ppu *PPU) Clock() {
 		}
 	}
 
-	// Rendering
+	// Clear Flags on line 261 dot 1
+	if ppu.ScanLine == 261 && ppu.Dot == 1 {
+		ppu.Status.SetVerticalBlank(false)
+		ppu.Status.SetSpriteZeroHit(false)
+		ppu.Status.SetSpriteOverflow(false)
+	}
 
 	// Advance counters
 	if ppu.Dot < 340 {
@@ -208,13 +241,6 @@ func (ppu *PPU) CPUWrite(location uint16, data uint8) {
 			ppu.WriteToggle = 0
 		}
 	case 6:
-		// ABCDEFGH
-		// IJKLMNOP
-		// 00CDEFGH IJKLMNOP
-		// 0yyyNNYY YYYXXXXX
-
-		// 00CDEFGH YYYXXXXX
-		// 00CDEFGH IJKLMNOP
 		if ppu.WriteToggle == 0 {
 			ppu.TemporaryVRAMAddress.SetFineYScroll((data >> 4) & 0b11)
 			ppu.TemporaryVRAMAddress.SetNameTable((data >> 2) & 0b11)
@@ -237,10 +263,6 @@ func (ppu *PPU) CPUWrite(location uint16, data uint8) {
 			} else {
 				ppu.CurrentVRAMAddress++
 			}
-		if ppu.Control.VRAMIncrement() {
-			ppu.CurrentVRAMAddress += 32
-		} else {
-			ppu.CurrentVRAMAddress++
 		}
 	}
 }
