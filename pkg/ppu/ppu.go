@@ -28,6 +28,7 @@ type PPU struct {
 
 	// Latch
 	GenLatch       uint8
+	ReadLatch      uint8
 	AddrLatch      uint8
 	addrLatchWrite bool
 
@@ -126,14 +127,17 @@ func (ppu *PPU) CPURead(location uint16) (bool, uint8) {
 		case 6:
 			return true, ppu.GenLatch
 		case 7:
-			ret := ppu.Bus.PPURead(uint16(ppu.Address))
-			if ppu.Address >= 0x3F00 {
-				ppu.GenLatch = ppu.Bus.PPUReadRam(uint16(ppu.Address))
-			} else {
-				// VRAM reads should be delayed in a buffer
-				temp := ppu.GenLatch
+			var ret uint8
+			if uint16(ppu.Address) >= 0x3F00 {
+				// Pallet read
+				ret = ppu.Bus.PPURead(uint16(ppu.Address))
+				ppu.ReadLatch = ppu.Bus.PPUReadRam(uint16(ppu.Address))
 				ppu.GenLatch = ret
-				ret = temp
+			} else {
+				// VRAM read
+				ret = ppu.ReadLatch
+				ppu.ReadLatch = ppu.Bus.PPURead(uint16(ppu.Address))
+				ppu.GenLatch = ret
 			}
 			if (ppu.Control >> 2 & 0x1) == 1 {
 				ppu.Address += 32

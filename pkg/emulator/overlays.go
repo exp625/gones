@@ -112,8 +112,7 @@ func (e *Emulator) DrawOverlayControllers(screen *ebiten.Image) {
 
 func (e *Emulator) DrawOverlaySprites(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(0, 20)
-	op.GeoM.Scale(4, 4)
+	op.GeoM.Translate(0, 40)
 	screen.DrawImage(e.Debugger.DrawOAMSprites(), op)
 }
 

@@ -6,6 +6,7 @@ import (
 	"github.com/exp625/gones/internal/textutil"
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/colornames"
+	"golang.org/x/image/font/basicfont"
 	"image"
 	"image/color"
 )
@@ -315,55 +316,67 @@ func (nes *Debugger) DrawNametableInColor(table int) *ebiten.Image {
 }
 
 func (nes *Debugger) DrawOAMSprites() *ebiten.Image {
-	colorEmphasis := nes.PPU.Mask >> 5
+	colorEmphasis := nes.PPU.Mask.Emphasize()
 	width := 32 * 8  // 256
 	height := 30 * 8 // 240
 
 	upLeft := image.Point{X: 0, Y: 0}
 	lowRight := image.Point{X: width, Y: height}
 	img := image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
-
 	spriteTable := uint16(0x0000)
 	if nes.PPU.Control>>3&0x1 == 1 {
 		spriteTable = 0x1000
 	}
 
-	for sprite := 0; sprite < 64; sprite++ {
-		spriteYPos := nes.PPU.OAM[sprite]
-		spriteIndex := uint16(nes.PPU.OAM[sprite+1])
-		spriteAttributes := uint16(nes.PPU.OAM[sprite+2])
-		spriteXPos := nes.PPU.OAM[sprite+3]
+	spriteText := textutil.New(basicfont.Face7x13, width*4, height*4, 0, 0, 1)
 
-		paletteIndex := spriteAttributes&0b11 + 4
-		flipHorizontal := spriteAttributes>>6&0b1 == 1
-		flipVertical := spriteAttributes>>7&0b1 == 1
+	for col := uint8(0); col < 4; col++ {
+		for row := uint8(0); row < 16; row++ {
+			spriteYPos := nes.PPU.OAM[col*16+row]
+			spriteIndex := uint16(nes.PPU.OAM[col*16+row+1])
+			spriteAttributes := uint16(nes.PPU.OAM[col*16+row+2])
+			spriteXPos := nes.PPU.OAM[col*16+row+3]
+			paletteIndex := spriteAttributes&0b11 + 4
+			flipHorizontal := spriteAttributes>>6&0b1 == 1
+			flipVertical := spriteAttributes>>7&0b1 == 1
 
-		// Get tile byte
-		for tileY := uint16(0); tileY < 8; tileY++ {
-			tileYFlipped := tileY
-			if flipVertical {
-				tileYFlipped = 7 - tileYFlipped
-			}
-			addressPlane0 := spriteTable<<12 | spriteIndex<<4 | 0<<3 | tileYFlipped
-			addressPlane1 := spriteTable<<12 | spriteIndex<<4 | 1<<3 | tileYFlipped
-			plane0 := nes.PPURead(addressPlane0)
-			plane1 := nes.PPURead(addressPlane1)
+			spriteText.SetDot(int(30+col*64)*4, int(row*12)*4)
+			spriteText.SetPosition(int(30+col*64)*4, int(row*12)*4)
+			plz.Just(fmt.Fprintf(spriteText, "Y-Pos: %02X\tPrio: %d\n", spriteYPos, spriteAttributes>>5&0x1))
+			plz.Just(fmt.Fprintf(spriteText, "X-Pos: %02X\t", spriteXPos))
 
-			for tileX := uint16(0); tileX < 8; tileX++ {
-				tileXFlipped := tileX
-				if flipHorizontal {
-					tileXFlipped = 7 - tileXFlipped
+			// Get tile byte
+			for tileY := uint16(0); tileY < 8; tileY++ {
+				tileYFlipped := tileY
+				if flipVertical {
+					tileYFlipped = 7 - tileYFlipped
 				}
-				colorIndex := uint16(((plane1 >> (7 - tileXFlipped)) & 0x01 << 1) | (plane0>>(7-tileXFlipped))&0x01)
-				c := nes.PPU.Palette[nes.PPURead(0x3F00+(paletteIndex*4+colorIndex))][colorEmphasis]
+				addressPlane0 := spriteTable<<12 | spriteIndex<<4 | 0<<3 | tileYFlipped
+				addressPlane1 := spriteTable<<12 | spriteIndex<<4 | 1<<3 | tileYFlipped
+				plane0 := nes.PPURead(addressPlane0)
+				plane1 := nes.PPURead(addressPlane1)
 
-				imgX := int(spriteXPos + uint8(tileX))
-				imgY := int(spriteYPos + uint8(tileY))
-				img.Set(imgX, imgY, c)
+				for tileX := uint16(0); tileX < 8; tileX++ {
+					tileXFlipped := tileX
+					if flipHorizontal {
+						tileXFlipped = 7 - tileXFlipped
+					}
+					colorIndex := uint16(((plane1 >> (7 - tileXFlipped)) & 0x01 << 1) | (plane0>>(7-tileXFlipped))&0x01)
+					c := nes.PPU.Palette[nes.PPURead(0x3F00+(paletteIndex*4+colorIndex))][colorEmphasis]
+
+					imgX := int(20 + col*64 + uint8(tileX))
+					imgY := int(row*12 + uint8(tileY))
+					img.Set(imgX, imgY, c)
+				}
 			}
 		}
 	}
-	return ebiten.NewImageFromImage(img)
+	ret := ebiten.NewImage(width*4, height*4)
+	op := ebiten.DrawImageOptions{}
+	op.GeoM.Scale(4, 4)
+	ret.DrawImage(ebiten.NewImageFromImage(img), &op)
+	spriteText.Draw(ret)
+	return ret
 }
 
 func (nes *Debugger) DrawGameDebug() *ebiten.Image {
@@ -440,11 +453,23 @@ func (nes *Debugger) DrawGameDebug() *ebiten.Image {
 			}
 		}
 	}
+
 	for sprite := 0; sprite < 64; sprite++ {
 		spriteYPos := nes.PPU.OAM[sprite]
 		spriteIndex := uint16(nes.PPU.OAM[sprite+1])
 		spriteAttributes := uint16(nes.PPU.OAM[sprite+2])
 		spriteXPos := nes.PPU.OAM[sprite+3]
+		if !nes.PPU.Mask.ShowSprites() {
+			break
+		}
+
+		if nes.PPU.Mask.SpritesLeftmost() && spriteXPos <= 7 {
+			continue
+		}
+
+		if spriteYPos >= 0xEF {
+			continue
+		}
 
 		paletteIndex := spriteAttributes&0b11 + 4
 		flipHorizontal := spriteAttributes>>6&0b1 == 1

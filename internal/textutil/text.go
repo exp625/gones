@@ -19,8 +19,8 @@ func Update() {
 }
 
 type Text struct {
-	Orig       fixed.Point26_6
-	Dot        fixed.Point26_6
+	orig       fixed.Point26_6
+	dot        fixed.Point26_6
 	LineHeight fixed.Int26_6
 	TabWidth   fixed.Int26_6
 	font       font.Face
@@ -42,7 +42,7 @@ func New(font font.Face, w int, h int, x int, y int, scale float64) *Text {
 	}
 	tab, _ := font.GlyphAdvance(' ')
 	txt.TabWidth = tab * 4
-	txt.Orig = fixed.Point26_6{X: fixed.I(int(float64(x) / txt.scale)), Y: fixed.I(int(float64(y)/txt.scale)) + txt.font.Metrics().CapHeight}
+	txt.orig = fixed.Point26_6{X: fixed.I(int(float64(x) / txt.scale)), Y: fixed.I(int(float64(y)/txt.scale)) + txt.font.Metrics().CapHeight}
 	cr, cg, cb, ca := color.White.RGBA()
 	txt.op.ColorM.Scale(float64(cr)/float64(ca), float64(cg)/float64(ca), float64(cb)/float64(ca), float64(ca)/0xffff)
 	txt.op.GeoM.Scale(scale, scale)
@@ -56,13 +56,17 @@ func (txt *Text) Color(color color.Color) {
 	txt.op.ColorM.Scale(float64(cr)/float64(ca), float64(cg)/float64(ca), float64(cb)/float64(ca), float64(ca)/0xffff)
 }
 
-func (txt *Text) Position(x int, y int) {
-	txt.Orig = fixed.Point26_6{X: fixed.I(int(float64(x) / txt.scale)), Y: fixed.I(int(float64(y)/txt.scale)) + txt.font.Metrics().CapHeight}
+func (txt *Text) SetPosition(x int, y int) {
+	txt.orig = fixed.Point26_6{X: fixed.I(int(float64(x) / txt.scale)), Y: fixed.I(int(float64(y)/txt.scale)) + txt.font.Metrics().CapHeight}
+}
+
+func (txt *Text) SetDot(x int, y int) {
+	txt.dot = fixed.Point26_6{X: fixed.I(int(float64(x) / txt.scale)), Y: fixed.I(int(float64(y)/txt.scale)) + txt.font.Metrics().CapHeight}
 }
 
 func (txt *Text) Clear() {
 	txt.prevRune = -1
-	txt.Dot = txt.Orig
+	txt.dot = txt.orig
 	txt.image.Clear()
 }
 
@@ -97,26 +101,26 @@ func (txt *Text) drawBuffer() {
 		r, size := utf8.DecodeRune(txt.buffer)
 		txt.buffer = txt.buffer[size:]
 		if txt.prevRune >= 0 {
-			txt.Dot.X += txt.font.Kern(txt.prevRune, r)
+			txt.dot.X += txt.font.Kern(txt.prevRune, r)
 		}
 		if r == '\n' {
-			txt.Dot.X = txt.Orig.X
-			txt.Dot.Y += txt.LineHeight
+			txt.dot.X = txt.orig.X
+			txt.dot.Y += txt.LineHeight
 			txt.prevRune = rune(-1)
 			continue
 		}
 		if r == '\t' {
-			rem := math.Mod(float64(txt.Dot.X-txt.Orig.X), float64(txt.TabWidth))
+			rem := math.Mod(float64(txt.dot.X-txt.orig.X), float64(txt.TabWidth))
 			rem = math.Mod(rem, rem+float64(txt.TabWidth))
 			if rem == 0 {
 				rem = float64(txt.TabWidth)
 			}
-			txt.Dot.X += fixed.Int26_6(rem)
+			txt.dot.X += fixed.Int26_6(rem)
 			continue
 		}
 		img := getGlyphImage(txt.font, r)
-		drawGlyph(txt.image, txt.font, r, img, txt.Dot.X, txt.Dot.Y, txt.op)
-		txt.Dot.X += glyphAdvance(txt.font, r)
+		drawGlyph(txt.image, txt.font, r, img, txt.dot.X, txt.dot.Y, txt.op)
+		txt.dot.X += glyphAdvance(txt.font, r)
 		txt.prevRune = r
 	}
 

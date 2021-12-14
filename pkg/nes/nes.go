@@ -46,6 +46,7 @@ func New(clockTime float64, audioSampleTime float64) *NES {
 	// Wire everything up
 	nes.CPU.Bus = nes
 	nes.PPU.Bus = nes
+	nes.APU.Bus = nes
 	return nes
 }
 
