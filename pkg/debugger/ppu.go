@@ -5,6 +5,7 @@ import (
 	"github.com/exp625/gones/internal/plz"
 	"github.com/exp625/gones/internal/textutil"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"golang.org/x/image/colornames"
 	"golang.org/x/image/font/basicfont"
 	"image"
@@ -113,7 +114,7 @@ func (nes *Debugger) DrawPPUInfo(t *textutil.Text) {
 	plz.Just(fmt.Fprintf(t, "PPUSTATUS: %02X \tVBLANK: %t \tSprite 0 Hit: %t \t Sprite Overflow: %t \n",
 		nes.PPU.Status, (nes.PPU.Status>>7)&0x1 == 1, (nes.PPU.Status>>6)&0x1 == 1, (nes.PPU.Status>>5)&0x1 == 1))
 	plz.Just(fmt.Fprintf(t, "\t\t\t\tX-Scroll %02X \tY-Scroll: %02X \n",
-		nes.PPU.TemporaryVRAMAddress.CoarseXScroll(), nes.PPU.TemporaryVRAMAddress.CoarseYScroll()))
+		nes.PPU.TempVRAM.CoarseXScroll(), nes.PPU.TempVRAM.CoarseYScroll()))
 
 }
 
@@ -313,6 +314,21 @@ func (nes *Debugger) DrawNametableInColor(table int) *ebiten.Image {
 	}
 
 	return ebiten.NewImageFromImage(img)
+}
+
+func (nes *Debugger) DrawScrollWindow() *ebiten.Image {
+	width := 32 * 8 * 4  // 256 * 4
+	height := 30 * 8 * 4 // 240 * 4
+
+	upLeft := image.Point{X: 0, Y: 0}
+	lowRight := image.Point{X: width, Y: height}
+	img := image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
+	ret := ebiten.NewImageFromImage(img)
+	ebitenutil.DrawLine(ret, float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()), float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()), color.RGBA{255, 0, 0, 255})
+	ebitenutil.DrawLine(ret, float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()), float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()+240), color.RGBA{255, 0, 0, 255})
+	ebitenutil.DrawLine(ret, float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()+240), float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()+240), color.RGBA{255, 0, 0, 255})
+	ebitenutil.DrawLine(ret, float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()), float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()+240), color.RGBA{255, 0, 0, 255})
+	return ret
 }
 
 func (nes *Debugger) DrawOAMSprites() *ebiten.Image {
