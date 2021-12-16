@@ -33,12 +33,15 @@ type PPU struct {
 	AddressLatch uint8
 
 	// Shift registers
-	TileAHigh     shift_register.ShiftRegister8
-	TileALow      shift_register.ShiftRegister8
-	TileBHigh     shift_register.ShiftRegister8
-	TileBLow      shift_register.ShiftRegister8
-	AttributeHigh shift_register.ShiftRegister8
-	AttributeLow  shift_register.ShiftRegister8
+	TileAHigh      shift_register.ShiftRegister8
+	TileALow       shift_register.ShiftRegister8
+	TileBHigh      shift_register.ShiftRegister8
+	TileBLow       shift_register.ShiftRegister8
+	AttributeAHigh shift_register.ShiftRegister8
+	AttributeALow  shift_register.ShiftRegister8
+	// These are in reality only 1 bit latches
+	AttributeBHigh shift_register.ShiftRegister8
+	AttributeBLow  shift_register.ShiftRegister8
 
 	// Render Latches
 	NameTableLatch uint8
@@ -121,6 +124,8 @@ func (ppu *PPU) Clock() {
 				// Fill shift registers
 				ppu.TileBLow.Set(ppu.BGTileLowLatch)
 				ppu.TileBHigh.Set(ppu.BGTileHighLatch)
+				ppu.AttributeBLow.Set((ppu.AttributeLatch & 0b1) * 0xFF)
+				ppu.AttributeBHigh.Set((ppu.AttributeLatch & 0b10 >> 1) * 0xFF)
 			}
 
 			// Memory access
@@ -130,7 +135,8 @@ func (ppu *PPU) Clock() {
 				ppu.NameTableLatch = ppu.Bus.PPURead(0x2000 | (uint16(ppu.CurrVRAM) & 0x0FFF))
 			case 3:
 				// Fill attribute latch
-				attributeByte := ppu.Bus.PPURead(0x23C0 | uint16(ppu.CurrVRAM)&0x0C00 | (uint16(ppu.CurrVRAM) >> 4 & 0x38) | (uint16(ppu.CurrVRAM) >> 2 & 0x07))
+				attributeByte := ppu.Bus.PPURead(0x2000 | 0x03C0 | uint16(ppu.CurrVRAM.NameTable())<<10 |
+					(uint16(ppu.CurrVRAM.CoarseYScroll()>>2) << 3) | (uint16(ppu.CurrVRAM.CoarseXScroll()) >> 2))
 				shift := 0
 				if ppu.CurrVRAM.CoarseYScroll()&0b10 == 0b10 {
 					shift += 4
@@ -229,8 +235,8 @@ func (ppu *PPU) Reset() {
 	ppu.TileALow.Set(0)
 	ppu.TileBHigh.Set(0)
 	ppu.TileBLow.Set(0)
-	ppu.AttributeHigh.Set(0)
-	ppu.AttributeLow.Set(0)
+	ppu.AttributeAHigh.Set(0)
+	ppu.AttributeALow.Set(0)
 
 	// Reset latches
 	ppu.NameTableLatch = 0

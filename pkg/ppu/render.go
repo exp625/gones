@@ -16,15 +16,15 @@ func (ppu *PPU) ShiftRegisters() {
 	_ = ppu.TileALow.ShiftLeft(ppu.TileBLow.ShiftLeft(0))
 
 	// Shift the 8 bit attribute register
-	_ = ppu.AttributeHigh.ShiftLeft(ppu.AttributeLatch & 0b10 >> 1)
-	_ = ppu.AttributeLow.ShiftLeft(ppu.AttributeLatch & 0b01)
+	_ = ppu.AttributeAHigh.ShiftLeft(ppu.AttributeBHigh.ShiftRight(0))
+	_ = ppu.AttributeALow.ShiftLeft(ppu.AttributeBLow.ShiftRight(0))
 }
 
 // Render will generate exactly one pixel on the current frame position
 func (ppu *PPU) Render() {
 
 	colorIndex := ppu.TileAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.TileALow.GetBit(7-ppu.FineXScroll)
-	attributeIndex := ppu.AttributeHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.AttributeLow.GetBit(7-ppu.FineXScroll)
+	attributeIndex := ppu.AttributeAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.AttributeALow.GetBit(7-ppu.FineXScroll)
 	backgroundPixelColor := ppu.Palette[ppu.PaletteRAM[attributeIndex*4+colorIndex]][ppu.Mask.Emphasize()]
 	var pixelColor color.Color
 	if ppu.Mask.ShowBackground() {
