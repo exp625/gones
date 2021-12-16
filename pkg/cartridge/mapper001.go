@@ -120,6 +120,10 @@ func (m *Mapper001) PPUMapRead(location uint16) uint16 {
 		location = 0x2400 + location%0x400
 	}
 	if m.control&0b11 == 2 {
+		// 1: vertical mirroring
+		location = 0x2000 + location%0x800
+	}
+	if m.control&0b11 == 3 {
 		// 1: horizontal mirroring
 		if location-0x2000 < 0x800 {
 			location = 0x2000 + location%0x400
@@ -127,10 +131,6 @@ func (m *Mapper001) PPUMapRead(location uint16) uint16 {
 		} else {
 			location = 0x2400 + location%0x400
 		}
-	}
-	if m.control&0b11 == 3 {
-		// 1: vertical mirroring
-		location = 0x2000 + location%0x800
 	}
 	return location
 }
@@ -162,18 +162,18 @@ func (m *Mapper001) PPUMapWrite(location uint16) uint16 {
 		// one-screen mirroring, upper bank
 		location = 0x2400 + location%0x400
 	}
+	if m.control&0b11 == 2 {
+		// 1: vertical mirroring
+		location = 0x2000 + location%0x800
+	}
 	if m.control&0b11 == 3 {
-		/// 1: horizontal mirroring
+		// 1: horizontal mirroring
 		if location-0x2000 < 0x800 {
 			location = 0x2000 + location%0x400
 
 		} else {
 			location = 0x2400 + location%0x400
 		}
-	}
-	if m.control&0b11 == 4 {
-		// 1: vertical mirroring
-		location = 0x2000 + location%0x800
 	}
 	return location
 }
@@ -219,9 +219,6 @@ func (m *Mapper001) DebugDisplay(text *textutil.Text) {
 	plz.Just(fmt.Fprintf(text, "CHR BANK 0  : %d \n", m.chrBank0))
 	plz.Just(fmt.Fprintf(text, "CHR BANK 1  : %d \n", m.chrBank1))
 	plz.Just(fmt.Fprintf(text, "Control     : %b \n", m.control))
-	str := "Horizontal "
-	if m.Mirroring() {
-		str = "Vertical "
-	}
-	plz.Just(fmt.Fprint(text, "Mirror Mode : ", str, "\n"))
+	str := []string{"On-Screen lower", "On-Screen upper", "Vertical", "Horizontal"}
+	plz.Just(fmt.Fprint(text, "Mirror Mode : ", str[m.control&0b11], "\n"))
 }
