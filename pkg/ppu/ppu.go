@@ -94,20 +94,116 @@ func (ppu *PPU) AddBus(bus bus.Bus) {
 // Clock clocks the PPU for one tick
 func (ppu *PPU) Clock() {
 
-	// Fill the latches
-	ppu.FillLatch()
+	// Set VBL Flag and trigger NMI on (241,1)
+	if ppu.ScanLine == 241 && ppu.Dot == 1 {
+		ppu.Status.SetVerticalBlank(true)
+		if ppu.Control.NMI() {
+			ppu.Bus.NMI()
+		}
+	}
 
-	// Fill shift registers
-	ppu.FillShiftRegister()
+	// Clear Flags on (261,1)
+	if ppu.ScanLine == 261 && ppu.Dot == 1 {
+		ppu.Status.SetVerticalBlank(false)
+		ppu.Status.SetSpriteZeroHit(false)
+		ppu.Status.SetSpriteOverflow(false)
+	}
 
-	// Shift registers
-	ppu.ShiftRegisters()
+	if ppu.IsVisibleLine() || ppu.IsPrerenderLine() {
 
-	// Advance counters, set flags and increment VRAM position
-	ppu.Advance()
+		if (2 <= ppu.Dot && ppu.Dot <= 257) || (321 <= ppu.Dot && ppu.Dot <= 337) {
+			if ppu.Mask.ShowBackground() {
+				ppu.ShiftRegisters()
+			}
+
+			// Fill shift registers
+			if ppu.Dot%8 == 1 {
+				// Fill shift registers
+				ppu.TileBLow.Set(ppu.BGTileLowLatch)
+				ppu.TileBHigh.Set(ppu.BGTileHighLatch)
+			}
+
+			// Memory access
+			switch ppu.Dot % 8 {
+			case 1:
+				// Fill nametable latch
+				ppu.NameTableLatch = ppu.CurrVRAM.CoarseXScroll() //ppu.Bus.PPURead(0x2000 | (uint16(ppu.CurrVRAM) & 0x0FFF))
+			case 3:
+				// Fill attribute latch
+				attributeByte := ppu.Bus.PPURead(0x23C0 | uint16(ppu.CurrVRAM)&0x0C00 | (uint16(ppu.CurrVRAM) >> 4 & 0x38) | (uint16(ppu.CurrVRAM) >> 2 & 0x07))
+				shift := 0
+				if ppu.CurrVRAM.CoarseYScroll()&0b10 == 0b10 {
+					shift += 4
+				}
+				if ppu.CurrVRAM.CoarseXScroll()&0b10 == 0b10 {
+					shift += 2
+				}
+				ppu.AttributeLatch = attributeByte >> shift & 0b11
+			case 5:
+				// Fill BG low tile
+				ppu.BGTileLowLatch = ppu.Bus.PPURead(uint16(ppu.Control.PatternTable())<<12 | uint16(ppu.NameTableLatch)<<4 | uint16(ppu.CurrVRAM.FineYScroll()))
+			case 7:
+				// Fill BG low tile
+				ppu.BGTileHighLatch = ppu.Bus.PPURead(uint16(ppu.Control.PatternTable())<<12 | uint16(ppu.NameTableLatch)<<4 | uint16(ppu.CurrVRAM.FineYScroll()) + 8)
+			}
+
+			// Between dot 328 of a scanline, and 256 of the next scanline increment horizontal position every 8 time
+			if (ppu.Mask.ShowBackground() || ppu.Mask.ShowSprites()) && ppu.Dot%8 == 0 {
+				ppu.IncrementHorizontalPosition()
+			}
+		}
+
+		if ppu.Mask.ShowBackground() || ppu.Mask.ShowSprites() {
+
+			// Increment vertical position on dot 256 of each scanline
+			if ppu.Dot == 256 {
+				ppu.IncrementVerticalPosition()
+			}
+
+			// Copy horizontal position on dot 257 of each scanline
+			if ppu.Dot == 257 {
+				ppu.CurrVRAM.SetCoarseXScroll(ppu.TempVRAM.CoarseXScroll())
+				ppu.CurrVRAM.SetNameTable(ppu.TempVRAM.NameTable()&0b1 | ppu.CurrVRAM.NameTable()&0b10)
+				ppu.Control.SetNameTableAddress(ppu.CurrVRAM.NameTable())
+			}
+
+			// During dots 280 to 304 of the pre-render scanline (end of vblank), copy vertical position
+			if ppu.IsPrerenderLine() && 280 <= ppu.Dot && ppu.Dot <= 304 {
+				ppu.CurrVRAM.SetCoarseYScroll(ppu.TempVRAM.CoarseYScroll())
+				ppu.CurrVRAM.SetNameTable(ppu.TempVRAM.NameTable()&0b10 | ppu.CurrVRAM.NameTable()&0b1)
+				ppu.Control.SetNameTableAddress(ppu.CurrVRAM.NameTable())
+				ppu.CurrVRAM.SetFineYScroll(ppu.TempVRAM.FineYScroll())
+			}
+		}
+	}
 
 	// Render pixel
-	ppu.Render()
+	if (1 <= ppu.Dot && ppu.Dot <= 256) && ppu.IsVisibleLine() {
+		ppu.Render()
+	}
+
+	if ppu.Dot < 340 {
+		// Advance the dot in the current scan line
+		ppu.Dot++
+	} else {
+		// We are at the end of the current scanline (Dot = 340)
+		if ppu.ScanLine < 261 {
+			// Jump to the next scan line and reset the dot to 0
+			ppu.ScanLine++
+			ppu.Dot = 0
+		} else {
+			// A new frame is complete, advance the frame count and swap the frame buffer
+			ppu.FrameCount++
+			ppu.SwapFrameBuffer()
+			// Jump to the start position (0,0) for the next frame
+			ppu.Dot = 0
+			ppu.ScanLine = 0
+			if ppu.FrameCount%2 != 0 {
+				// On odd frames the idle tick at (0,0) is skipped
+				ppu.Dot++
+			}
+		}
+	}
 }
 
 // Reset resets the PPU
