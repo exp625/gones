@@ -72,6 +72,19 @@ func (m *Mapper000) CPUWrite(location uint16, data uint8) bool {
 }
 
 func (m *Mapper000) PPUMapWrite(location uint16) uint16 {
+	if m.Mirroring() == false {
+		// 1: horizontal mirroring
+		if location-0x2000 < 0x800 {
+			location = 0x2000 + location%0x400
+
+		} else {
+			location = 0x2400 + location%0x400
+		}
+	} else {
+		// 1: vertical mirroring
+		location = 0x2000 + location%0x800
+	}
+
 	return location
 }
 
@@ -83,6 +96,19 @@ func (m *Mapper000) PPURead(location uint16) (bool, uint8) {
 }
 
 func (m *Mapper000) PPUMapRead(location uint16) uint16 {
+	if m.Mirroring() == false {
+		// 1: horizontal mirroring
+		if location-0x2000 < 0x800 {
+			location = 0x2000 + location%0x400
+
+		} else {
+			location = 0x2400 + location%0x400
+		}
+	} else {
+		// 1: vertical mirroring
+		location = 0x2000 + location%0x800
+	}
+
 	return location
 }
 

@@ -150,20 +150,16 @@ func (nes *NES) CPUWrite(location uint16, data uint8) {
 }
 
 func (nes *NES) PPURead(location uint16) uint8 {
-	mappedLocation := nes.Cartridge.PPUMapRead(location)
+
 	switch {
-	case mappedLocation <= 0x1FFF:
-		_, data := nes.Cartridge.PPURead(mappedLocation)
+	case location <= 0x1FFF:
+		_, data := nes.Cartridge.PPURead(location)
 		return data
-	case 0x2000 <= mappedLocation && mappedLocation <= 0x3EFF:
-		// TODO: Why don't we use 'mappedLocation' here?
-		return nes.PPUReadRam(mappedLocation)
+	case 0x2000 <= location && location <= 0x3EFF:
+		return nes.PPUReadRam(location)
 	// $3F00-3FFF is not configurable, always mapped to the internal palette control.
 	case 0x3F00 <= location:
-		// TODO: Why don't we use 'mappedLocation' here?
-		//  I guess because of the comment above?
-		//  Would be clearer to me, if we used 'mappedLocation' anyways.
-		return nes.PPUReadPalette(mappedLocation)
+		return nes.PPUReadPalette(location)
 	}
 	return 0
 }
@@ -190,35 +186,19 @@ func (nes *NES) PPUReadRam(location uint16) uint8 {
 	if 0x3000 <= location && location <= 0x3FFF {
 		location -= 0x1000
 	}
-	if nes.Cartridge.Mirroring() {
-		// 1: vertical (horizontal arrangement) (CIRAM A10 = PPU A10)
-		data := nes.VRAM.Read((location - 0x2000) % 0x800)
-		return data
-	} else {
-		// 0: horizontal (vertical arrangement) (CIRAM A10 = PPU A11)
-		if location-0x2000 < 0x800 {
-			data := nes.VRAM.Read((location - 0x2000) % 0x400)
-			return data
-		} else {
-			data := nes.VRAM.Read((location-0x2000)%0x400 + 0x400)
-			return data
-		}
-	}
+	return nes.VRAM.Read(nes.Cartridge.PPUMapRead(location) - 0x2000)
+
 }
 
 func (nes *NES) PPUWrite(location uint16, data uint8) {
-	mappedLocation := nes.Cartridge.PPUMapRead(location)
 	switch {
-	case mappedLocation <= 0x1FFF:
-		nes.Cartridge.PPUWrite(mappedLocation, data)
-	case 0x2000 <= mappedLocation && mappedLocation <= 0x3EFF:
-		nes.PPUWriteRam(mappedLocation, data)
+	case location <= 0x1FFF:
+		nes.Cartridge.PPUWrite(location, data)
+	case 0x2000 <= location && location <= 0x3EFF:
+		nes.PPUWriteRam(location, data)
 	// $3F00-3FFF is not configurable, always mapped to the internal palette control.
-	// TODO: Why don't we use 'mappedLocation' here?
-	//  I guess because of the comment above?
-	//  Would be clearer to me, if we used 'mappedLocation' anyways.
 	case 0x3F00 <= location:
-		nes.PPUWritePalette(mappedLocation, data)
+		nes.PPUWritePalette(location, data)
 	}
 }
 
@@ -226,17 +206,7 @@ func (nes *NES) PPUWriteRam(location uint16, data uint8) {
 	if 0x3000 <= location && location <= 0x3FFF {
 		location -= 0x1000
 	}
-	if nes.Cartridge.Mirroring() {
-		// 1: vertical (horizontal arrangement) (CIRAM A10 = PPU A10)
-		nes.VRAM.Write((location-0x2000)%0x800, data)
-	} else {
-		// 0: horizontal (vertical arrangement) (CIRAM A10 = PPU A11)
-		if location-0x2000 < 0x800 {
-			nes.VRAM.Write((location-0x2000)%0x400, data)
-		} else {
-			nes.VRAM.Write((location-0x2000)%0x400+0x400, data)
-		}
-	}
+	nes.VRAM.Write(nes.Cartridge.PPUMapRead(location)-0x2000, data)
 }
 
 func (nes *NES) PPUWritePalette(location uint16, data uint8) {
