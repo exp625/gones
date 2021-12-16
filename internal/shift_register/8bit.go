@@ -13,8 +13,8 @@ func (r *ShiftRegister8) Get() uint8 {
 }
 
 func (r *ShiftRegister8) ShiftLeft(bit uint8) uint8 {
-	ret := r.register & 0b10000000
-	r.register = r.register<<1 | bit&0b1
+	ret := (r.register & 0b10000000) >> 7
+	r.register = r.register<<1 | (bit & 0b1)
 	return ret
 }
 

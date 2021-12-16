@@ -35,13 +35,13 @@ func (nes *Debugger) CPURead(location uint16) uint8 {
 		case 3:
 			return 0
 		case 4:
-			return nes.PPU.OAM[nes.PPU.OamAddress]
+			return nes.PPU.OAM[nes.PPU.OAMAddress]
 		case 5:
 			return 0
 		case 6:
 			return 0
 		case 7:
-			return nes.PPURead(uint16(nes.PPU.CurrentVRAMAddress))
+			return nes.PPURead(uint16(nes.PPU.CurrVRAM))
 		default:
 			panic("go is wrong")
 		}
@@ -80,15 +80,15 @@ func (nes *Debugger) PPURead(location uint16) uint8 {
 		}
 		if nes.Cartridge.Mirroring() {
 			// 1: vertical (horizontal arrangement) (CIRAM A10 = PPU A10)
-			_, data := nes.VRAM.Read((mappedLocation - 0x2000) % 0x800)
+			data := nes.VRAM.Read((mappedLocation - 0x2000) % 0x800)
 			return data
 		} else {
 			// 0: horizontal (vertical arrangement) (CIRAM A10 = PPU A11)
 			if mappedLocation-0x2000 < 0x800 {
-				_, data := nes.VRAM.Read((mappedLocation - 0x2000) % 0x400)
+				data := nes.VRAM.Read((mappedLocation - 0x2000) % 0x400)
 				return data
 			} else {
-				_, data := nes.VRAM.Read((mappedLocation-0x2000)%0x400 + 0x400)
+				data := nes.VRAM.Read((mappedLocation-0x2000)%0x400 + 0x400)
 				return data
 			}
 		}

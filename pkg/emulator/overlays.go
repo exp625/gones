@@ -25,9 +25,9 @@ const (
 
 func (e *Emulator) DrawOverlayGame(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(0, 20)
+	op.GeoM.Translate(0, 5)
 	op.GeoM.Scale(4, 4)
-	screen.DrawImage(e.Debugger.DrawGameDebug(), op)
+	screen.DrawImage(ebiten.NewImageFromImage(e.PPU.ActiveFrame), op)
 }
 
 func (e *Emulator) DrawOverlayCPU(screen *ebiten.Image) {
@@ -96,6 +96,10 @@ func (e *Emulator) DrawOverlayNametables(screen *ebiten.Image) {
 	op.GeoM.Scale(2, 2)
 	op.GeoM.Translate(256*2, 240*2+20)
 	screen.DrawImage(e.Debugger.DrawNametableInColor(3), op)
+	op.GeoM.Reset()
+	op.GeoM.Scale(2, 2)
+	op.GeoM.Translate(0, 20)
+	screen.DrawImage(e.Debugger.DrawScrollWindow(), op)
 }
 
 func (e *Emulator) DrawOverlayPalettes(screen *ebiten.Image) {

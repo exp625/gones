@@ -45,7 +45,7 @@ func New(clockTime float64, audioSampleTime float64) *NES {
 
 	// Wire everything up
 	nes.CPU.Bus = nes
-	nes.PPU.Bus = nes
+	nes.PPU.AddBus(nes)
 	nes.APU.Bus = nes
 	return nes
 }
@@ -103,10 +103,10 @@ func (nes *NES) CPURead(location uint16) uint8 {
 	mappedLocation := nes.Cartridge.CPUMapRead(location)
 	switch {
 	case mappedLocation <= 0x1FFF:
-		_, data := nes.RAM.Read(mappedLocation % 0x0800)
+		data := nes.RAM.Read(mappedLocation % 0x0800)
 		return data
 	case 0x2000 <= mappedLocation && mappedLocation <= 0x3FFF:
-		_, data := nes.PPU.CPURead(mappedLocation)
+		data := nes.PPU.CPURead(mappedLocation)
 		return data
 	case mappedLocation == 0x4016:
 		return nes.Controller1.SerialRead()
@@ -192,15 +192,15 @@ func (nes *NES) PPUReadRam(location uint16) uint8 {
 	}
 	if nes.Cartridge.Mirroring() {
 		// 1: vertical (horizontal arrangement) (CIRAM A10 = PPU A10)
-		_, data := nes.VRAM.Read((location - 0x2000) % 0x800)
+		data := nes.VRAM.Read((location - 0x2000) % 0x800)
 		return data
 	} else {
 		// 0: horizontal (vertical arrangement) (CIRAM A10 = PPU A11)
 		if location-0x2000 < 0x800 {
-			_, data := nes.VRAM.Read((location - 0x2000) % 0x400)
+			data := nes.VRAM.Read((location - 0x2000) % 0x400)
 			return data
 		} else {
-			_, data := nes.VRAM.Read((location-0x2000)%0x400 + 0x400)
+			data := nes.VRAM.Read((location-0x2000)%0x400 + 0x400)
 			return data
 		}
 	}
