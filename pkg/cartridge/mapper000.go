@@ -38,23 +38,23 @@ func (m *Mapper000) CPUMapRead(location uint16) uint16 {
 	return location
 }
 
-func (m *Mapper000) CPURead(location uint16) (bool, uint8) {
+func (m *Mapper000) CPURead(location uint16) uint8 {
 	if location >= 0x6000 && location <= 0x7FFF {
 		// Read to 0x6001 should result in array index 1
-		return true, m.prgRam[location-0x6000]
+		return m.prgRam[location-0x6000]
 	}
 	if location >= 0x8000 {
 		// If prgRomSize == 1, we need to mirror the last 16 KB
 		if m.cartridge.PrgRomSize == 1 {
 			// A read to 0xC001 should result in prgRom index 1
 			// (0xC001 - 0x8000) % 0x4000 = 0x0001
-			return true, m.cartridge.PrgRom[(location-0x8000)%0x4000]
+			return m.cartridge.PrgRom[(location-0x8000)%0x4000]
 		} else {
-			return true, m.cartridge.PrgRom[location-0x8000]
+			return m.cartridge.PrgRom[location-0x8000]
 		}
 	}
 	// Mapper was no responsible for the location
-	return false, 0
+	return 0
 }
 
 func (m *Mapper000) CPUMapWrite(location uint16) uint16 {
@@ -88,11 +88,11 @@ func (m *Mapper000) PPUMapWrite(location uint16) uint16 {
 	return location
 }
 
-func (m *Mapper000) PPURead(location uint16) (bool, uint8) {
+func (m *Mapper000) PPURead(location uint16) uint8 {
 	if location <= 0x1FFF {
-		return true, m.cartridge.ChrRom[location]
+		return m.cartridge.ChrRom[location]
 	}
-	return false, 0
+	return 0
 }
 
 func (m *Mapper000) PPUMapRead(location uint16) uint16 {

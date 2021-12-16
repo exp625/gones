@@ -28,12 +28,12 @@ func (m *Mapper002) CPUMapRead(location uint16) uint16 {
 // CPU $8000-$BFFF: 16 KB switchable PRG ROM bank
 // CPU $C000-$FFFF: 16 KB PRG ROM bank, fixed to the last bank
 
-func (m *Mapper002) CPURead(location uint16) (bool, uint8) {
+func (m *Mapper002) CPURead(location uint16) uint8 {
 	if location >= 0x8000 && location <= 0xBFFF {
 		// Switchable ROM Bank
 
 		// Example: Selected bank is 1. A read to 0x8001 should read from prgRom location 0x4001
-		return true, m.cartridge.PrgRom[uint32(location-0x8000)+uint32(0x4000)*uint32(m.bankSelect)]
+		return m.cartridge.PrgRom[uint32(location-0x8000)+uint32(0x4000)*uint32(m.bankSelect)]
 	}
 
 	if location >= 0xC000 {
@@ -43,10 +43,10 @@ func (m *Mapper002) CPURead(location uint16) (bool, uint8) {
 		// 0xFFFF - 0xC000 + 0x4000 * 15 = 0x3FFFF
 
 		// Cast to uint32 because games can get quite big (4096K)
-		return true, m.cartridge.PrgRom[uint32(location-0xC000)+uint32(0x4000)*uint32(m.cartridge.PrgRomSize-1)]
+		return m.cartridge.PrgRom[uint32(location-0xC000)+uint32(0x4000)*uint32(m.cartridge.PrgRomSize-1)]
 	}
 	// Mapper was no responsible for the location
-	return false, 0
+	return 0
 
 }
 
@@ -87,11 +87,11 @@ func (m *Mapper002) PPUMapRead(location uint16) uint16 {
 	return location
 }
 
-func (m *Mapper002) PPURead(location uint16) (bool, uint8) {
+func (m *Mapper002) PPURead(location uint16) uint8 {
 	if location <= 0x1FFF {
-		return true, m.cartridge.ChrRom[location]
+		return m.cartridge.ChrRom[location]
 	}
-	return false, 0
+	return 0
 }
 
 func (m *Mapper002) PPUMapWrite(location uint16) uint16 {

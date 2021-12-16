@@ -119,7 +119,7 @@ func (nes *NES) CPURead(location uint16) uint8 {
 		// TODO: APU and I/O functionality that is normally disabled
 		return 0
 	case 0x4020 <= mappedLocation:
-		_, data := nes.Cartridge.CPURead(mappedLocation)
+		data := nes.Cartridge.CPURead(mappedLocation)
 		return data
 	default:
 		panic("go is wrong")
@@ -153,7 +153,7 @@ func (nes *NES) PPURead(location uint16) uint8 {
 
 	switch {
 	case location <= 0x1FFF:
-		_, data := nes.Cartridge.PPURead(location)
+		data := nes.Cartridge.PPURead(location)
 		return data
 	case 0x2000 <= location && location <= 0x3EFF:
 		return nes.PPUReadRam(location)

@@ -15,12 +15,15 @@ type Mapper001 struct {
 	chrBank0           uint8
 	chrBank1           uint8
 	prgBank            uint8
+	ramEnable          bool
 }
 
 func NewMapper001(c *Cartridge) *Mapper001 {
-	return &Mapper001{
+	m := &Mapper001{
 		cartridge: c,
 	}
+	m.control = 0x0C
+	return m
 }
 
 // From NES DEV WIKI https://wiki.nesdev.org/w/index.php?title=MMC1
@@ -31,23 +34,23 @@ func (m *Mapper001) CPUMapRead(location uint16) uint16 {
 	return location
 }
 
-func (m *Mapper001) CPURead(location uint16) (bool, uint8) {
+func (m *Mapper001) CPURead(location uint16) uint8 {
 	if 0x6000 <= location && location <= 0x7FFF {
 		// Read to 0x6001 should result in array index 1
-		return true, m.prgRam[location-0x6000]
+		return m.prgRam[location-0x6000]
 	}
 
 	if 0x8000 <= location && location <= 0xBFFF {
 		switch (m.control >> 2) & 0b11 {
 		case 2:
 			// 2: fix first bank at $8000 and switch 16 KB bank at $C000
-			return true, m.cartridge.PrgRom[location-0x8000]
+			return m.cartridge.PrgRom[uint64(location-0x8000)]
 		case 3:
 			// 3: fix last bank at $C000 and switch 16 KB bank at $8000
-			return true, m.cartridge.PrgRom[(location-0x8000)+0x4000*uint16(m.prgBank)]
+			return m.cartridge.PrgRom[uint64(location-0x8000)+0x4000*uint64(m.prgBank)]
 		default:
 			// 0, 1: switch 32 KB at $8000, ignoring low bit of bank number
-			return true, m.cartridge.PrgRom[(location-0x8000)+0x4000*uint16(m.prgBank&0b110)]
+			return m.cartridge.PrgRom[uint64(location-0x8000)+0x4000*uint64(m.prgBank&0b1110)]
 		}
 	}
 
@@ -55,17 +58,17 @@ func (m *Mapper001) CPURead(location uint16) (bool, uint8) {
 		switch (m.control >> 2) & 0b11 {
 		case 2:
 			// 2: fix first bank at $8000 and switch 16 KB bank at $C000
-			return true, m.cartridge.PrgRom[(location-0xC000)+0x4000*uint16(m.prgBank)]
+			return m.cartridge.PrgRom[uint64(location-0xC000)+0x4000*uint64(m.prgBank)]
 		case 3:
 			// 3: fix last bank at $C000 and switch 16 KB bank at $8000
-			return true, m.cartridge.PrgRom[(location-0xC000)+0x4000*uint16(m.cartridge.PrgRomSize-1)]
+			return m.cartridge.PrgRom[uint64(location-0xC000)+0x4000*uint64(m.cartridge.PrgRomSize-1)]
 		default:
 			// 0, 1: switch 32 KB at $8000, ignoring low bit of bank number
-			return true, m.cartridge.PrgRom[(location-0xC000)+0x4000*uint16(m.prgBank&0b1110)+0x4000]
+			return m.cartridge.PrgRom[uint64(location-0xC000)+0x4000*uint64(m.prgBank&0b1110)+0x4000]
 		}
 	}
 
-	return false, 0
+	return 0
 }
 
 func (m *Mapper001) CPUMapWrite(location uint16) uint16 {
@@ -96,7 +99,7 @@ func (m *Mapper001) CPUWrite(location uint16, data uint8) bool {
 			case 0xC000 <= location && location <= 0xDFFF:
 				m.chrBank1 = m.shiftRegister
 			case 0xE000 <= location:
-				m.prgBank = m.shiftRegister
+				m.prgBank = m.shiftRegister & 0b1111
 			}
 			m.shiftRegister = 0
 			m.shiftRegisterCount = 0
@@ -116,7 +119,7 @@ func (m *Mapper001) PPUMapRead(location uint16) uint16 {
 		// one-screen mirroring, upper bank
 		location = 0x2400 + location%0x400
 	}
-	if m.control&0b11 == 3 {
+	if m.control&0b11 == 2 {
 		// 1: horizontal mirroring
 		if location-0x2000 < 0x800 {
 			location = 0x2000 + location%0x400
@@ -125,28 +128,28 @@ func (m *Mapper001) PPUMapRead(location uint16) uint16 {
 			location = 0x2400 + location%0x400
 		}
 	}
-	if m.control&0b11 == 4 {
+	if m.control&0b11 == 3 {
 		// 1: vertical mirroring
 		location = 0x2000 + location%0x800
 	}
 	return location
 }
 
-func (m *Mapper001) PPURead(location uint16) (bool, uint8) {
+func (m *Mapper001) PPURead(location uint16) uint8 {
 	if location <= 0x0FFF {
 		if m.control>>4&0b1 == 0 {
-			return true, m.cartridge.ChrRom[location+0x1000*uint16(m.chrBank0&0b1110)]
+			return m.cartridge.ChrRom[uint64(location)+0x1000*uint64(m.chrBank0&0b1110)]
 		} else {
-			return true, m.cartridge.ChrRom[location+0x1000*uint16(m.chrBank0)]
+			return m.cartridge.ChrRom[uint64(location)+0x1000*uint64(m.chrBank0)]
 		}
 	} else if location <= 0x1FFF {
 		if m.control>>4&0b1 == 0 {
-			return true, m.cartridge.ChrRom[(location-0x1000)+0x1000*uint16(m.chrBank0&0b1110)+0x1000]
+			return m.cartridge.ChrRom[(uint64(location)-0x1000)+0x1000*uint64(m.chrBank0&0b1110)+0x1000]
 		} else {
-			return true, m.cartridge.ChrRom[(location-0x1000)+0x1000*uint16(m.chrBank1)]
+			return m.cartridge.ChrRom[(uint64(location)-0x1000)+0x1000*uint64(m.chrBank1)]
 		}
 	}
-	return false, 0
+	return 0
 }
 
 func (m *Mapper001) PPUMapWrite(location uint16) uint16 {
