@@ -25,7 +25,11 @@ func (ppu *PPU) Render() {
 
 	colorIndex := ppu.TileAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.TileALow.GetBit(7-ppu.FineXScroll)
 	attributeIndex := ppu.AttributeAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.AttributeALow.GetBit(7-ppu.FineXScroll)
-	backgroundPixelColor := ppu.Palette[ppu.PaletteRAM[attributeIndex*4+colorIndex]][ppu.Mask.Emphasize()]
+	backgroundPixelColor := ppu.Palette[ppu.PaletteRAM[0]][ppu.Mask.Emphasize()]
+	if colorIndex != 0 {
+		backgroundPixelColor = ppu.Palette[ppu.PaletteRAM[attributeIndex*4+colorIndex]][ppu.Mask.Emphasize()]
+	}
+
 	var pixelColor color.Color
 	if ppu.Mask.ShowBackground() {
 		pixelColor = backgroundPixelColor
