@@ -317,17 +317,31 @@ func (nes *Debugger) DrawNametableInColor(table int) *ebiten.Image {
 }
 
 func (nes *Debugger) DrawScrollWindow() *ebiten.Image {
-	width := 32 * 8 * 4  // 256 * 4
-	height := 30 * 8 * 4 // 240 * 4
+	width := 32 * 8 * 2  // 256 * 4
+	height := 30 * 8 * 2 // 240 * 4
 
 	upLeft := image.Point{X: 0, Y: 0}
 	lowRight := image.Point{X: width, Y: height}
 	img := image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
 	ret := ebiten.NewImageFromImage(img)
-	ebitenutil.DrawLine(ret, float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()), float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()), color.RGBA{255, 0, 0, 255})
-	ebitenutil.DrawLine(ret, float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()), float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()+240), color.RGBA{255, 0, 0, 255})
-	ebitenutil.DrawLine(ret, float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()+240), float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()+240), color.RGBA{255, 0, 0, 255})
-	ebitenutil.DrawLine(ret, float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()), float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()+240), color.RGBA{255, 0, 0, 255})
+
+	xStart := float64(uint32(nes.PPU.FineXScroll)+uint32(nes.PPU.DebugVRAM.CoarseXScroll()*8)+uint32((nes.PPU.DebugVRAM.NameTable()&0b01)*255)) + 1
+	yStart := float64(uint32(nes.PPU.DebugVRAM.FineYScroll()) + uint32(nes.PPU.DebugVRAM.CoarseYScroll()*8) + uint32((nes.PPU.DebugVRAM.NameTable()&0b10)>>1)*240)
+	ebitenutil.DrawLine(ret, xStart, yStart, xStart+255, yStart, color.RGBA{R: 255, A: 255})
+	ebitenutil.DrawLine(ret, xStart, yStart+239, xStart+255, yStart+239, color.RGBA{R: 255, A: 255})
+	ebitenutil.DrawLine(ret, xStart, yStart, xStart, yStart+239, color.RGBA{R: 255, A: 255})
+	ebitenutil.DrawLine(ret, xStart+255, yStart, xStart+255, yStart+239, color.RGBA{R: 255, A: 255})
+	if xStart+256 > 256*2 {
+		xStart -= 256 * 2
+	}
+	if yStart+240 > 240*2 {
+		yStart -= 240 * 2
+	}
+
+	ebitenutil.DrawLine(ret, xStart, yStart, xStart+255, yStart, color.RGBA{R: 255, A: 255})
+	ebitenutil.DrawLine(ret, xStart, yStart+239, xStart+255, yStart+239, color.RGBA{R: 255, A: 255})
+	ebitenutil.DrawLine(ret, xStart, yStart, xStart, yStart+239, color.RGBA{R: 255, A: 255})
+	ebitenutil.DrawLine(ret, xStart+255, yStart, xStart+255, yStart+239, color.RGBA{R: 255, A: 255})
 	return ret
 }
 

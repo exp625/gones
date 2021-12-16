@@ -337,6 +337,7 @@ func (ppu *PPU) CPUWrite(location uint16, data uint8) {
 		ppu.Control = ControlRegister(data)
 		// Equivalently, bits 1 and 0 are the most significant bit of the scrolling coordinates
 		ppu.TempVRAM.SetNameTable(data & 0b11)
+		ppu.DebugVRAM.SetNameTable(data & 0b11)
 	case 1:
 		// Write Mask register
 		ppu.Mask = MaskRegister(data)
