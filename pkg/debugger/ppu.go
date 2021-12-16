@@ -113,14 +113,14 @@ func (nes *Debugger) DrawPPUInfo(t *textutil.Text) {
 		nes.PPU.Mask, (nes.PPU.Control>>5)&0b111, (nes.PPU.Control>>4)&0x1 == 1, (nes.PPU.Control>>3)&0x1 == 1, nes.PPU.Control&0x1 == 1, (nes.PPU.Control>>2)&0x1 == 1, (nes.PPU.Control>>1)&0x1 == 1))
 	plz.Just(fmt.Fprintf(t, "PPUSTATUS: %02X \tVBLANK: %t \tSprite 0 Hit: %t \t Sprite Overflow: %t \n",
 		nes.PPU.Status, (nes.PPU.Status>>7)&0x1 == 1, (nes.PPU.Status>>6)&0x1 == 1, (nes.PPU.Status>>5)&0x1 == 1))
-	plz.Just(fmt.Fprintf(t, "\t\t\t\tX-Scroll %02X \tY-Scroll: %02X \n",
+	plz.Just(fmt.Fprintf(t, "\t\t\t\tX-DebugVRAM %02X \tY-DebugVRAM: %02X \n",
 		nes.PPU.TempVRAM.CoarseXScroll(), nes.PPU.TempVRAM.CoarseYScroll()))
 
 }
 
 func (nes *Debugger) DrawOAM(t *textutil.Text) {
 	t.Color(colornames.White)
-	plz.Just(fmt.Fprintf(t, "OAM: 0x%02X\n   ", nes.PPU.OamAddress))
+	plz.Just(fmt.Fprintf(t, "OAM: 0x%02X\n   ", nes.PPU.OAMAddress))
 	t.Color(colornames.Yellow)
 	for i := 0; i <= 0xF; i++ {
 		plz.Just(fmt.Fprintf(t, "%02X ", uint16(i)))
@@ -131,7 +131,7 @@ func (nes *Debugger) DrawOAM(t *textutil.Text) {
 			t.Color(colornames.Yellow)
 			plz.Just(fmt.Fprintf(t, "\n%02X ", uint16(i&0xF0)))
 		}
-		if nes.PPU.OamAddress == uint8(i) {
+		if nes.PPU.OAMAddress == uint8(i) {
 			t.Color(colornames.Green)
 		} else {
 			t.Color(colornames.White)
@@ -324,10 +324,10 @@ func (nes *Debugger) DrawScrollWindow() *ebiten.Image {
 	lowRight := image.Point{X: width, Y: height}
 	img := image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
 	ret := ebiten.NewImageFromImage(img)
-	ebitenutil.DrawLine(ret, float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()), float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()), color.RGBA{255, 0, 0, 255})
-	ebitenutil.DrawLine(ret, float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()), float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()+240), color.RGBA{255, 0, 0, 255})
-	ebitenutil.DrawLine(ret, float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()+240), float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()+240), color.RGBA{255, 0, 0, 255})
-	ebitenutil.DrawLine(ret, float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()), float64(nes.PPU.Scroll.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.Scroll.CoarseYScroll()*4+nes.PPU.Scroll.FineYScroll()+240), color.RGBA{255, 0, 0, 255})
+	ebitenutil.DrawLine(ret, float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()), float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()), color.RGBA{255, 0, 0, 255})
+	ebitenutil.DrawLine(ret, float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()), float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()+240), color.RGBA{255, 0, 0, 255})
+	ebitenutil.DrawLine(ret, float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()+240), float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()+240), color.RGBA{255, 0, 0, 255})
+	ebitenutil.DrawLine(ret, float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()), float64(nes.PPU.DebugVRAM.CoarseXScroll()*4+nes.PPU.FineXScroll+255), float64(nes.PPU.DebugVRAM.CoarseYScroll()*4+nes.PPU.DebugVRAM.FineYScroll()+240), color.RGBA{255, 0, 0, 255})
 	return ret
 }
 
