@@ -127,7 +127,7 @@ func (ppu *PPU) Clock() {
 			switch ppu.Dot % 8 {
 			case 1:
 				// Fill nametable latch
-				ppu.NameTableLatch = ppu.CurrVRAM.CoarseXScroll() //ppu.Bus.PPURead(0x2000 | (uint16(ppu.CurrVRAM) & 0x0FFF))
+				ppu.NameTableLatch = ppu.Bus.PPURead(0x2000 | (uint16(ppu.CurrVRAM) & 0x0FFF))
 			case 3:
 				// Fill attribute latch
 				attributeByte := ppu.Bus.PPURead(0x23C0 | uint16(ppu.CurrVRAM)&0x0C00 | (uint16(ppu.CurrVRAM) >> 4 & 0x38) | (uint16(ppu.CurrVRAM) >> 2 & 0x07))
