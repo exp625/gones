@@ -112,6 +112,7 @@ func (ppu *PPU) Clock() {
 		ppu.Status.SetSpriteOverflow(false)
 	}
 
+	// Background
 	if ppu.IsVisibleLine() || ppu.IsPrerenderLine() {
 
 		if (2 <= ppu.Dot && ppu.Dot <= 257) || (321 <= ppu.Dot && ppu.Dot <= 337) {
@@ -181,6 +182,13 @@ func (ppu *PPU) Clock() {
 				ppu.CurrVRAM.SetFineYScroll(ppu.TempVRAM.FineYScroll())
 			}
 		}
+	}
+
+	// Sprites
+
+	// Cycles 1-64: Secondary OAM (32-byte buffer for current sprites on scanline) is initialized to $FF - attempting to read $2004 will return $FF.
+	if ppu.IsOAMClear() {
+		ppu.secondaryOAM[(ppu.Dot >> 2)] = 0xFF
 	}
 
 	// Render pixel
@@ -280,7 +288,12 @@ func (ppu *PPU) CPURead(location uint16) uint8 {
 		case 4:
 			// Read OAM data
 			// Reads during vertical or forced blanking return the value from OAM at OAMAddress but do not increment.
-			ppu.GenLatch = ppu.OAM[ppu.OAMAddress]
+			if ppu.IsOAMClear() {
+				ppu.GenLatch = 0xFF
+			} else {
+				ppu.GenLatch = ppu.OAM[ppu.OAMAddress]
+			}
+
 			// TODO: Implement behaviour for OAM Reads during rendering
 		case 5:
 			// Write only register

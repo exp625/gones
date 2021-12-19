@@ -48,6 +48,11 @@ func (ppu *PPU) IsPrerenderLine() bool {
 	return ppu.ScanLine == 261
 }
 
+// IsOAMClear return true if the ppu is currently clearing oam memory
+func (ppu *PPU) IsOAMClear() bool {
+	return (ppu.IsVisibleLine() || ppu.IsPrerenderLine()) && 1 <= ppu.Dot && ppu.Dot <= 64
+}
+
 // IncrementVerticalPosition increments fine Y, overflowing to coarse Y, and finally adjusted to wrap among
 // the nametables vertically.
 func (ppu *PPU) IncrementVerticalPosition() {
