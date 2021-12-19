@@ -67,7 +67,8 @@ type PPU struct {
 
 	// In addition to the primary OAM memory, the PPU contains 32 bytes (enough for 8 sprites) of secondary OAM memory
 	// that is not directly accessible by the program.
-	secondaryOAM [32]uint8
+	SecondaryOAM    [32]uint8
+	secondaryOAMPtr uint8
 
 	// Internal PaletteRam containing the palettes for background and sprite rendering
 	PaletteRAM [32]uint8
@@ -188,8 +189,22 @@ func (ppu *PPU) Clock() {
 
 	// Cycles 1-64: Secondary OAM (32-byte buffer for current sprites on scanline) is initialized to $FF - attempting to read $2004 will return $FF.
 	if ppu.IsOAMClear() {
-		ppu.secondaryOAM[(ppu.Dot >> 2)] = 0xFF
+		if ppu.Dot == 1 {
+			ppu.secondaryOAMPtr = 0
+		}
+
+		if ppu.Dot%2 == 1 {
+			ppu.SecondaryOAM[ppu.secondaryOAMPtr] = 0xFF
+		} else {
+			ppu.secondaryOAMPtr++
+		}
+
+		if ppu.Dot == 64 {
+			ppu.secondaryOAMPtr = 0
+		}
 	}
+
+	// Cycles 65-256: Sprite evaluation
 
 	// Render pixel
 	if (1 <= ppu.Dot && ppu.Dot <= 256) && ppu.IsVisibleLine() {
@@ -258,8 +273,8 @@ func (ppu *PPU) Reset() {
 	// Clear OAM
 	ppu.OAM = [256]uint8{}
 
-	// Clear secondaryOAM
-	ppu.secondaryOAM = [32]uint8{}
+	// Clear SecondaryOAM
+	ppu.SecondaryOAM = [32]uint8{}
 
 	// Clear paletteRam
 	ppu.PaletteRAM = [32]uint8{}

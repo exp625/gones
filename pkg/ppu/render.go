@@ -53,6 +53,11 @@ func (ppu *PPU) IsOAMClear() bool {
 	return (ppu.IsVisibleLine() || ppu.IsPrerenderLine()) && 1 <= ppu.Dot && ppu.Dot <= 64
 }
 
+// IsSpriteEvaluation return true if the ppu is currently copying sprites to oam memory
+func (ppu *PPU) IsSpriteEvaluation() bool {
+	return (ppu.IsVisibleLine() || ppu.IsPrerenderLine()) && 65 <= ppu.Dot && ppu.Dot <= 256
+}
+
 // IncrementVerticalPosition increments fine Y, overflowing to coarse Y, and finally adjusted to wrap among
 // the nametables vertically.
 func (ppu *PPU) IncrementVerticalPosition() {

@@ -138,6 +138,22 @@ func (nes *Debugger) DrawOAM(t *textutil.Text) {
 		}
 		plz.Just(fmt.Fprintf(t, "%02X ", nes.PPU.OAM[uint16(i)]))
 	}
+
+	t.Color(colornames.White)
+	plz.Just(fmt.Fprintf(t, "\n\nSecondary OAM: 0x%02X\n   ", nes.PPU.OAMAddress))
+	t.Color(colornames.Yellow)
+	for i := 0; i <= 0xF; i++ {
+		plz.Just(fmt.Fprintf(t, "%02X ", uint16(i)))
+	}
+
+	for i := 0x00; i <= 0x1F; i++ {
+		if i%16 == 0 {
+			t.Color(colornames.Yellow)
+			plz.Just(fmt.Fprintf(t, "\n%02X ", uint16(i&0xF0)))
+		}
+		t.Color(colornames.White)
+		plz.Just(fmt.Fprintf(t, "%02X ", nes.PPU.SecondaryOAM[uint16(i)]))
+	}
 }
 
 func (nes *Debugger) DrawPalettes() *ebiten.Image {
