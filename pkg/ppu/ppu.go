@@ -67,8 +67,10 @@ type PPU struct {
 
 	// In addition to the primary OAM memory, the PPU contains 32 bytes (enough for 8 sprites) of secondary OAM memory
 	// that is not directly accessible by the program.
-	SecondaryOAM    [32]uint8
-	secondaryOAMPtr uint8
+	SecondaryOAM          [32]uint8
+	SecondaryOAMPtr       uint8
+	SpriteEvaluationMode  uint8 // 10 -> 1, 11 -> 1a), 2
+	SpriteEvaluationLatch uint8
 
 	// Internal PaletteRam containing the palettes for background and sprite rendering
 	PaletteRAM [32]uint8
@@ -190,21 +192,81 @@ func (ppu *PPU) Clock() {
 	// Cycles 1-64: Secondary OAM (32-byte buffer for current sprites on scanline) is initialized to $FF - attempting to read $2004 will return $FF.
 	if ppu.IsOAMClear() {
 		if ppu.Dot == 1 {
-			ppu.secondaryOAMPtr = 0
+			ppu.SecondaryOAMPtr = 0
 		}
 
 		if ppu.Dot%2 == 1 {
-			ppu.SecondaryOAM[ppu.secondaryOAMPtr] = 0xFF
+			ppu.SecondaryOAM[ppu.SecondaryOAMPtr] = 0xFF
 		} else {
-			ppu.secondaryOAMPtr++
-		}
-
-		if ppu.Dot == 64 {
-			ppu.secondaryOAMPtr = 0
+			ppu.SecondaryOAMPtr++
 		}
 	}
 
 	// Cycles 65-256: Sprite evaluation
+	if ppu.IsSpriteEvaluation() {
+		if ppu.Dot == 65 {
+			ppu.SecondaryOAMPtr = 0
+			ppu.SpriteEvaluationMode = 0
+			ppu.OAMAddress = 0
+			ppu.SpriteEvaluationLatch = 0
+		}
+
+		switch ppu.SpriteEvaluationMode {
+		case 0:
+			// Sprite copying
+			if ppu.OAMAddress&0b11 == 0 {
+				// We are at the start of a new sprite
+				// Starting at n = 0, read a sprite's Y-coordinate (OAM[n][0], copying it to the next open slot in secondary
+				// OAM (unless 8 sprites have been found, in which case the write is ignored)
+				ppu.OAMCopy()
+			} else if ppu.SpriteInRange(ppu.OAMAddress & 0b11) {
+				// If Y-coordinate is in range, copy remaining bytes of sprite data (OAM[n][1] thru OAM[n][3]) into secondary OAM.
+				ppu.OAMCopy()
+			} else {
+				// Sprites Y-Position was outside of range
+				ppu.SecondaryOAMPtr--
+				ppu.OAMAddress = ppu.OAMAddress&0b11111100 + 4
+			}
+
+			if ppu.OAMAddress == 0 {
+				// If n has overflowed back to zero (all 64 sprites evaluated), go to 4
+				ppu.SpriteEvaluationMode = 2
+			}
+
+			if ppu.SecondaryOAMPtr >= 32 {
+				// If exactly 8 sprites have been found, disable writes to secondary OAM because it is full.
+				// This causes sprites in back to drop out.
+				// Write disable is done inside the OAMCopy function
+				ppu.SpriteEvaluationMode = 1
+			}
+		case 1:
+			if ppu.OAMAddress&0b11 == 0 {
+				// Starting at m = 0, evaluate OAM[n][m] as a Y-coordinate.
+				ppu.OAMCopy()
+			} else if ppu.SpriteInRange(ppu.OAMAddress & 0b11) {
+				// if the value is in range, set the sprite overflow flag in $2002 and read the next 3 entries of OAM
+				// (incrementing 'm' after each byte and incrementing 'n' when 'm' overflows); if m = 3, increment n
+				ppu.Status.SetSpriteOverflow(true)
+				ppu.OAMCopy()
+			} else {
+				// If the value is not in range, increment n and m (without carry). If n overflows to 0, go to 4; otherwise go to 3
+				// The m increment is a hardware bug - if only n was incremented, the overflow flag would be set whenever
+				// more than 8 sprites were present on the same scanline, as expected.
+				ppu.OAMAddress = ppu.OAMAddress&0b11111100 + 4 | (ppu.OAMAddress+1)&0b11
+			}
+
+			if ppu.OAMAddress == 0 {
+				// If n has overflowed back to zero (all 64 sprites evaluated), go to 4
+				ppu.SpriteEvaluationMode = 2
+			}
+
+		case 2:
+			// Attempt (and fail) to copy OAM[n][0] into the next free slot in secondary OAM, and increment n
+			// (repeat until HBLANK is reached)
+			ppu.OAMCopy()
+		}
+
+	}
 
 	// Render pixel
 	if (1 <= ppu.Dot && ppu.Dot <= 256) && ppu.IsVisibleLine() {

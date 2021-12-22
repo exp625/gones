@@ -97,3 +97,30 @@ func (ppu *PPU) IncrementHorizontalPosition() {
 		ppu.CurrVRAM.SetCoarseXScroll(ppu.CurrVRAM.CoarseXScroll() + 1)
 	}
 }
+
+// OAMCopy reads and copies data from OAM to secondary OAM.
+func (ppu *PPU) OAMCopy() {
+	// On odd cycles, data is read from (primary) OAM
+	// On even cycles, data is written to secondary OAM (unless secondary OAM is full, in which case it will read
+	// the value in secondary OAM instead)
+	if ppu.Dot%2 == 1 {
+		ppu.SpriteEvaluationLatch = ppu.OAM[ppu.OAMAddress]
+	} else {
+		ppu.OAMAddress++
+		if ppu.SecondaryOAMPtr < 32 {
+			ppu.SecondaryOAM[ppu.SecondaryOAMPtr] = ppu.SpriteEvaluationLatch
+			ppu.SecondaryOAMPtr++
+		} else {
+			// Secondary OAM is full
+		}
+
+	}
+}
+
+// SpriteInRange checks if the sprites Y-Coordinate is in range
+func (ppu *PPU) SpriteInRange(position uint8) bool {
+	// spriteYPosition is at the top of the sprite
+	renderYPosition := ppu.CurrVRAM.CoarseYScroll()<<3 | ppu.CurrVRAM.FineYScroll()
+	// TODO: 8x16 sprites
+	return renderYPosition >= position && renderYPosition <= position+8
+}
