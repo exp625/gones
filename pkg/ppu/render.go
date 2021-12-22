@@ -34,10 +34,15 @@ func (ppu *PPU) Render() {
 
 	for spriteIndex := 0; spriteIndex < 8; spriteIndex++ {
 		if ppu.SpriteCounters[spriteIndex] == 0 {
-			spritePixelIndex := ppu.SpritePatternHigh[spriteIndex].ShiftLeft(0)<<1 | ppu.SpritePatternLow[spriteIndex].ShiftLeft(0)
+			var spritePixelIndex uint8
+			if ppu.SpriteAttribute[spriteIndex]>>6&0b1 == 1 {
+				spritePixelIndex = ppu.SpritePatternHigh[spriteIndex].ShiftRight(0)<<1 | ppu.SpritePatternLow[spriteIndex].ShiftRight(0)
+			} else {
+				spritePixelIndex = ppu.SpritePatternHigh[spriteIndex].ShiftLeft(0)<<1 | ppu.SpritePatternLow[spriteIndex].ShiftLeft(0)
+			}
 			attributeIndex := ppu.SpriteAttribute[spriteIndex] & 0b11
 			if !spritePixel && spritePixelIndex != 0 {
-				spritePixelColor = ppu.Palette[ppu.PaletteRAM[attributeIndex*4+spritePixelIndex]][ppu.Mask.Emphasize()]
+				spritePixelColor = ppu.Palette[ppu.PaletteRAM[attributeIndex*4+spritePixelIndex+16]][ppu.Mask.Emphasize()]
 				spritePixel = true
 			}
 		}
@@ -77,17 +82,17 @@ func (ppu *PPU) IsPrerenderLine() bool {
 
 // IsOAMClear return true if the ppu is currently clearing oam memory
 func (ppu *PPU) IsOAMClear() bool {
-	return (ppu.IsVisibleLine() || ppu.IsPrerenderLine()) && 1 <= ppu.Dot && ppu.Dot <= 64
+	return ppu.IsVisibleLine() && 1 <= ppu.Dot && ppu.Dot <= 64
 }
 
 // IsSpriteEvaluation return true if the ppu is currently copying sprites to oam memory
 func (ppu *PPU) IsSpriteEvaluation() bool {
-	return (ppu.IsVisibleLine() || ppu.IsPrerenderLine()) && 65 <= ppu.Dot && ppu.Dot <= 256
+	return ppu.IsVisibleLine() && 65 <= ppu.Dot && ppu.Dot <= 256
 }
 
 // IsSpriteFetch return true if the ppu is fetching sprite information
 func (ppu *PPU) IsSpriteFetch() bool {
-	return (ppu.IsVisibleLine() || ppu.IsPrerenderLine()) && 257 <= ppu.Dot && ppu.Dot <= 320
+	return ppu.IsVisibleLine() && 257 <= ppu.Dot && ppu.Dot <= 320
 }
 
 // IncrementVerticalPosition increments fine Y, overflowing to coarse Y, and finally adjusted to wrap among
@@ -154,5 +159,5 @@ func (ppu *PPU) SpriteInRange(position uint8) bool {
 	// spriteYPosition is at the top of the sprite
 	renderYPosition := ppu.CurrVRAM.CoarseYScroll()<<3 | ppu.CurrVRAM.FineYScroll()
 	// TODO: 8x16 sprites
-	return renderYPosition >= position && renderYPosition <= position+8
+	return renderYPosition >= position && renderYPosition <= position+7
 }

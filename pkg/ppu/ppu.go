@@ -82,6 +82,7 @@ type PPU struct {
 
 	// Sprite counters
 	SpriteCounters [8]uint8
+	SpriteYPos     [8]uint8
 
 	// Internal PaletteRam containing the palettes for background and sprite rendering
 	PaletteRAM [32]uint8
@@ -231,21 +232,23 @@ func (ppu *PPU) Clock() {
 				// Starting at n = 0, read a sprite's Y-coordinate (OAM[n][0], copying it to the next open slot in secondary
 				// OAM (unless 8 sprites have been found, in which case the write is ignored)
 				ppu.OAMCopy()
-			} else if ppu.SpriteInRange(ppu.OAMAddress & 0b11) {
+			} else if ppu.SpriteInRange(ppu.OAM[ppu.OAMAddress&0b11111100]) {
 				// If Y-coordinate is in range, copy remaining bytes of sprite data (OAM[n][1] thru OAM[n][3]) into secondary OAM.
 				ppu.OAMCopy()
 			} else {
 				// Sprites Y-Position was outside of range
-				ppu.SecondaryOAMPtr--
-				ppu.OAMAddress = ppu.OAMAddress&0b11111100 + 4
+				if ppu.Dot%2 == 0 {
+					ppu.SecondaryOAMPtr--
+					ppu.OAMAddress = ppu.OAMAddress&0b11111100 + 4
+				}
 			}
 
-			if ppu.OAMAddress == 0 {
+			if ppu.OAMAddress == 0 && ppu.Dot%2 == 0 {
 				// If n has overflowed back to zero (all 64 sprites evaluated), go to 4
 				ppu.SpriteEvaluationMode = 2
 			}
 
-			if ppu.SecondaryOAMPtr >= 32 {
+			if ppu.SecondaryOAMPtr >= 32 && ppu.Dot%2 == 0 {
 				// If exactly 8 sprites have been found, disable writes to secondary OAM because it is full.
 				// This causes sprites in back to drop out.
 				// Write disable is done inside the OAMCopy function
@@ -255,7 +258,7 @@ func (ppu *PPU) Clock() {
 			if ppu.OAMAddress&0b11 == 0 {
 				// Starting at m = 0, evaluate OAM[n][m] as a Y-coordinate.
 				ppu.OAMCopy()
-			} else if ppu.SpriteInRange(ppu.OAMAddress & 0b11) {
+			} else if ppu.SpriteInRange(ppu.OAM[ppu.OAMAddress&0b11111100]) {
 				// if the value is in range, set the sprite overflow flag in $2002 and read the next 3 entries of OAM
 				// (incrementing 'm' after each byte and incrementing 'n' when 'm' overflows); if m = 3, increment n
 				ppu.Status.SetSpriteOverflow(true)
@@ -267,7 +270,7 @@ func (ppu *PPU) Clock() {
 				ppu.OAMAddress = ppu.OAMAddress&0b11111100 + 4 | (ppu.OAMAddress+1)&0b11
 			}
 
-			if ppu.OAMAddress == 0 {
+			if ppu.OAMAddress == 0 && ppu.Dot%2 == 0 {
 				// If n has overflowed back to zero (all 64 sprites evaluated), go to 4
 				ppu.SpriteEvaluationMode = 2
 			}
@@ -275,6 +278,7 @@ func (ppu *PPU) Clock() {
 		case 2:
 			// Attempt (and fail) to copy OAM[n][0] into the next free slot in secondary OAM, and increment n
 			// (repeat until HBLANK is reached)
+			ppu.SecondaryOAMPtr = 32
 			ppu.OAMCopy()
 		}
 
@@ -293,15 +297,15 @@ func (ppu *PPU) Clock() {
 		case 1:
 			ppu.SpriteUsed = true
 			// Read the Y-coordinate
-			yCoordinate := ppu.SecondaryOAM[ppu.SecondaryOAMPtr]
+			ppu.SpriteYPos[spriteIndex] = ppu.SecondaryOAM[ppu.SecondaryOAMPtr]
 			ppu.SecondaryOAMPtr++
 
-			if yCoordinate <= 7 && ppu.Mask.SpritesLeftmost() || yCoordinate == 0xFF {
+			if ppu.SpriteYPos[spriteIndex] <= 7 && ppu.Mask.SpritesLeftmost() || ppu.SpriteYPos[spriteIndex] >= 0xEF {
 				ppu.SpriteUsed = false
 			}
 		case 2:
 			// Tile number
-			ppu.NameTableLatch = ppu.SecondaryOAM[ppu.SecondaryOAMPtr]
+			ppu.SpriteEvaluationLatch = ppu.SecondaryOAM[ppu.SecondaryOAMPtr]
 			ppu.SecondaryOAMPtr++
 		case 3:
 			// Attributes
@@ -324,18 +328,26 @@ func (ppu *PPU) Clock() {
 		case 3:
 		// Garbage NT Fetch
 		case 5:
+			yPos := (ppu.CurrVRAM.CoarseYScroll()<<3 | ppu.CurrVRAM.FineYScroll()) - ppu.SpriteYPos[spriteIndex]
+			if ppu.SpriteAttribute[spriteIndex]>>7 == 1 {
+				yPos = 7 - yPos
+			}
 			// Fill Sprite low tile
 			if ppu.SpriteUsed {
-				ppu.SpritePatternLow[spriteIndex].Set(ppu.Bus.PPURead(uint16(ppu.Control.SpriteTable())<<12 | uint16(ppu.NameTableLatch)<<4 | uint16(ppu.CurrVRAM.FineYScroll())))
+				ppu.SpritePatternLow[spriteIndex].Set(ppu.Bus.PPURead(uint16(ppu.Control.SpriteTable())<<12 | uint16(ppu.SpriteEvaluationLatch)<<4 | uint16(yPos)))
 			} else {
 				ppu.SpritePatternLow[spriteIndex].Set(0)
 			}
 		case 7:
 			// Fill Sprite high tile
+			yPos := (ppu.CurrVRAM.CoarseYScroll()<<3 | ppu.CurrVRAM.FineYScroll()) - ppu.SpriteYPos[spriteIndex]
+			if ppu.SpriteAttribute[spriteIndex]>>7 == 1 {
+				yPos = 7 - yPos
+			}
 			if ppu.SpriteUsed {
-				ppu.SpritePatternLow[spriteIndex].Set(ppu.Bus.PPURead(uint16(ppu.Control.SpriteTable())<<12 | uint16(ppu.NameTableLatch)<<4 | uint16(ppu.CurrVRAM.FineYScroll()) + 8))
+				ppu.SpritePatternHigh[spriteIndex].Set(ppu.Bus.PPURead(uint16(ppu.Control.SpriteTable())<<12 | uint16(ppu.SpriteEvaluationLatch)<<4 | uint16(yPos) + 8))
 			} else {
-				ppu.SpritePatternLow[spriteIndex].Set(0)
+				ppu.SpritePatternHigh[spriteIndex].Set(0)
 			}
 		}
 	}
