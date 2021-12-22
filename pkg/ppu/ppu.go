@@ -71,6 +71,17 @@ type PPU struct {
 	SecondaryOAMPtr       uint8
 	SpriteEvaluationMode  uint8 // 10 -> 1, 11 -> 1a), 2
 	SpriteEvaluationLatch uint8
+	SpriteUsed            bool
+
+	// Sprite shift registers
+	SpritePatternLow  [8]shift_register.ShiftRegister8
+	SpritePatternHigh [8]shift_register.ShiftRegister8
+
+	// Sprite latches
+	SpriteAttribute [8]uint8
+
+	// Sprite counters
+	SpriteCounters [8]uint8
 
 	// Internal PaletteRam containing the palettes for background and sprite rendering
 	PaletteRAM [32]uint8
@@ -84,6 +95,7 @@ func New() *PPU {
 	p := &PPU{}
 	// Load the pallet information
 	p.GeneratePalette()
+
 	// Create the render frames
 	upLeft := image.Point{X: 0, Y: 0}
 	lowRight := image.Point{X: 255, Y: 239}
@@ -266,6 +278,66 @@ func (ppu *PPU) Clock() {
 			ppu.OAMCopy()
 		}
 
+	}
+
+	if ppu.IsSpriteFetch() {
+		// Cycles 257-320: Sprite fetches (8 sprites total, 8 cycles per sprite)
+		if ppu.Dot == 257 {
+			ppu.SecondaryOAMPtr = 0
+		}
+		actionIndex := ppu.Dot & 0b111
+		spriteIndex := ppu.Dot >> 3 & 0b111
+
+		// Fetches
+		switch actionIndex {
+		case 1:
+			ppu.SpriteUsed = true
+			// Read the Y-coordinate
+			yCoordinate := ppu.SecondaryOAM[ppu.SecondaryOAMPtr]
+			ppu.SecondaryOAMPtr++
+
+			if yCoordinate <= 7 && ppu.Mask.SpritesLeftmost() || yCoordinate == 0xFF {
+				ppu.SpriteUsed = false
+			}
+		case 2:
+			// Tile number
+			ppu.NameTableLatch = ppu.SecondaryOAM[ppu.SecondaryOAMPtr]
+			ppu.SecondaryOAMPtr++
+		case 3:
+			// Attributes
+			ppu.SpriteAttribute[spriteIndex] = ppu.SecondaryOAM[ppu.SecondaryOAMPtr]
+			ppu.SecondaryOAMPtr++
+			if ppu.SpriteAttribute[spriteIndex] == 0xFF {
+				ppu.SpriteUsed = false
+			}
+		default:
+			// 4-8: Read the X-coordinate of the selected sprite from secondary OAM 4 times (while the PPU fetches the sprite tile data)
+			ppu.SpriteCounters[spriteIndex] = ppu.SecondaryOAM[ppu.SecondaryOAMPtr]
+			if actionIndex == 8 {
+				ppu.SecondaryOAMPtr++
+			}
+		}
+
+		switch actionIndex {
+		case 1:
+		// Garbage NT Fetch
+		case 3:
+		// Garbage NT Fetch
+		case 5:
+			// Fill Sprite low tile
+			if ppu.SpriteUsed {
+				ppu.SpritePatternLow[spriteIndex].Set(ppu.Bus.PPURead(uint16(ppu.Control.SpriteTable())<<12 | uint16(ppu.NameTableLatch)<<4 | uint16(ppu.CurrVRAM.FineYScroll())))
+			} else {
+				ppu.SpritePatternLow[spriteIndex].Set(0)
+			}
+		case 7:
+			// Fill Sprite high tile
+			if ppu.SpriteUsed {
+				ppu.SpritePatternLow[spriteIndex].Set(ppu.Bus.PPURead(uint16(ppu.Control.SpriteTable())<<12 | uint16(ppu.NameTableLatch)<<4 | uint16(ppu.CurrVRAM.FineYScroll()) + 8))
+			} else {
+				ppu.SpritePatternLow[spriteIndex].Set(0)
+			}
+		}
 	}
 
 	// Render pixel

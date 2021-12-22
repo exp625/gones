@@ -23,6 +23,26 @@ func (ppu *PPU) ShiftRegisters() {
 // Render will generate exactly one pixel on the current frame position
 func (ppu *PPU) Render() {
 
+	var spritePixelColor color.Color
+	spritePixel := false
+
+	for spriteIndex := 0; spriteIndex < 8; spriteIndex++ {
+		if ppu.SpriteCounters[spriteIndex] != 0 {
+			ppu.SpriteCounters[spriteIndex]--
+		}
+	}
+
+	for spriteIndex := 0; spriteIndex < 8; spriteIndex++ {
+		if ppu.SpriteCounters[spriteIndex] == 0 {
+			spritePixelIndex := ppu.SpritePatternHigh[spriteIndex].ShiftLeft(0)<<1 | ppu.SpritePatternLow[spriteIndex].ShiftLeft(0)
+			attributeIndex := ppu.SpriteAttribute[spriteIndex] & 0b11
+			if !spritePixel && spritePixelIndex != 0 {
+				spritePixelColor = ppu.Palette[ppu.PaletteRAM[attributeIndex*4+spritePixelIndex]][ppu.Mask.Emphasize()]
+				spritePixel = true
+			}
+		}
+	}
+
 	colorIndex := ppu.TileAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.TileALow.GetBit(7-ppu.FineXScroll)
 	attributeIndex := ppu.AttributeAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.AttributeALow.GetBit(7-ppu.FineXScroll)
 	backgroundPixelColor := ppu.Palette[ppu.PaletteRAM[0]][ppu.Mask.Emphasize()]
@@ -31,10 +51,17 @@ func (ppu *PPU) Render() {
 	}
 
 	var pixelColor color.Color
+	pixelColor = color.RGBA{}
 	if ppu.Mask.ShowBackground() {
 		pixelColor = backgroundPixelColor
-		ppu.RenderFrame.Set(int(ppu.Dot-1), int(ppu.ScanLine), pixelColor)
+
 	}
+
+	if ppu.Mask.ShowSprites() && spritePixel {
+		pixelColor = spritePixelColor
+	}
+
+	ppu.RenderFrame.Set(int(ppu.Dot-1), int(ppu.ScanLine), pixelColor)
 
 }
 
@@ -56,6 +83,11 @@ func (ppu *PPU) IsOAMClear() bool {
 // IsSpriteEvaluation return true if the ppu is currently copying sprites to oam memory
 func (ppu *PPU) IsSpriteEvaluation() bool {
 	return (ppu.IsVisibleLine() || ppu.IsPrerenderLine()) && 65 <= ppu.Dot && ppu.Dot <= 256
+}
+
+// IsSpriteFetch return true if the ppu is fetching sprite information
+func (ppu *PPU) IsSpriteFetch() bool {
+	return (ppu.IsVisibleLine() || ppu.IsPrerenderLine()) && 257 <= ppu.Dot && ppu.Dot <= 320
 }
 
 // IncrementVerticalPosition increments fine Y, overflowing to coarse Y, and finally adjusted to wrap among
