@@ -22,20 +22,46 @@ func (ppu *PPU) ShiftRegisters() {
 
 // Render will generate exactly one pixel on the current frame position
 func (ppu *PPU) Render() {
-
-	colorIndex := ppu.TileAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.TileALow.GetBit(7-ppu.FineXScroll)
+	backgroundColorIndex := ppu.TileAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.TileALow.GetBit(7-ppu.FineXScroll)
 	attributeIndex := ppu.AttributeAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.AttributeALow.GetBit(7-ppu.FineXScroll)
 	backgroundPixelColor := ppu.Palette[ppu.PaletteRAM[0]][ppu.Mask.Emphasize()]
-	if colorIndex != 0 {
-		backgroundPixelColor = ppu.Palette[ppu.PaletteRAM[attributeIndex*4+colorIndex]][ppu.Mask.Emphasize()]
+	if backgroundColorIndex != 0 {
+		backgroundPixelColor = ppu.Palette[ppu.PaletteRAM[attributeIndex*4+backgroundColorIndex]][ppu.Mask.Emphasize()]
 	}
 
 	var pixelColor color.Color
 	if ppu.Mask.ShowBackground() {
 		pixelColor = backgroundPixelColor
-		ppu.RenderFrame.Set(int(ppu.Dot-1), int(ppu.ScanLine), pixelColor)
+	} else {
+		pixelColor = ppu.Palette[ppu.PaletteRAM[attributeIndex*4+backgroundColorIndex]][ppu.Mask.Emphasize()]
 	}
 
+	for i := 0; i < 8; i++ {
+		if ppu.SpriteCounters[i] == 0 {
+			var spriteColorIndex uint8
+			if (ppu.SpriteAttribute[i]>>6)&0b1 == 1 {
+				spriteColorIndex = (ppu.SpritePatternHigh[i].ShiftRight(0) << 1) | ppu.SpritePatternLow[i].ShiftRight(0)
+			} else {
+				spriteColorIndex = (ppu.SpritePatternHigh[i].ShiftLeft(0) << 1) | ppu.SpritePatternLow[i].ShiftLeft(0)
+			}
+			spriteAttributeIndex := ppu.SpriteAttribute[i] & 0b11
+			if spriteColorIndex != 0 && (((ppu.SpriteAttribute[i]>>6)&0x1) == 0 || backgroundColorIndex == 0) {
+				if i == 0 && backgroundColorIndex == 0 {
+					ppu.Status.SetSpriteZeroHit(true)
+				}
+				pixelColor = ppu.Palette[ppu.PaletteRAM[4*spriteAttributeIndex+spriteColorIndex+4*4]%0x40][ppu.Mask.Emphasize()]
+				break
+			}
+		}
+	}
+
+	for i := 0; i < 8; i++ {
+		if ppu.SpriteCounters[i] > 0 {
+			ppu.SpriteCounters[i]--
+		}
+	}
+
+	ppu.RenderFrame.Set(int(ppu.Dot-1), int(ppu.ScanLine), pixelColor)
 }
 
 // IsVisibleLine return true if the ppu is currently on a visible scan line
@@ -56,6 +82,11 @@ func (ppu *PPU) IsOAMClear() bool {
 // IsSpriteEvaluation return true if the ppu is currently copying sprites to oam memory
 func (ppu *PPU) IsSpriteEvaluation() bool {
 	return (ppu.IsVisibleLine() || ppu.IsPrerenderLine()) && 65 <= ppu.Dot && ppu.Dot <= 256
+}
+
+// IsSpriteFetches returns true if the ppu is currently fetching sprites
+func (ppu *PPU) IsSpriteFetches() bool {
+	return ppu.IsVisibleLine() && 257 <= ppu.Dot && ppu.Dot <= 320
 }
 
 // IncrementVerticalPosition increments fine Y, overflowing to coarse Y, and finally adjusted to wrap among

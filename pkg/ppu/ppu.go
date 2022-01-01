@@ -67,8 +67,20 @@ type PPU struct {
 
 	// In addition to the primary OAM memory, the PPU contains 32 bytes (enough for 8 sprites) of secondary OAM memory
 	// that is not directly accessible by the program.
-	SecondaryOAM    [32]uint8
-	secondaryOAMPtr uint8
+	SecondaryOAM        [32]uint8
+	SecondaryOAMAddress uint8
+
+	// Sprite shift registers
+	SpritePatternLow  [8]shift_register.ShiftRegister8
+	SpritePatternHigh [8]shift_register.ShiftRegister8
+
+	// Sprite latches
+	SpriteAttribute [8]uint8
+
+	// Sprite counters
+	SpriteCounters [8]uint8
+
+	SpriteZeroVisible bool
 
 	// Internal PaletteRam containing the palettes for background and sprite rendering
 	PaletteRAM [32]uint8
@@ -189,22 +201,91 @@ func (ppu *PPU) Clock() {
 
 	// Cycles 1-64: Secondary OAM (32-byte buffer for current sprites on scanline) is initialized to $FF - attempting to read $2004 will return $FF.
 	if ppu.IsOAMClear() {
+		ppu.SpriteZeroVisible = false
 		if ppu.Dot == 1 {
-			ppu.secondaryOAMPtr = 0
+			ppu.SecondaryOAMAddress = 0
 		}
 
 		if ppu.Dot%2 == 1 {
-			ppu.SecondaryOAM[ppu.secondaryOAMPtr] = 0xFF
+			ppu.SecondaryOAM[ppu.SecondaryOAMAddress] = 0xFF
 		} else {
-			ppu.secondaryOAMPtr++
+			ppu.SecondaryOAMAddress++
 		}
 
 		if ppu.Dot == 64 {
-			ppu.secondaryOAMPtr = 0
+			ppu.SecondaryOAMAddress = 0
 		}
 	}
 
 	// Cycles 65-256: Sprite evaluation
+	if ppu.IsSpriteEvaluation() && ppu.Dot == 65 {
+		n := 0
+		m := 0
+		if ppu.Dot%2 == 1 {
+			if ppu.SecondaryOAMAddress < 8*4 {
+			step1:
+				yAddress := uint16(ppu.OAM[4*n+0])
+				ppu.SecondaryOAM[ppu.SecondaryOAMAddress] = uint8(yAddress)
+				if yAddress <= ppu.ScanLine && ppu.ScanLine <= yAddress+8 {
+					if n == 0 {
+						ppu.SpriteZeroVisible = true
+					}
+					ppu.SecondaryOAM[ppu.SecondaryOAMAddress+1] = ppu.OAM[4*n+1]
+					ppu.SecondaryOAM[ppu.SecondaryOAMAddress+2] = ppu.OAM[4*n+2]
+					ppu.SecondaryOAM[ppu.SecondaryOAMAddress+3] = ppu.OAM[4*n+3]
+					ppu.SecondaryOAMAddress += 4
+				}
+				n++
+				if n == 64 {
+					n = 0
+					goto step4
+				} else if ppu.SecondaryOAMAddress < 32 {
+					goto step1
+				} else if ppu.SecondaryOAMAddress == 32 {
+					// Disable writes lol
+				}
+			step3:
+				m = 0
+				yAddress = uint16(ppu.OAM[4*n+m])
+				n++
+				if yAddress <= ppu.ScanLine && ppu.ScanLine <= yAddress+8 {
+					ppu.Status.SetSpriteOverflow(true)
+				} else {
+					m = (m + 1) % 4
+					if n == 64 {
+						n = 0
+						goto step4
+					}
+					goto step3
+				}
+			step4:
+				// Increment n until HBLANK is reached
+			}
+		}
+	}
+
+	// Cycles 257-320: Sprite fetches
+	if ppu.IsSpriteFetches() && ppu.Dot == 257 {
+		for i := 0; i < 8; i++ {
+			yCoordinate := ppu.SecondaryOAM[4*i]
+			tileNumber := ppu.SecondaryOAM[4*i+1]
+			attributes := ppu.SecondaryOAM[4*i+2]
+			xCoordinate := ppu.SecondaryOAM[4*i+3]
+
+			yPos := ppu.ScanLine - uint16(yCoordinate)
+			if (ppu.SpriteAttribute[i]>>7)&0b1 == 1 {
+				yPos = 7 - yPos
+			}
+			patternLo := ppu.Bus.PPURead(uint16(ppu.Control.SpriteTable())<<12 | uint16(tileNumber)<<4 | 0<<3 | yPos)
+			patternHi := ppu.Bus.PPURead(uint16(ppu.Control.SpriteTable())<<12 | uint16(tileNumber)<<4 | 1<<3 | yPos)
+			ppu.SpritePatternLow[i].Set(patternLo)
+			ppu.SpritePatternHigh[i].Set(patternHi)
+			ppu.SpriteAttribute[i] = attributes
+			ppu.SpriteCounters[i] = xCoordinate
+		}
+	}
+
+	// Cycles 321-340+0: Background render pipeline initialization
 
 	// Render pixel
 	if (1 <= ppu.Dot && ppu.Dot <= 256) && ppu.IsVisibleLine() {
