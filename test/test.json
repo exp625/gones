@@ -1,0 +1,152 @@
+{
+  "tests": [
+    {
+      "rom": "nes-test-roms/blargg_ppu_tests_2005.09.15b/palette_ram.nes",
+      "frames": 60,
+      "output": "0x00F0",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Tests passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Palette read shouldn't be buffered like other VRAM"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Palette write/read doesn't work"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Palette should be mirrored within $3f00-$3fff"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Write to $10 should be mirrored at $00"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Write to $00 should be mirrored at $10"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/blargg_ppu_tests_2005.09.15b/sprite_ram.nes",
+      "frames": 60,
+      "output": "0x00F0",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Tests passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Basic read/write doesn't work"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Address should increment on $2004 write"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Address should not increment on $2004 read"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Third sprite bytes should be masked with $e3 on read"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "$4014 DMA copy doesn't work at all"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "$4014 DMA copy should start at value in $2003 and wrap"
+        },
+        {
+          "code": 8,
+          "pass": false,
+          "message": "$4014 DMA copy should leave value in $2003 intact"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/blargg_ppu_tests_2005.09.15b/vbl_clear_time.nes",
+      "frames": 60,
+      "output": "0x00F0",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Tests passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "VBL flag cleared too soon"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "VBL flag cleared too late"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/blargg_ppu_tests_2005.09.15b/vram_access.nes",
+      "frames": 60,
+      "output": "0x00F0",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Tests passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "VRAM reads should be delayed in a buffer"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Basic Write/read doesn't work"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Read buffer shouldn't be affected by VRAM write"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Read buffer shouldn't be affected by palette write"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Palette read should also read VRAM into read buffer"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "Shadow VRAM read unaffected by palette transparent color mirroringl"
+        }
+      ]
+    }
+  ]
+}

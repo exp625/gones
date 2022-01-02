@@ -3,22 +3,38 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/exp625/gones/internal/plz"
 	"github.com/exp625/gones/pkg/cpu"
 	"github.com/exp625/gones/pkg/emulator"
 	"github.com/exp625/gones/pkg/logger"
+	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 )
 
+type TestConfig struct {
+	Tests []struct {
+		Rom     string `json:"rom"`
+		Frames  int    `json:"frames"`
+		Output  string `json:"output"`
+		Results []struct {
+			Code    int    `json:"code"`
+			Pass    bool   `json:"pass"`
+			Message string `json:"message"`
+		} `json:"results"`
+	} `json:"tests"`
+}
+
 // TestCPULogOutput runs the CPU Output against the nestest.log
 func TestCPULogOutput(t *testing.T) {
 	logFileName := time.Now().Format("log/2006-01-02_15-04-05_nes.log")
-	nesFileName := "test/nestest.nes"
+	nesFileName := "test/nes-test-roms/other/nestest.nes"
 
 	e, err := emulator.New(nesFileName, false)
 	if err != nil {
@@ -51,7 +67,7 @@ func TestCPULogOutput(t *testing.T) {
 	}
 	defer plz.Close(gotLogFile)
 
-	expectedLogFile, err := os.Open("test/nestest.log")
+	expectedLogFile, err := os.Open("test/nes-test-roms/other/nestest.log")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -119,134 +135,53 @@ func TestCPULogOutput(t *testing.T) {
 	e.Close()
 }
 
-// TestVRAMAccess test PPU palette RAM read/write and mirroring test
-func TestPPUPaletteRam(t *testing.T) {
-	nesFileName := "test/palette_ram.nes"
-	e, err := emulator.New(nesFileName, false)
+func TestFromConfig(t *testing.T) {
+	var config TestConfig
+	configFile, err := os.Open("./test/test.json")
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Run emulator until the infinite loop is reached
-	for e.CPU.PC != 0xE412 {
-		e.Clock()
-	}
-	// Get the result
-	result := e.CPURead(0x00F0)
-	switch result {
-	case 1:
-		// Test passed
-		return
-	case 2:
-		t.Fatal("Palette read shouldn't be buffered like other VRAM")
-	case 3:
-		t.Fatal("Palette write/read doesn't work")
-	case 4:
-		t.Fatal("Palette should be mirrored within $3f00-$3fff")
-	case 5:
-		t.Fatal("Write to $10 should be mirrored at $00")
-	case 6:
-		t.Fatal("Write to $00 should be mirrored at $10")
-	default:
-		t.Fatal("TestPPUPaletteRam failed")
-	}
-	e.Close()
-}
+	defer configFile.Close()
+	byteValue, _ := ioutil.ReadAll(configFile)
+	json.Unmarshal(byteValue, &config)
 
-// TestSpriteRam tests sprite RAM access via $2003, $2004, and $4014
-func TestSpriteRam(t *testing.T) {
-	nesFileName := "test/sprite_ram.nes"
-	e, err := emulator.New(nesFileName, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Run emulator until the infinite loop is reached
-	for e.CPU.PC != 0xE467 {
-		e.Clock()
-	}
-	// Get the result
-	result := e.CPURead(0x00F0)
-	switch result {
-	case 1:
-		// Test passed
-		return
-	case 2:
-		t.Fatal("Basic read/write doesn't work")
-	case 3:
-		t.Fatal("Address should increment on $2004 write")
-	case 4:
-		t.Fatal("Address should not increment on $2004 read")
-	case 5:
-		t.Fatal("Third sprite bytes should be masked with $e3 on read ")
-	case 6:
-		t.Fatal("$4014 DMA copy doesn't work at all")
-	case 7:
-		t.Fatal("$4014 DMA copy should start at value in $2003 and wrap")
-	case 8:
-		t.Fatal("$4014 DMA copy should leave value in $2003 intact")
-	default:
-		t.Fatal("TestVRAMAccess failed")
-	}
-	e.Close()
-}
+	for _, test := range config.Tests {
+		rom := strings.Split(test.Rom, "/")
+		testname := fmt.Sprintf("Test %s", strings.Split(rom[len(rom)-1], ".")[0])
+		t.Run(testname, func(t *testing.T) {
+			e, err := emulator.New("./test/"+test.Rom, false)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-// TestVBLFlag tests if the VBL flag ($2002.7) is cleared by the PPU around 2270 CPU clocks after NMI occurs.
-func TestVBLFlag(t *testing.T) {
-	nesFileName := "test/vbl_clear_time.nes"
-	e, err := emulator.New(nesFileName, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Run emulator until the infinite loop is reached
-	for e.CPU.PC != 0xE3B3 {
-		e.Clock()
-	}
-	// Get the result
-	result := e.CPURead(0x00F0)
-	switch result {
-	case 1:
-		// Test passed
-		return
-	case 2:
-		t.Fatal(" VBL flag cleared too soon")
-	case 3:
-		t.Fatal("VBL flag cleared too late")
-	default:
-		t.Fatal("TestVRAMAccess failed")
-	}
-	e.Close()
-}
+			// Run emulator until the infinite loop is reached
+			for e.PPU.FrameCount != uint64(test.Frames) {
+				e.Clock()
+			}
 
-// TestVRAMAccess tests PPU VRAM read/write and internal read buffer operation
-func TestVRAMAccess(t *testing.T) {
-	nesFileName := "test/vram_access.nes"
-	e, err := emulator.New(nesFileName, false)
-	if err != nil {
-		t.Fatal(err)
+			// Get the result
+			numberStr := strings.Replace(test.Output, "0x", "", -1)
+			numberStr = strings.Replace(numberStr, "0X", "", -1)
+			resultLocation, err := strconv.ParseUint(numberStr, 16, 64)
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			resultValue := e.CPURead(uint16(resultLocation))
+
+			for _, result := range test.Results {
+				if resultValue == uint8(result.Code) {
+					if result.Pass {
+						// Test passed
+						return
+					} else {
+						t.Fatal(result.Message)
+						return
+					}
+				}
+			}
+			t.Fatal("Could not match result for test")
+
+		})
 	}
-	// Run emulator until the infinite loop is reached
-	for e.CPU.PC != 0xE48D {
-		e.Clock()
-	}
-	// Get the result
-	result := e.CPURead(0x00F0)
-	switch result {
-	case 1:
-		// Test passed
-		return
-	case 2:
-		t.Fatal("VRAM reads should be delayed in a buffer")
-	case 3:
-		t.Fatal("Basic Write/read doesn't work")
-	case 4:
-		t.Fatal("Read buffer shouldn't be affected by VRAM write")
-	case 5:
-		t.Fatal("Read buffer shouldn't be affected by palette write")
-	case 6:
-		t.Fatal("Palette read should also read VRAM into read buffer")
-	case 7:
-		t.Fatal("Shadow VRAM read unaffected by palette transparent color mirroring")
-	default:
-		t.Fatal("TestVRAMAccess failed")
-	}
-	e.Close()
 }
