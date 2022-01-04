@@ -9,12 +9,15 @@ import (
 
 //go:generate go run gen/cmd/main.go
 func main() {
-	romFile := "test/nestest.nes"
+
+	romFile := ""
+	debug := false
 	if len(os.Args) == 2 {
 		romFile = os.Args[1]
+		// Maybe add flag for debug
 	}
 
-	e, err := emulator.New(romFile, true)
+	e, err := emulator.New(romFile, debug)
 	if err != nil {
 		log.Fatal("failed to set up emulator: ", err)
 	}

@@ -52,18 +52,13 @@ type Emulator struct {
 }
 
 func New(romFile string, debug bool) (*Emulator, error) {
-	bytes, err := os.ReadFile(romFile)
-	if err != nil {
-		return nil, err
-	}
-	c := cartridge.Load(bytes)
 
 	var directory string
 	lastROMFile, ok := config.Get(config.LastROMFile)
 	if ok {
 		directory = filepath.Dir(lastROMFile)
 	} else {
-		directory, err = os.UserHomeDir()
+		_, err := os.UserHomeDir()
 		if err != nil {
 			return nil, err
 		}
@@ -83,7 +78,17 @@ func New(romFile string, debug bool) (*Emulator, error) {
 		e.ActiveOverlay = OverlayCPU
 	}
 
-	e.InsertCartridge(c)
+	if romFile != "" {
+		bytes, err := os.ReadFile(romFile)
+		if err != nil {
+			return nil, err
+		}
+		c := cartridge.Load(bytes)
+		e.InsertCartridge(c)
+	} else {
+		e.ActiveOverlay = OverlayROMChooser
+	}
+
 	if err := e.Init(); err != nil {
 		return nil, err
 	}
@@ -122,7 +127,9 @@ func (e *Emulator) Init() error {
 
 func (e *Emulator) Update() error {
 	textutil.Update()
-	e.HandleInput()
+	if e.ActiveOverlay != OverlayROMChooser {
+		e.HandleInput()
+	}
 
 	// Measure time spent in auto run mode
 	if e.AutoRunEnabled {
@@ -157,9 +164,11 @@ func (e *Emulator) Update() error {
 			return nil
 		}
 		c := cartridge.Load(bytes)
-		e.Reset()
 		e.InsertCartridge(c)
+		e.Reset()
+
 		e.ActiveOverlay = OverlayGame
+		e.AutoRunEnabled = true
 		if err := config.Set(config.LastROMFile, absolutePath); err != nil {
 			log.Println("failed to set last ROM file in config: ", err.Error())
 		}

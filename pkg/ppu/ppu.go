@@ -221,47 +221,43 @@ func (ppu *PPU) Clock() {
 	if ppu.IsSpriteEvaluation() && ppu.Dot == 65 {
 		n := 0
 		m := 0
-		if ppu.Dot%2 == 1 {
-			if ppu.SecondaryOAMAddress < 8*4 {
-			step1:
-				yAddress := uint16(ppu.OAM[4*n+0])
-				ppu.SecondaryOAM[ppu.SecondaryOAMAddress] = uint8(yAddress)
-				if yAddress <= ppu.ScanLine && ppu.ScanLine <= yAddress+8 {
-					if n == 0 {
-						ppu.SpriteZeroVisible = true
-					}
-					ppu.SecondaryOAM[ppu.SecondaryOAMAddress+1] = ppu.OAM[4*n+1]
-					ppu.SecondaryOAM[ppu.SecondaryOAMAddress+2] = ppu.OAM[4*n+2]
-					ppu.SecondaryOAM[ppu.SecondaryOAMAddress+3] = ppu.OAM[4*n+3]
-					ppu.SecondaryOAMAddress += 4
-				}
-				n++
-				if n == 64 {
-					n = 0
-					goto step4
-				} else if ppu.SecondaryOAMAddress < 32 {
-					goto step1
-				} else if ppu.SecondaryOAMAddress == 32 {
-					// Disable writes lol
-				}
-			step3:
-				m = 0
-				yAddress = uint16(ppu.OAM[4*n+m])
-				n++
-				if yAddress <= ppu.ScanLine && ppu.ScanLine <= yAddress+8 {
-					ppu.Status.SetSpriteOverflow(true)
-				} else {
-					m = (m + 1) % 4
-					if n == 64 {
-						n = 0
-						goto step4
-					}
-					goto step3
-				}
-			step4:
-				// Increment n until HBLANK is reached
+	step1:
+		yAddress := uint16(ppu.OAM[4*n+0])
+		ppu.SecondaryOAM[ppu.SecondaryOAMAddress] = uint8(yAddress)
+		if yAddress <= ppu.ScanLine && ppu.ScanLine <= yAddress+7 {
+			if n == 0 {
+				ppu.SpriteZeroVisible = true
 			}
+			ppu.SecondaryOAM[ppu.SecondaryOAMAddress+1] = ppu.OAM[4*n+1]
+			ppu.SecondaryOAM[ppu.SecondaryOAMAddress+2] = ppu.OAM[4*n+2]
+			ppu.SecondaryOAM[ppu.SecondaryOAMAddress+3] = ppu.OAM[4*n+3]
+			ppu.SecondaryOAMAddress += 4
 		}
+		n++
+		if n == 64 {
+			n = 0
+			goto step4
+		} else if ppu.SecondaryOAMAddress < 32 {
+			goto step1
+		} else if ppu.SecondaryOAMAddress == 32 {
+			// Disable writes lol
+		}
+	step3:
+		m = 0
+		yAddress = uint16(ppu.OAM[4*n+m])
+		n++
+		if yAddress <= ppu.ScanLine && ppu.ScanLine <= yAddress+8 {
+			ppu.Status.SetSpriteOverflow(true)
+		} else {
+			m = (m + 1) % 4
+			if n == 64 {
+				n = 0
+				goto step4
+			}
+			goto step3
+		}
+	step4:
+		// Increment n until HBLANK is reached
 	}
 
 	// Cycles 257-320: Sprite fetches
@@ -273,7 +269,7 @@ func (ppu *PPU) Clock() {
 			xCoordinate := ppu.SecondaryOAM[4*i+3]
 
 			yPos := ppu.ScanLine - uint16(yCoordinate)
-			if (ppu.SpriteAttribute[i]>>7)&0b1 == 1 {
+			if (attributes>>7)&0b1 == 1 {
 				yPos = 7 - yPos
 			}
 			patternLo := ppu.Bus.PPURead(uint16(ppu.Control.SpriteTable())<<12 | uint16(tileNumber)<<4 | 0<<3 | yPos)
