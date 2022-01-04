@@ -12,6 +12,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"testing"
@@ -136,52 +137,65 @@ func TestCPULogOutput(t *testing.T) {
 }
 
 func TestFromConfig(t *testing.T) {
-	var config TestConfig
-	configFile, err := os.Open("./test/test.json")
+	files, err := ioutil.ReadDir("./test")
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer configFile.Close()
-	byteValue, _ := ioutil.ReadAll(configFile)
-	json.Unmarshal(byteValue, &config)
-
-	for _, test := range config.Tests {
-		rom := strings.Split(test.Rom, "/")
-		testname := fmt.Sprintf("Test %s", strings.Split(rom[len(rom)-1], ".")[0])
-		t.Run(testname, func(t *testing.T) {
-			e, err := emulator.New("./test/"+test.Rom, false)
+	for _, file := range files {
+		if !strings.HasSuffix(file.Name(), ".json") {
+			continue
+		}
+		config := func() TestConfig {
+			var config TestConfig
+			configFile, err := os.Open(path.Join("./test", file.Name()))
 			if err != nil {
 				t.Fatal(err)
 			}
-
-			// Run emulator until the infinite loop is reached
-			for e.PPU.FrameCount != uint64(test.Frames) {
-				e.Clock()
-			}
-
-			// Get the result
-			numberStr := strings.Replace(test.Output, "0x", "", -1)
-			numberStr = strings.Replace(numberStr, "0X", "", -1)
-			resultLocation, err := strconv.ParseUint(numberStr, 16, 64)
-			if err != nil {
+			defer configFile.Close()
+			byteValue, _ := ioutil.ReadAll(configFile)
+			if err := json.Unmarshal(byteValue, &config); err != nil {
 				t.Fatal(err)
 			}
+			return config
+		}()
+		for _, test := range config.Tests {
+			rom := strings.Split(test.Rom, "/")
+			testname := fmt.Sprintf("Test %s", strings.Split(rom[len(rom)-1], ".")[0])
+			t.Run(testname, func(t *testing.T) {
+				e, err := emulator.New("./test/"+test.Rom, false)
+				if err != nil {
+					t.Fatal(err)
+				}
 
-			resultValue := e.CPURead(uint16(resultLocation))
+				// Run emulator until the infinite loop is reached
+				for e.PPU.FrameCount != uint64(test.Frames) {
+					e.Clock()
+				}
 
-			for _, result := range test.Results {
-				if resultValue == uint8(result.Code) {
-					if result.Pass {
-						// Test passed
-						return
-					} else {
-						t.Fatal(result.Message)
-						return
+				// Get the result
+				numberStr := strings.Replace(test.Output, "0x", "", -1)
+				numberStr = strings.Replace(numberStr, "0X", "", -1)
+				resultLocation, err := strconv.ParseUint(numberStr, 16, 64)
+				if err != nil {
+					t.Fatal(err)
+				}
+
+				resultValue := e.CPURead(uint16(resultLocation))
+
+				for _, result := range test.Results {
+					if resultValue == uint8(result.Code) {
+						if result.Pass {
+							// Test passed
+							return
+						} else {
+							t.Fatal(result.Message)
+							return
+						}
 					}
 				}
-			}
-			t.Fatal("Could not match result for test")
 
-		})
+				t.Fatal("Could not match result for test")
+			})
+		}
 	}
 }

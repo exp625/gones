@@ -1,0 +1,471 @@
+{
+  "tests": [
+    {
+      "rom": "nes-test-roms/sprite_hit_tests_2005.10.05/01.basics.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Sprite hit isn't working at all"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Should hit even when completely behind background"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Should miss when background rendering is off"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Should miss when sprite rendering is off"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Should miss when all rendering is off"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "All-transparent sprite should miss"
+        },
+        {
+          "code": 8,
+          "pass": false,
+          "message": "Only low two palette index bits are relevant"
+        },
+        {
+          "code": 9,
+          "pass": false,
+          "message": "Any non-zero palette index should hit with any other"
+        },
+        {
+          "code": 10,
+          "pass": false,
+          "message": "Should miss when background is all transparent"
+        },
+        {
+          "code": 11,
+          "pass": false,
+          "message": "Should always miss other sprites"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/sprite_hit_tests_2005.10.05/02.alignment.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Basic sprite-background alignment is way off"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Sprite should miss left side of bg tile"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Sprite should hit left side of bg tile"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Sprite should miss right side of bg tile"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Sprite should hit right side of bg tile"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "Sprite should miss top of bg tile"
+        },
+        {
+          "code": 8,
+          "pass": false,
+          "message": "Sprite should hit top of bg tile"
+        },
+        {
+          "code": 9,
+          "pass": false,
+          "message": "Sprite should miss bottom of bg tile"
+        },
+        {
+          "code": 10,
+          "pass": false,
+          "message": "Sprite should hit bottom of bg tile"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/sprite_hit_tests_2005.10.05/03.corners.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Lower-right pixel should hit"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Lower-left pixel should hit"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Upper-right pixel should hit"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Upper-left pixel should hit"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/sprite_hit_tests_2005.10.05/04.flip.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Horizontal flipping doesn't work"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Vertical flipping doesn't work"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Horizontal + Vertical flipping doesn't work"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/sprite_hit_tests_2005.10.05/05.left_clip.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Should miss when entirely in left-edge clipping"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Left-edge clipping occurs when $2001 is not $1e"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Left-edge clipping is off when $2001 = $1e"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Left-edge clipping blocks all hits only when X = 0"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Should miss; sprite pixel covered by left-edge clip"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "Should hit; sprite pixel outside left-edge clip"
+        },
+        {
+          "code": 8,
+          "pass": false,
+          "message": "Should hit; sprite pixel outside left-edge clip"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/sprite_hit_tests_2005.10.05/06.right_edge.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Should always miss when X = 255"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Should hit; sprite has pixels < 255"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Should miss; sprite pixel is at 255"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Should hit; sprite pixel is at 254"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Should also hit; sprite pixel is at 254"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/sprite_hit_tests_2005.10.05/07.screen_bottom.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Should always miss when Y >= 239"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Can hit when Y < 239"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Should always miss when Y = 255"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Should hit; sprite pixel is at 238"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Should miss; sprite pixel is at 239"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "Should hit; sprite pixel is at 238"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/sprite_hit_tests_2005.10.05/08.double_height.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Lower sprite tile should miss bottom of bg tile"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Lower sprite tile should hit bottom of bg tile"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Lower sprite tile should miss top of bg tile"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Lower sprite tile should hit top of bg tile"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/sprite_hit_tests_2005.10.05/09.timing_basics.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Upper-left corner too soon"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Upper-left corner too late"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Upper-right corner too soon"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Upper-right corner too late"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Lower-left corner too soon"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "Lower-left corner too late"
+        },
+        {
+          "code": 8,
+          "pass": false,
+          "message": "Cleared at end of VBL too soon"
+        },
+        {
+          "code": 9,
+          "pass": false,
+          "message": "Cleared at end of VBL too late"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/sprite_hit_tests_2005.10.05/10.timing_order.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Upper-left corner too soon"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Upper-left corner too late"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Upper-right corner too soon"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Upper-right corner too late"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Lower-left corner too soon"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "Lower-left corner too late"
+        },
+        {
+          "code": 8,
+          "pass": false,
+          "message": "Lower-right corner too soon"
+        },
+        {
+          "code": 9,
+          "pass": false,
+          "message": "Lower-right corner too late"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/sprite_hit_tests_2005.10.05/11.edge_timing.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Hit time shouldn't be based on pixels under left clip"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Hit time shouldn't be based on pixels at X=255"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Hit time shouldn't be based on pixels off right edge"
+        }
+      ]
+    }
+  ]
+}

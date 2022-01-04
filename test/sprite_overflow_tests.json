@@ -1,0 +1,234 @@
+{
+  "tests": [
+    {
+      "rom": "nes-test-roms/sprite_overflow_tests/1.Basics.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Should be set when 9 sprites are on a scanline"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Reading $2002 shouldn't clear flag"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Shouldn't be cleared at the beginning of VBL"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Should be cleared at the end of VBL"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Shouldn't be set when all rendering is off"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "Should work normally when $2001 = $08 (bg rendering only)"
+        },
+        {
+          "code": 8,
+          "pass": false,
+          "message": "Should work normally when $2001 = $10 (sprite rendering only)"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/sprite_overflow_tests/2.Details.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Should be set even when sprites are under left clip (X = 0)"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Disabling rendering shouldn't clear flag"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Should be cleared at the end of VBL even when rendering is off"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Should be set when sprite Y coordinates are 239"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Shouldn't be set when sprite Y coordinates are 240 (off screen)"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "Shouldn't be set when sprite Y coordinates are 255 (off screen)"
+        },
+        {
+          "code": 8,
+          "pass": false,
+          "message": "Should be set regardless of which sprites are involved"
+        },
+        {
+          "code": 9,
+          "pass": false,
+          "message": "Shouldn't be set when all scanlines have 7 or fewer sprites"
+        },
+        {
+          "code": 10,
+          "pass": false,
+          "message": "Double-height sprites aren't handled properly"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/sprite_overflow_tests/3.Timing.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Cleared too late/3)too early at end of VBL"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Set too early/5)too late for first scanline"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Sprite horizontal positions should have no effect on timing"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "Set too early/8)late for last sprites on first scanline"
+        },
+        {
+          "code": 9,
+          "pass": false,
+          "message": "Set too early/10)too late for last scanline"
+        },
+        {
+          "code": 11,
+          "pass": false,
+          "message": "Set too early/12)too late when 9th sprite # is way after 8th"
+        },
+        {
+          "code": 13,
+          "pass": false,
+          "message": "Overflow on second scanline occurs too early/14)too late"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/sprite_overflow_tests/4.Obscure.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Checks that second byte of sprite #10 is treated as its Y "
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Checks that third byte of sprite #11 is treated as its Y "
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Checks that fourth byte of sprite #12 is treated as its Y "
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Checks that first byte of sprite #13 is treated as its Y "
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Checks that second byte of sprite #14 is treated as its Y "
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "Checks that search stops at the last sprite without overflow"
+        },
+        {
+          "code": 8,
+          "pass": false,
+          "message": "Same as test #2 but using a different range of sprites"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/sprite_overflow_tests/5.Emulator.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Didn't calculate overflow when there was no $2002 read for frame"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Disabling rendering didn't recalculate flag time"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Changing sprite RAM didn't recalculate flag time"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Changing sprite height didn't recalculate time"
+        }
+      ]
+    }
+  ]
+}
