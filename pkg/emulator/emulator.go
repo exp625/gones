@@ -1,6 +1,7 @@
 package emulator
 
 import (
+	"fmt"
 	"github.com/exp625/gones/internal/config"
 	"github.com/exp625/gones/internal/textutil"
 	"github.com/exp625/gones/pkg/cartridge"
@@ -52,7 +53,6 @@ type Emulator struct {
 }
 
 func New(romFile string, debug bool) (*Emulator, error) {
-
 	var directory string
 	lastROMFile, ok := config.Get(config.LastROMFile)
 	if ok {
@@ -84,6 +84,9 @@ func New(romFile string, debug bool) (*Emulator, error) {
 			return nil, err
 		}
 		c := cartridge.Load(bytes)
+		if c == nil {
+			return nil, fmt.Errorf("unsupported mapper")
+		}
 		e.InsertCartridge(c)
 	} else {
 		e.ActiveOverlay = OverlayROMChooser
@@ -164,6 +167,9 @@ func (e *Emulator) Update() error {
 			return nil
 		}
 		c := cartridge.Load(bytes)
+		if c == nil {
+			return nil
+		}
 		e.InsertCartridge(c)
 		e.Reset()
 

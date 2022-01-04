@@ -160,7 +160,7 @@ func TestFromConfig(t *testing.T) {
 		}()
 		for _, test := range config.Tests {
 			rom := strings.Split(test.Rom, "/")
-			testname := fmt.Sprintf("Test %s", strings.Split(rom[len(rom)-1], ".")[0])
+			testname := fmt.Sprintf("Test_%s_%s", rom[len(rom)-2], rom[len(rom)-1])
 			t.Run(testname, func(t *testing.T) {
 				e, err := emulator.New("./test/"+test.Rom, false)
 				if err != nil {
