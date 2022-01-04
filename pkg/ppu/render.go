@@ -1,6 +1,8 @@
 package ppu
 
-import "image/color"
+import (
+	"image/color"
+)
 
 // SwapFrameBuffer swaps the frame buffer. The PPU implementation has two frame buffers, one witch the ppu renders the
 // current frame on and one that is displayed. After a new rendered frame is complete, the frame buffers are swapped to
@@ -22,43 +24,65 @@ func (ppu *PPU) ShiftRegisters() {
 
 // Render will generate exactly one pixel on the current frame position
 func (ppu *PPU) Render() {
-	backgroundColorIndex := ppu.TileAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.TileALow.GetBit(7-ppu.FineXScroll)
-	attributeIndex := ppu.AttributeAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.AttributeALow.GetBit(7-ppu.FineXScroll)
-	backgroundPixelColor := ppu.Palette[ppu.PaletteRAM[0]][ppu.Mask.Emphasize()]
-	if backgroundColorIndex != 0 {
-		backgroundPixelColor = ppu.Palette[ppu.PaletteRAM[attributeIndex*4+backgroundColorIndex]][ppu.Mask.Emphasize()]
-	}
-
+	var backgroundPixelColor color.Color
+	var backgroundColorIndex uint8
+	var spritePixelColor color.Color
+	var spriteColorIndex uint8
+	var spritePriority uint8
 	var pixelColor color.Color
-	if ppu.Mask.ShowBackground() {
-		pixelColor = backgroundPixelColor
-	} else {
-		pixelColor = ppu.Palette[ppu.PaletteRAM[attributeIndex*4+backgroundColorIndex]][ppu.Mask.Emphasize()]
-	}
+
+	backgroundColorIndex = ppu.TileAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.TileALow.GetBit(7-ppu.FineXScroll)
+	attributeIndex := ppu.AttributeAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.AttributeALow.GetBit(7-ppu.FineXScroll)
+	backgroundPixelColor = ppu.Palette[ppu.PaletteRAM[attributeIndex*4+backgroundColorIndex]][ppu.Mask.Emphasize()]
 
 	for i := 0; i < 8; i++ {
-		if ppu.SpriteCounters[i] == 0 {
-			var spriteColorIndex uint8
-			if (ppu.SpriteAttribute[i]>>6)&0b1 == 1 {
-				spriteColorIndex = (ppu.SpritePatternHigh[i].ShiftRight(0) << 1) | ppu.SpritePatternLow[i].ShiftRight(0)
-			} else {
-				spriteColorIndex = (ppu.SpritePatternHigh[i].ShiftLeft(0) << 1) | ppu.SpritePatternLow[i].ShiftLeft(0)
-			}
-			spriteAttributeIndex := ppu.SpriteAttribute[i] & 0b11
-			if spriteColorIndex != 0 && (((ppu.SpriteAttribute[i]>>6)&0x1) == 0 || backgroundColorIndex == 0) {
-				if i == 0 && backgroundColorIndex == 0 {
-					ppu.Status.SetSpriteZeroHit(true)
-				}
-				pixelColor = ppu.Palette[ppu.PaletteRAM[4*spriteAttributeIndex+spriteColorIndex+4*4]%0x40][ppu.Mask.Emphasize()]
-				break
-			}
+		if ppu.SpriteCounters[i] != 0 {
+			continue
 		}
+
+		var currentSpriteColor uint8
+		if (ppu.SpriteAttribute[i]>>6)&0b1 == 1 {
+			currentSpriteColor = (ppu.SpritePatternHigh[i].ShiftRight(0) << 1) | ppu.SpritePatternLow[i].ShiftRight(0)
+		} else {
+			currentSpriteColor = (ppu.SpritePatternHigh[i].ShiftLeft(0) << 1) | ppu.SpritePatternLow[i].ShiftLeft(0)
+		}
+		if currentSpriteColor == 0 {
+			continue
+		}
+
+		// A visible sprite was found
+		currentSpritePriority := (ppu.SpriteAttribute[i] >> 5) & 0x1
+		spriteAttributeIndex := ppu.SpriteAttribute[i] & 0b11
+		if i == 0 && backgroundColorIndex == 0 {
+			ppu.Status.SetSpriteZeroHit(true)
+		}
+		spritePriority = currentSpritePriority
+		spriteColorIndex = currentSpriteColor
+		spritePixelColor = ppu.Palette[ppu.PaletteRAM[4*spriteAttributeIndex+currentSpriteColor+4*4]%0x40][ppu.Mask.Emphasize()]
+
+		// Only the first visible sprite is shown, exit the loop now
+		// break
 	}
 
 	for i := 0; i < 8; i++ {
 		if ppu.SpriteCounters[i] > 0 {
 			ppu.SpriteCounters[i]--
 		}
+	}
+
+	switch {
+	case backgroundColorIndex == 0 && spriteColorIndex != 0 && ppu.Mask.ShowSprites():
+		pixelColor = spritePixelColor
+	case backgroundColorIndex != 0 && spriteColorIndex == 0 && ppu.Mask.ShowBackground():
+		pixelColor = backgroundPixelColor
+	case backgroundColorIndex != 0 && spriteColorIndex != 0 && ppu.Mask.ShowSprites() && ppu.Mask.ShowBackground():
+		if spritePriority == 0 {
+			pixelColor = spritePixelColor
+		} else {
+			pixelColor = backgroundPixelColor
+		}
+	default:
+		pixelColor = ppu.Palette[ppu.PaletteRAM[0]][ppu.Mask.Emphasize()]
 	}
 
 	ppu.RenderFrame.Set(int(ppu.Dot-1), int(ppu.ScanLine), pixelColor)

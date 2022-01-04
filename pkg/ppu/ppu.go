@@ -224,7 +224,7 @@ func (ppu *PPU) Clock() {
 	step1:
 		yAddress := uint16(ppu.OAM[4*n+0])
 		ppu.SecondaryOAM[ppu.SecondaryOAMAddress] = uint8(yAddress)
-		if yAddress <= ppu.ScanLine && ppu.ScanLine <= yAddress+7 {
+		if yAddress <= ppu.ScanLine && ((ppu.ScanLine <= yAddress+7 && ppu.Control.SpriteSize() == 0) || ppu.ScanLine <= yAddress+15 && ppu.Control.SpriteSize() == 1) {
 			if n == 0 {
 				ppu.SpriteZeroVisible = true
 			}
@@ -246,7 +246,7 @@ func (ppu *PPU) Clock() {
 		m = 0
 		yAddress = uint16(ppu.OAM[4*n+m])
 		n++
-		if yAddress <= ppu.ScanLine && ppu.ScanLine <= yAddress+8 {
+		if yAddress <= ppu.ScanLine && ((ppu.ScanLine <= yAddress+7 && ppu.Control.SpriteSize() == 0) || ppu.ScanLine <= yAddress+15 && ppu.Control.SpriteSize() == 1) {
 			ppu.Status.SetSpriteOverflow(true)
 		} else {
 			m = (m + 1) % 4
@@ -264,16 +264,35 @@ func (ppu *PPU) Clock() {
 	if ppu.IsSpriteFetches() && ppu.Dot == 257 {
 		for i := 0; i < 8; i++ {
 			yCoordinate := ppu.SecondaryOAM[4*i]
-			tileNumber := ppu.SecondaryOAM[4*i+1]
+			tileIndexNumber := ppu.SecondaryOAM[4*i+1]
 			attributes := ppu.SecondaryOAM[4*i+2]
 			xCoordinate := ppu.SecondaryOAM[4*i+3]
 
 			yPos := ppu.ScanLine - uint16(yCoordinate)
 			if (attributes>>7)&0b1 == 1 {
-				yPos = 7 - yPos
+				if ppu.Control.SpriteSize() == 1 {
+					yPos = 7 - yPos // Vertical flipping in 8x8 mode
+				} else {
+					yPos = 15 - yPos // Vertical flipping in 8x8 mode
+				}
 			}
-			patternLo := ppu.Bus.PPURead(uint16(ppu.Control.SpriteTable())<<12 | uint16(tileNumber)<<4 | 0<<3 | yPos)
-			patternHi := ppu.Bus.PPURead(uint16(ppu.Control.SpriteTable())<<12 | uint16(tileNumber)<<4 | 1<<3 | yPos)
+
+			var patternLo uint8
+			var patternHi uint8
+			if ppu.Control.SpriteSize() == 0 {
+				patternLo = ppu.Bus.PPURead(uint16(ppu.Control.SpriteTable())<<12 | uint16(tileIndexNumber)<<4 | 0<<3 | yPos)
+				patternHi = ppu.Bus.PPURead(uint16(ppu.Control.SpriteTable())<<12 | uint16(tileIndexNumber)<<4 | 1<<3 | yPos)
+			} else {
+				partIndex := uint16(0)
+				if yPos >= 8 {
+					// We are displaying the second part of the 8x16 Sprite
+					partIndex = 1
+					yPos -= 8
+				}
+				patternLo = ppu.Bus.PPURead(uint16(tileIndexNumber&0b1)<<12 | uint16(tileIndexNumber&0b11111110)<<4 | partIndex<<4 | 0<<3 | yPos)
+				patternHi = ppu.Bus.PPURead(uint16(tileIndexNumber&0b1)<<12 | uint16(tileIndexNumber&0b11111110)<<4 | partIndex<<4 | 1<<3 | yPos)
+			}
+
 			ppu.SpritePatternLow[i].Set(patternLo)
 			ppu.SpritePatternHigh[i].Set(patternHi)
 			ppu.SpriteAttribute[i] = attributes
