@@ -71,11 +71,11 @@ func (ppu *PPU) Render() {
 	}
 
 	switch {
-	case backgroundColorIndex == 0 && spriteColorIndex != 0 && ppu.Mask.ShowSprites():
+	case backgroundColorIndex == 0 && spriteColorIndex != 0 && ppu.Mask.ShowSprites() && (ppu.Mask.SpritesLeftmost() || ppu.Dot > 8):
 		pixelColor = spritePixelColor
-	case backgroundColorIndex != 0 && spriteColorIndex == 0 && ppu.Mask.ShowBackground():
+	case backgroundColorIndex != 0 && spriteColorIndex == 0 && ppu.Mask.ShowBackground() && (ppu.Mask.BackgroundLeftmost() || ppu.Dot > 8):
 		pixelColor = backgroundPixelColor
-	case backgroundColorIndex != 0 && spriteColorIndex != 0 && ppu.Mask.ShowSprites() && ppu.Mask.ShowBackground():
+	case backgroundColorIndex != 0 && spriteColorIndex != 0 && ppu.Mask.ShowSprites() && ppu.Mask.ShowBackground() && (ppu.Mask.SpritesLeftmost() || ppu.Dot > 8) && (ppu.Mask.BackgroundLeftmost() || ppu.Dot > 8):
 		if spritePriority == 0 {
 			pixelColor = spritePixelColor
 		} else {
