@@ -88,7 +88,8 @@ func Load(rom []byte) *Cartridge {
 		c.Mapper = NewMapper002(c)
 		log.Println("Created Cartridge with Mapper 002")
 	default:
-		log.Fatalf("Unsupported ROM File with Mapper %00d", mapperNumber)
+		log.Printf("Unsupported ROM File with Mapper %00d", mapperNumber)
+		return nil
 	}
 
 	return c

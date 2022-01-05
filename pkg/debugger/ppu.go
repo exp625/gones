@@ -113,8 +113,8 @@ func (nes *Debugger) DrawPPUInfo(t *textutil.Text) {
 		nes.PPU.Mask, (nes.PPU.Control>>5)&0b111, (nes.PPU.Control>>4)&0x1 == 1, (nes.PPU.Control>>3)&0x1 == 1, nes.PPU.Control&0x1 == 1, (nes.PPU.Control>>2)&0x1 == 1, (nes.PPU.Control>>1)&0x1 == 1))
 	plz.Just(fmt.Fprintf(t, "PPUSTATUS: %02X \tVBLANK: %t \tSprite 0 Hit: %t \t Sprite Overflow: %t \n",
 		nes.PPU.Status, (nes.PPU.Status>>7)&0x1 == 1, (nes.PPU.Status>>6)&0x1 == 1, (nes.PPU.Status>>5)&0x1 == 1))
-	plz.Just(fmt.Fprintf(t, "\t\t\t\tX-DebugVRAM %02X \tY-DebugVRAM: %02X \n",
-		nes.PPU.TempVRAM.CoarseXScroll(), nes.PPU.TempVRAM.CoarseYScroll()))
+	plz.Just(fmt.Fprintf(t, "\t\t\t\tX-Pos %02X \tY-Pos: %02X \n",
+		nes.PPU.CurrVRAM.CoarseXScroll()<<3|nes.PPU.FineXScroll, nes.PPU.CurrVRAM.CoarseYScroll()<<3|nes.PPU.CurrVRAM.FineYScroll()))
 
 }
 
@@ -137,6 +137,26 @@ func (nes *Debugger) DrawOAM(t *textutil.Text) {
 			t.Color(colornames.White)
 		}
 		plz.Just(fmt.Fprintf(t, "%02X ", nes.PPU.OAM[uint16(i)]))
+	}
+
+	t.Color(colornames.White)
+	plz.Just(fmt.Fprintf(t, "\n\nSecondary OAM: 0x%02X\n   ", nes.PPU.SecondaryOAMAddress))
+	t.Color(colornames.Yellow)
+	for i := 0; i <= 0xF; i++ {
+		plz.Just(fmt.Fprintf(t, "%02X ", uint16(i)))
+	}
+
+	for i := 0x00; i <= 0x1F; i++ {
+		if i%16 == 0 {
+			t.Color(colornames.Yellow)
+			plz.Just(fmt.Fprintf(t, "\n%02X ", uint16(i&0xF0)))
+		}
+		if nes.PPU.SecondaryOAMAddress == uint8(i) {
+			t.Color(colornames.Green)
+		} else {
+			t.Color(colornames.White)
+		}
+		plz.Just(fmt.Fprintf(t, "%02X ", nes.PPU.SecondaryOAM[uint16(i)]))
 	}
 }
 

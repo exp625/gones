@@ -67,7 +67,27 @@ type PPU struct {
 
 	// In addition to the primary OAM memory, the PPU contains 32 bytes (enough for 8 sprites) of secondary OAM memory
 	// that is not directly accessible by the program.
-	secondaryOAM [32]uint8
+	SecondaryOAM        [32]uint8
+	SecondaryOAMAddress uint8
+
+	// Sprite shift registers
+	SpritePatternLow  [8]shift_register.ShiftRegister8
+	SpritePatternHigh [8]shift_register.ShiftRegister8
+
+	// Sprite latches
+	SpriteAttribute [8]uint8
+
+	// Sprite counters
+	SpriteCounters [8]uint8
+
+	// Helper variables for sprite evaluation
+	SpriteEvaluationMode        uint8
+	EvalN                       uint8
+	EvalM                       uint8
+	SpriteZeroVisibleEvaluation bool
+	SpriteZeroVisible           bool
+	SpriteYCoordinate           [8]uint8
+	SpriteTileIndex             [8]uint8
 
 	// Internal PaletteRam containing the palettes for background and sprite rendering
 	PaletteRAM [32]uint8
@@ -81,6 +101,7 @@ func New() *PPU {
 	p := &PPU{}
 	// Load the pallet information
 	p.GeneratePalette()
+
 	// Create the render frames
 	upLeft := image.Point{X: 0, Y: 0}
 	lowRight := image.Point{X: 255, Y: 239}
@@ -112,6 +133,7 @@ func (ppu *PPU) Clock() {
 		ppu.Status.SetSpriteOverflow(false)
 	}
 
+	// Background
 	if ppu.IsVisibleLine() || ppu.IsPrerenderLine() {
 
 		if (2 <= ppu.Dot && ppu.Dot <= 257) || (321 <= ppu.Dot && ppu.Dot <= 337) {
@@ -183,6 +205,167 @@ func (ppu *PPU) Clock() {
 		}
 	}
 
+	// Cycles 1-64: Secondary OAM (32-byte buffer for current sprites on scanline) is initialized to $FF - attempting to read $2004 will return $FF.
+	if ppu.IsOAMClear() && ppu.Dot%2 == 1 {
+		// Each memory access takes two cycles. Reads happen on the odds cycle and are relevant to be clock accurate.
+		// Perform read and write in one cycle
+		if ppu.Dot == 1 {
+			// Reset SecondaryOAMAddress
+			ppu.SecondaryOAMAddress = 0
+		}
+		// Clean secondary OAM
+		ppu.SecondaryOAM[ppu.SecondaryOAMAddress] = 0xFF
+		ppu.SecondaryOAMAddress++
+	}
+
+	// Cycles 65-256: Sprite evaluation
+	if ppu.IsSpriteEvaluation() {
+		// Each memory access takes two cycles. Reads happen on the odds cycle and are relevant to be clock accurate.
+		if ppu.Dot == 65 {
+			// Reset Relevant pointers and registers
+			ppu.SecondaryOAMAddress = 0
+			ppu.SpriteEvaluationMode = 0
+			ppu.OAMAddress = 0
+			ppu.EvalN = 0
+			ppu.EvalM = 0
+			ppu.SpriteZeroVisibleEvaluation = false
+		}
+
+		switch ppu.SpriteEvaluationMode {
+		case 0:
+			// Sprite copying
+			if ppu.EvalM == 0 || ppu.SpriteInRange(ppu.OAM[4*ppu.EvalN+0]) {
+				// We are at the start of a new sprite
+				// Starting at n = 0, read a sprite's Y-coordinate (OAM[n][0], copying it to the next open slot in secondary
+				// OAM (unless 8 sprites have been found, in which case the write is ignored)
+				// If Y-coordinate is in range, copy remaining bytes of sprite data (OAM[n][1] thru OAM[n][3]) into secondary OAM.
+				if ppu.SpriteInRange(ppu.OAM[4*ppu.EvalN+0]) && ppu.EvalN == 0 {
+					ppu.SpriteZeroVisibleEvaluation = true
+				}
+				ppu.SecondaryOAM[ppu.SecondaryOAMAddress] = ppu.OAM[4*ppu.EvalN+ppu.EvalM]
+				ppu.SecondaryOAMAddress++
+				ppu.EvalM++
+				if ppu.EvalM == 4 {
+					ppu.EvalM = 0
+					ppu.EvalN++
+				}
+			} else {
+				// Sprites Y-Position was outside of range
+				ppu.SecondaryOAMAddress--
+				ppu.EvalM = 0
+				ppu.EvalN++
+			}
+
+			if ppu.EvalN == 64 {
+				// If n has overflowed back to zero (all 64 sprites evaluated), go to 4 (2)
+				ppu.EvalN = 0
+				ppu.SpriteEvaluationMode = 2
+			} else if ppu.SecondaryOAMAddress == 32 {
+				// If exactly 8 sprites have been found, disable writes to secondary OAM because it is full.
+				// This causes sprites in back to drop out.
+				// Write disable is done inside the OAMCopy function
+				ppu.SpriteEvaluationMode = 1
+			}
+		case 1:
+			if ppu.SpriteOverflowConditions(ppu.OAM[4*ppu.EvalN+0]) {
+				// Starting at m = 0, evaluate OAM[n][m] as a Y-coordinate.
+				// if the value is in range, set the sprite overflow flag in $2002 and read the next 3 entries of OAM
+				// (incrementing 'm' after each byte and incrementing 'n' when 'm' overflows); if m = 3, increment n
+				ppu.Status.SetSpriteOverflow(true)
+				ppu.EvalN++
+			} else {
+				// If the value is not in range, increment n and m (without carry). If n overflows to 0, go to 4; otherwise go to 3
+				// The m increment is a hardware bug - if only n was incremented, the overflow flag would be set whenever
+				// more than 8 sprites were present on the same scanline, as expected.
+				ppu.EvalM = (ppu.EvalM + 1) % 4
+				ppu.EvalN++
+				if ppu.EvalN == 64 {
+					// If n has overflowed back to zero (all 64 sprites evaluated), go to 4 (2)
+					ppu.EvalN = 0
+					ppu.SpriteEvaluationMode = 2
+				}
+			}
+		case 2:
+			// Attempt (and fail) to copy OAM[n][0] into the next free slot in secondary OAM, and increment n
+			// (repeat until HBLANK is reached)
+			ppu.EvalN++
+			if ppu.EvalN == 64 {
+				ppu.EvalN = 0
+			}
+		}
+
+	}
+
+	if ppu.IsSpriteFetches() {
+		// Cycles 257-320: Sprite fetches (8 sprites total, 8 cycles per sprite)
+		if ppu.Dot == 257 {
+			ppu.SpriteZeroVisible = ppu.SpriteZeroVisibleEvaluation
+		}
+		actionIndex := ppu.Dot & 0b111
+		spriteIndex := ppu.Dot >> 3 & 0b111
+
+		// Fetches
+		switch actionIndex {
+		case 1:
+			// Read the Y-coordinate
+			// Also Garbage NT Fetch that is unimplemented
+			ppu.SpriteYCoordinate[spriteIndex] = ppu.SecondaryOAM[spriteIndex*4+0]
+		case 2:
+			// Tile number
+			if ppu.SpriteYCoordinate[spriteIndex] != 0xFF {
+				ppu.SpriteTileIndex[spriteIndex] = ppu.SecondaryOAM[spriteIndex*4+1]
+			} else {
+				ppu.SpriteTileIndex[spriteIndex] = 0
+			}
+		case 3:
+			// Attributes
+			// Also Garbage NT Fetch that is unimplemented
+			if ppu.SpriteYCoordinate[spriteIndex] != 0xFF {
+				ppu.SpriteAttribute[spriteIndex] = ppu.SecondaryOAM[spriteIndex*4+2]
+			} else {
+				ppu.SpriteAttribute[spriteIndex] = 0
+			}
+		case 4:
+			// 4-8: Read the X-coordinate of the selected sprite from secondary OAM 4 times (while the PPU fetches the sprite tile data)
+			// We only do it once on actionIndex 4
+			if ppu.SpriteYCoordinate[spriteIndex] != 0xFF {
+				ppu.SpriteCounters[spriteIndex] = ppu.SecondaryOAM[spriteIndex*4+3]
+			} else {
+				ppu.SpriteCounters[spriteIndex] = 0
+			}
+		case 5:
+			// For convenience, we do the memory fetches that happen on actionIndex 5 and 7 together. Both only access secondaryOAM
+			// memory which can not be updated mid-frame by external devices
+			yPos := ppu.ScanLine - uint16(ppu.SpriteYCoordinate[spriteIndex])
+			if (ppu.SpriteAttribute[spriteIndex]>>7)&0b1 == 1 {
+				if ppu.Control.SpriteSize() == 0 {
+					yPos = 7 - yPos // Vertical flipping in 8x8 mode
+				} else {
+					yPos = 15 - yPos // Vertical flipping in 8x16 mode
+				}
+			}
+			if ppu.SpriteYCoordinate[spriteIndex] == 0xFF {
+				ppu.SpritePatternLow[spriteIndex].Set(0)
+				ppu.SpritePatternHigh[spriteIndex].Set(0)
+			} else if ppu.Control.SpriteSize() == 0 {
+				ppu.SpritePatternLow[spriteIndex].Set(ppu.Bus.PPURead(uint16(ppu.Control.SpriteTable())<<12 | uint16(ppu.SpriteTileIndex[spriteIndex])<<4 | 0<<3 | yPos))
+				ppu.SpritePatternHigh[spriteIndex].Set(ppu.Bus.PPURead(uint16(ppu.Control.SpriteTable())<<12 | uint16(ppu.SpriteTileIndex[spriteIndex])<<4 | 1<<3 | yPos))
+			} else if ppu.Control.SpriteSize() == 1 {
+				partIndex := uint16(0)
+				if yPos >= 8 {
+					// We are displaying the second part of the 8x16 Sprite
+					partIndex = 1
+					yPos -= 8
+				}
+				ppu.SpritePatternLow[spriteIndex].Set(ppu.Bus.PPURead(uint16(ppu.SpriteTileIndex[spriteIndex]&0b1)<<12 | uint16(ppu.SpriteTileIndex[spriteIndex]&0b11111110)<<4 | partIndex<<4 | 0<<3 | yPos))
+				ppu.SpritePatternHigh[spriteIndex].Set(ppu.Bus.PPURead(uint16(ppu.SpriteTileIndex[spriteIndex]&0b1)<<12 | uint16(ppu.SpriteTileIndex[spriteIndex]&0b11111110)<<4 | partIndex<<4 | 1<<3 | yPos))
+			}
+
+		case 7:
+			// Memory fetch happened already
+		}
+	}
+
 	// Render pixel
 	if (1 <= ppu.Dot && ppu.Dot <= 256) && ppu.IsVisibleLine() {
 		ppu.Render()
@@ -250,8 +433,8 @@ func (ppu *PPU) Reset() {
 	// Clear OAM
 	ppu.OAM = [256]uint8{}
 
-	// Clear secondaryOAM
-	ppu.secondaryOAM = [32]uint8{}
+	// Clear SecondaryOAM
+	ppu.SecondaryOAM = [32]uint8{}
 
 	// Clear paletteRam
 	ppu.PaletteRAM = [32]uint8{}
@@ -280,7 +463,12 @@ func (ppu *PPU) CPURead(location uint16) uint8 {
 		case 4:
 			// Read OAM data
 			// Reads during vertical or forced blanking return the value from OAM at OAMAddress but do not increment.
-			ppu.GenLatch = ppu.OAM[ppu.OAMAddress]
+			if ppu.IsOAMClear() {
+				ppu.GenLatch = 0xFF
+			} else {
+				ppu.GenLatch = ppu.OAM[ppu.OAMAddress]
+			}
+
 			// TODO: Implement behaviour for OAM Reads during rendering
 		case 5:
 			// Write only register
