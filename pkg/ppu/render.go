@@ -153,11 +153,11 @@ func (ppu *PPU) IncrementHorizontalPosition() {
 	}
 }
 
-func (ppu *PPU) SpriteInRange(pos uint16) bool {
-	return pos <= ppu.ScanLine && ((ppu.ScanLine <= pos+7 && ppu.Control.SpriteSize() == 0) || ppu.ScanLine <= pos+15 && ppu.Control.SpriteSize() == 1)
+func (ppu *PPU) SpriteInRange(pos uint8) bool {
+	return uint16(pos) <= ppu.ScanLine && ((ppu.ScanLine <= uint16(pos)+7 && ppu.Control.SpriteSize() == 0) || ppu.ScanLine <= uint16(pos)+15 && ppu.Control.SpriteSize() == 1)
 }
 
-func (ppu *PPU) SpriteOverflowConditions(yAddress uint16) bool {
+func (ppu *PPU) SpriteOverflowConditions(yAddress uint8) bool {
 	if !ppu.SpriteInRange(yAddress) {
 		return false
 	}
