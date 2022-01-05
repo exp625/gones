@@ -52,7 +52,7 @@ func (m *Mapper007) CPUWrite(location uint16, data uint8) bool {
 		//    |  +++- Select 32 KB PRG ROM bank for CPU $8000-$FFFF
 		//    +------ Select 1 KB VRAM page for all 4 nametables
 
-		m.romBankSelect = data & 0b111
+		m.romBankSelect = data & 0b1111 // Some emulators allow bit 3 to be used to select up to 512 KB of PRG ROM for an oversized AxRO
 		m.nameTablePage = data >> 4 & 0b1
 		return true
 	}
