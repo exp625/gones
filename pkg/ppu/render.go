@@ -1,6 +1,8 @@
 package ppu
 
-import "image/color"
+import (
+	"image/color"
+)
 
 // SwapFrameBuffer swaps the frame buffer. The PPU implementation has two frame buffers, one witch the ppu renders the
 // current frame on and one that is displayed. After a new rendered frame is complete, the frame buffers are swapped to
@@ -22,52 +24,68 @@ func (ppu *PPU) ShiftRegisters() {
 
 // Render will generate exactly one pixel on the current frame position
 func (ppu *PPU) Render() {
-
+	var backgroundPixelColor color.Color
+	var backgroundColorIndex uint8
 	var spritePixelColor color.Color
-	spritePixel := false
-
-	for spriteIndex := 0; spriteIndex < 8; spriteIndex++ {
-		if ppu.SpriteCounters[spriteIndex] != 0 {
-			ppu.SpriteCounters[spriteIndex]--
-		}
-	}
-
-	for spriteIndex := 0; spriteIndex < 8; spriteIndex++ {
-		if ppu.SpriteCounters[spriteIndex] == 0 {
-			var spritePixelIndex uint8
-			if ppu.SpriteAttribute[spriteIndex]>>6&0b1 == 1 {
-				spritePixelIndex = ppu.SpritePatternHigh[spriteIndex].ShiftRight(0)<<1 | ppu.SpritePatternLow[spriteIndex].ShiftRight(0)
-			} else {
-				spritePixelIndex = ppu.SpritePatternHigh[spriteIndex].ShiftLeft(0)<<1 | ppu.SpritePatternLow[spriteIndex].ShiftLeft(0)
-			}
-			attributeIndex := ppu.SpriteAttribute[spriteIndex] & 0b11
-			if !spritePixel && spritePixelIndex != 0 {
-				spritePixelColor = ppu.Palette[ppu.PaletteRAM[attributeIndex*4+spritePixelIndex+16]][ppu.Mask.Emphasize()]
-				spritePixel = true
-			}
-		}
-	}
-
-	colorIndex := ppu.TileAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.TileALow.GetBit(7-ppu.FineXScroll)
-	attributeIndex := ppu.AttributeAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.AttributeALow.GetBit(7-ppu.FineXScroll)
-	backgroundPixelColor := ppu.Palette[ppu.PaletteRAM[0]][ppu.Mask.Emphasize()]
-	if colorIndex != 0 {
-		backgroundPixelColor = ppu.Palette[ppu.PaletteRAM[attributeIndex*4+colorIndex]][ppu.Mask.Emphasize()]
-	}
-
+	var spriteColorIndex uint8
+	var spritePriority uint8
 	var pixelColor color.Color
-	pixelColor = color.RGBA{}
-	if ppu.Mask.ShowBackground() {
-		pixelColor = backgroundPixelColor
 
+	backgroundColorIndex = ppu.TileAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.TileALow.GetBit(7-ppu.FineXScroll)
+	attributeIndex := ppu.AttributeAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.AttributeALow.GetBit(7-ppu.FineXScroll)
+	backgroundPixelColor = ppu.Palette[ppu.PaletteRAM[attributeIndex*4+backgroundColorIndex]][ppu.Mask.Emphasize()]
+
+	for i := 0; i < 8; i++ {
+		if ppu.SpriteCounters[i] != 0 {
+			continue
+		}
+
+		var currentSpriteColorIndex uint8
+		if (ppu.SpriteAttribute[i]>>6)&0b1 == 1 {
+			currentSpriteColorIndex = (ppu.SpritePatternHigh[i].ShiftRight(0) << 1) | ppu.SpritePatternLow[i].ShiftRight(0)
+		} else {
+			currentSpriteColorIndex = (ppu.SpritePatternHigh[i].ShiftLeft(0) << 1) | ppu.SpritePatternLow[i].ShiftLeft(0)
+		}
+		if currentSpriteColorIndex == 0 {
+			continue
+		}
+
+		// A visible sprite was found
+		currentSpritePriority := (ppu.SpriteAttribute[i] >> 5) & 0x1
+		spriteAttributeIndex := ppu.SpriteAttribute[i] & 0b11
+		if ppu.SpriteZeroHitConditions(i, backgroundColorIndex, currentSpriteColorIndex) {
+			ppu.Status.SetSpriteZeroHit(true)
+		}
+		spritePriority = currentSpritePriority
+		spriteColorIndex = currentSpriteColorIndex
+		spritePixelColor = ppu.Palette[ppu.PaletteRAM[4*spriteAttributeIndex+currentSpriteColorIndex+4*4]%0x40][ppu.Mask.Emphasize()]
+
+		// Only the first visible sprite is shown, exit the loop now
+		// break
 	}
 
-	if ppu.Mask.ShowSprites() && spritePixel {
+	for i := 0; i < 8; i++ {
+		if ppu.SpriteCounters[i] > 0 {
+			ppu.SpriteCounters[i]--
+		}
+	}
+
+	switch {
+	case backgroundColorIndex == 0 && spriteColorIndex != 0 && ppu.Mask.ShowSprites():
 		pixelColor = spritePixelColor
+	case backgroundColorIndex != 0 && spriteColorIndex == 0 && ppu.Mask.ShowBackground():
+		pixelColor = backgroundPixelColor
+	case backgroundColorIndex != 0 && spriteColorIndex != 0 && ppu.Mask.ShowSprites() && ppu.Mask.ShowBackground():
+		if spritePriority == 0 {
+			pixelColor = spritePixelColor
+		} else {
+			pixelColor = backgroundPixelColor
+		}
+	default:
+		pixelColor = ppu.Palette[ppu.PaletteRAM[0]][ppu.Mask.Emphasize()]
 	}
 
 	ppu.RenderFrame.Set(int(ppu.Dot-1), int(ppu.ScanLine), pixelColor)
-
 }
 
 // IsVisibleLine return true if the ppu is currently on a visible scan line
@@ -90,8 +108,8 @@ func (ppu *PPU) IsSpriteEvaluation() bool {
 	return ppu.IsVisibleLine() && 65 <= ppu.Dot && ppu.Dot <= 256
 }
 
-// IsSpriteFetch return true if the ppu is fetching sprite information
-func (ppu *PPU) IsSpriteFetch() bool {
+// IsSpriteFetches returns true if the ppu is currently fetching sprites
+func (ppu *PPU) IsSpriteFetches() bool {
 	return ppu.IsVisibleLine() && 257 <= ppu.Dot && ppu.Dot <= 320
 }
 
@@ -135,29 +153,54 @@ func (ppu *PPU) IncrementHorizontalPosition() {
 	}
 }
 
-// OAMCopy reads and copies data from OAM to secondary OAM.
-func (ppu *PPU) OAMCopy() {
-	// On odd cycles, data is read from (primary) OAM
-	// On even cycles, data is written to secondary OAM (unless secondary OAM is full, in which case it will read
-	// the value in secondary OAM instead)
-	if ppu.Dot%2 == 1 {
-		ppu.SpriteEvaluationLatch = ppu.OAM[ppu.OAMAddress]
-	} else {
-		ppu.OAMAddress++
-		if ppu.SecondaryOAMPtr < 32 {
-			ppu.SecondaryOAM[ppu.SecondaryOAMPtr] = ppu.SpriteEvaluationLatch
-			ppu.SecondaryOAMPtr++
-		} else {
-			// Secondary OAM is full
-		}
-
-	}
+func (ppu *PPU) SpriteInRange(pos uint16) bool {
+	return pos <= ppu.ScanLine && ((ppu.ScanLine <= pos+7 && ppu.Control.SpriteSize() == 0) || ppu.ScanLine <= pos+15 && ppu.Control.SpriteSize() == 1)
 }
 
-// SpriteInRange checks if the sprites Y-Coordinate is in range
-func (ppu *PPU) SpriteInRange(position uint8) bool {
-	// spriteYPosition is at the top of the sprite
-	renderYPosition := ppu.CurrVRAM.CoarseYScroll()<<3 | ppu.CurrVRAM.FineYScroll()
-	// TODO: 8x16 sprites
-	return renderYPosition >= position && renderYPosition <= position+7
+func (ppu *PPU) SpriteOverflowConditions(yAddress uint16) bool {
+	if !ppu.SpriteInRange(yAddress) {
+		return false
+	}
+
+	if !ppu.Mask.ShowBackground() && !ppu.Mask.ShowSprites() {
+		return false
+	}
+
+	// done
+	return true
+}
+
+func (ppu *PPU) SpriteZeroHitConditions(spriteIndex int, backgroundColorIndex, spriteColorIndex uint8) bool {
+	// Sprite zero hit, you know?
+	if spriteIndex != 0 || !ppu.SpriteZeroVisible {
+		return false
+	}
+
+	// If background or sprite rendering is disabled in PPUMASK ($2001)
+	if !ppu.Mask.ShowBackground() || !ppu.Mask.ShowSprites() {
+		return false
+	}
+
+	// At x=0 to x=7 if the left-side clipping window is enabled (if bit 2 or bit 1 of PPUMASK is 0).
+	if 1 <= ppu.Dot && ppu.Dot <= 8 && (!ppu.Mask.BackgroundLeftmost() || !ppu.Mask.SpritesLeftmost()) {
+		return false
+	}
+
+	// At x=255, for an obscure reason related to the pixel pipeline.
+	if ppu.Dot == 256 {
+		return false
+	}
+
+	// At any pixel where the background or sprite pixel is transparent (2-bit color index from the CHR pattern is %00).
+	if spriteColorIndex == 0 || backgroundColorIndex == 0 {
+		return false
+	}
+
+	// If sprite 0 hit has already occurred this frame.
+	// Bit 6 of PPUSTATUS ($2002) is cleared to 0 at dot 1 of the pre-render line.
+	// This means only the first sprite 0 hit in a frame can be detected.
+	// TODO: implement?
+
+	// done
+	return true
 }

@@ -67,11 +67,26 @@ type PPU struct {
 
 	// In addition to the primary OAM memory, the PPU contains 32 bytes (enough for 8 sprites) of secondary OAM memory
 	// that is not directly accessible by the program.
+	SecondaryOAM        [32]uint8
+	SecondaryOAMAddress uint8
 	SecondaryOAM          [32]uint8
 	SecondaryOAMPtr       uint8
 	SpriteEvaluationMode  uint8 // 10 -> 1, 11 -> 1a), 2
 	SpriteEvaluationLatch uint8
 	SpriteUsed            bool
+
+	// Sprite shift registers
+	SpritePatternLow  [8]shift_register.ShiftRegister8
+	SpritePatternHigh [8]shift_register.ShiftRegister8
+
+	// Sprite latches
+	SpriteAttribute [8]uint8
+
+	// Sprite counters
+	SpriteCounters [8]uint8
+
+	SpriteZeroVisibleEvaluation bool
+	SpriteZeroVisible           bool
 
 	// Sprite shift registers
 	SpritePatternLow  [8]shift_register.ShiftRegister8
