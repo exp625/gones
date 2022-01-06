@@ -17,8 +17,6 @@ func NewMapper002(c *Cartridge) *Mapper002 {
 	}
 }
 
-func (m *Mapper002) Clock() {}
-
 // From NES DEV WIKI https://wiki.nesdev.org/w/index.php?title=UxROM
 
 // Required for DUCK TALES! whooh ooh
@@ -109,6 +107,9 @@ func (m *Mapper002) PPUWrite(location uint16, data uint8) bool {
 }
 
 func (m *Mapper002) Reset() {
+}
+
+func (m *Mapper002) Scanline() {
 }
 
 func (m *Mapper002) DebugDisplay(text *textutil.Text) {

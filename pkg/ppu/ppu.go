@@ -356,8 +356,8 @@ func (ppu *PPU) Clock() {
 					partIndex = 1
 					yPos -= 8
 				}
-				ppu.SpritePatternLow[spriteIndex].Set(ppu.Bus.PPURead(uint16(ppu.SpriteTileIndex[spriteIndex]&0b1)<<12 | uint16(ppu.SpriteTileIndex[spriteIndex]&0b11111110)<<4 | partIndex<<4 | 0<<3 | yPos))
-				ppu.SpritePatternHigh[spriteIndex].Set(ppu.Bus.PPURead(uint16(ppu.SpriteTileIndex[spriteIndex]&0b1)<<12 | uint16(ppu.SpriteTileIndex[spriteIndex]&0b11111110)<<4 | partIndex<<4 | 1<<3 | yPos))
+				ppu.SpritePatternLow[spriteIndex].Set(ppu.Bus.PPURead(uint16(ppu.SpriteTileIndex[spriteIndex]&0b1)<<12 | uint16(ppu.SpriteTileIndex[spriteIndex]&0b1111_1110)<<4 | partIndex<<4 | 0<<3 | yPos))
+				ppu.SpritePatternHigh[spriteIndex].Set(ppu.Bus.PPURead(uint16(ppu.SpriteTileIndex[spriteIndex]&0b1)<<12 | uint16(ppu.SpriteTileIndex[spriteIndex]&0b1111_1110)<<4 | partIndex<<4 | 1<<3 | yPos))
 			}
 
 		}
@@ -366,6 +366,10 @@ func (ppu *PPU) Clock() {
 	// Render pixel
 	if (1 <= ppu.Dot && ppu.Dot <= 256) && ppu.IsVisibleLine() {
 		ppu.Render()
+	}
+
+	if ppu.Dot == 260 && ppu.IsVisibleLine() && (ppu.Mask.ShowSprites() || ppu.Mask.ShowBackground()) {
+		ppu.Bus.Scanline()
 	}
 
 	if ppu.Dot < 340 {
@@ -449,7 +453,7 @@ func (ppu *PPU) CPURead(location uint16) uint8 {
 			// Reading a nominally "write-only" register returns the GenLatch current value.
 		case 2:
 			// Read the current PPU Status. The lower 5 bits will be filled with the current value of GenLatch.
-			ppu.GenLatch = uint8(ppu.Status)&0b11100000 | ppu.GenLatch&0b00011111
+			ppu.GenLatch = uint8(ppu.Status)&0b1110_0000 | ppu.GenLatch&0b0001_1111
 			// Reading the status register will clear bit 7 (VBL) of the status register.
 			ppu.Status.SetVerticalBlank(false)
 			// Reading the status register will also clear the AddressLatch.

@@ -2,7 +2,6 @@ package cartridge
 
 type Mapper interface {
 	Debugger
-	Clock()
 	CPUMap(location uint16) uint16
 	CPURead(location uint16) uint8
 	CPUWrite(location uint16, data uint8) bool
@@ -10,4 +9,5 @@ type Mapper interface {
 	PPURead(location uint16) uint8
 	PPUWrite(location uint16, data uint8) bool
 	Reset()
+	Scanline()
 }

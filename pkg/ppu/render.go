@@ -33,7 +33,7 @@ func (ppu *PPU) Render() {
 
 	backgroundColorIndex = ppu.TileAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.TileALow.GetBit(7-ppu.FineXScroll)
 	attributeIndex := ppu.AttributeAHigh.GetBit(7-ppu.FineXScroll)<<1 | ppu.AttributeALow.GetBit(7-ppu.FineXScroll)
-	backgroundPixelColor = ppu.Palette[ppu.PaletteRAM[attributeIndex*4+backgroundColorIndex]][ppu.Mask.Emphasize()]
+	backgroundPixelColor = ppu.Palette[ppu.PaletteRAM[attributeIndex*4+backgroundColorIndex]%0x40][ppu.Mask.Emphasize()]
 
 	for i := 0; i < 8; i++ {
 		if ppu.SpriteCounters[i] != 0 {
@@ -82,7 +82,7 @@ func (ppu *PPU) Render() {
 			pixelColor = backgroundPixelColor
 		}
 	default:
-		pixelColor = ppu.Palette[ppu.PaletteRAM[0]][ppu.Mask.Emphasize()]
+		pixelColor = ppu.Palette[ppu.PaletteRAM[0]%0x40][ppu.Mask.Emphasize()]
 	}
 
 	ppu.RenderFrame.Set(int(ppu.Dot-1), int(ppu.ScanLine), pixelColor)

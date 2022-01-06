@@ -99,3 +99,7 @@ func (nes *Debugger) PPURead(location uint16) uint8 {
 	}
 	return 0
 }
+
+func (nes *Debugger) Scanline() {
+
+}

@@ -26,8 +26,6 @@ func NewMapper001(c *Cartridge) *Mapper001 {
 	return m
 }
 
-func (m *Mapper001) Clock() {}
-
 // From NES DEV WIKI https://wiki.nesdev.org/w/index.php?title=MMC1
 
 // Required for ZELDA!!!
@@ -182,6 +180,9 @@ func (m *Mapper001) Reset() {
 	m.shiftRegister = 0
 	m.shiftRegisterCount = 0
 	m.control = 0x0C
+}
+
+func (m *Mapper001) Scanline() {
 }
 
 func (m *Mapper001) DebugDisplay(text *textutil.Text) {

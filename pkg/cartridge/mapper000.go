@@ -28,8 +28,6 @@ func NewMapper000(c *Cartridge) *Mapper000 {
 // Nametable mirroring: Solder pads select vertical or horizontal mirroring
 // Subject to bus conflicts: Yes, but irrelevant
 
-func (m *Mapper000) Clock() {}
-
 // All Banks are fixed,
 //
 // CPU $6000-$7FFF: Family Basic only: PRG RAM, mirrored as necessary to fill entire 8 KiB window, write protectable with an external switch
@@ -110,6 +108,9 @@ func (m *Mapper000) PPUWrite(location uint16, data uint8) bool {
 }
 
 func (m *Mapper000) Reset() {
+}
+
+func (m *Mapper000) Scanline() {
 }
 
 func (m *Mapper000) DebugDisplay(text *textutil.Text) {

@@ -26,9 +26,6 @@ type Mapper004 struct {
 
 	// irqCounter
 	irqCounter uint8
-
-	// helper
-	a12LineLowCounter uint8
 }
 
 func NewMapper004(c *Cartridge) *Mapper004 {
@@ -117,10 +114,10 @@ func (m *Mapper004) CPUWrite(location uint16, data uint8) bool {
 		switch m.bankSelect & 0b111 {
 		case 0b000, 0b001:
 			// R0 and R1 ignore the bottom bit
-			m.bankSelections[m.bankSelect&0b111] = data & 0b11111110
+			m.bankSelections[m.bankSelect&0b111] = data & 0b1111_1110
 		case 0b110, 0b111:
 			// R6 and R7 will ignore the top two bits
-			m.bankSelections[m.bankSelect&0b111] = data & 0b00111111
+			m.bankSelections[m.bankSelect&0b111] = data & 0b0011_1111
 		default:
 			m.bankSelections[m.bankSelect&0b111] = data
 		}
@@ -174,38 +171,9 @@ func (m *Mapper004) CPUWrite(location uint16, data uint8) bool {
 	return true
 }
 
-func (m *Mapper004) Clock() {
-	if m.a12LineLowCounter < 3 {
-		m.a12LineLowCounter++
-	}
-}
-
 func (m *Mapper004) PPUMap(location uint16) uint16 {
-	if location>>12&0b1 == 1 && m.a12LineLowCounter != 3 {
-		m.a12LineLowCounter = 0
-	}
-
-	if location>>12&0b1 == 1 && m.a12LineLowCounter == 3 {
-		m.a12LineLowCounter = 0
-		// Rising edge
-		// If the IRQ counter is zero and IRQs are enabled ($E001), an IRQ is triggered. The "alternate revision"
-		// checks the IRQ counter transition 1→0, whether from decrementing or reloading.
-		if m.irqCounter == 0 && m.irqEnabled {
-			m.cartridge.Bus.IRQ()
-		}
-
-		// When the IRQ is clocked (filtered A12 0→1), the counter value is checked - if zero or the reload flag
-		// is true, it's reloaded with the IRQ latched value at $C000; otherwise, it decrements.
-		if m.irqCounter == 0 || m.irqReload {
-			m.irqCounter = m.irqLatch
-			m.irqReload = false
-		} else {
-			m.irqCounter--
-		}
-	}
-
 	if 0x2000 <= location && location <= 0x3EFF {
-		if 0x3000 <= location && location <= 0x3FFF {
+		if location >= 0x3000 {
 			location -= 0x1000
 		}
 		if m.mirrorMode&0b1 == 1 {
@@ -237,8 +205,31 @@ func (m *Mapper004) PPURead(location uint16) uint8 {
 	// $1800-$1BFF 	  R4 			R1
 	// $1C00-$1FFF 	  R5
 
+	// 7  bit  0
+	// ---- ----
+	// CPMx xRRR
+	// |||   |||
+	// |||   +++- Specify which bank register to update on next write to Bank Data register
+	// |||          000: R0: Select 2 KB CHR bank at PPU $0000-$07FF (or $1000-$17FF)
+	// |||          001: R1: Select 2 KB CHR bank at PPU $0800-$0FFF (or $1800-$1FFF)
+	// |||          010: R2: Select 1 KB CHR bank at PPU $1000-$13FF (or $0000-$03FF)
+	// |||          011: R3: Select 1 KB CHR bank at PPU $1400-$17FF (or $0400-$07FF)
+	// |||          100: R4: Select 1 KB CHR bank at PPU $1800-$1BFF (or $0800-$0BFF)
+	// |||          101: R5: Select 1 KB CHR bank at PPU $1C00-$1FFF (or $0C00-$0FFF)
+	// |||          110: R6: Select 8 KB PRG ROM bank at $8000-$9FFF (or $C000-$DFFF)
+	// |||          111: R7: Select 8 KB PRG ROM bank at $A000-$BFFF
+	// ||+------- Nothing on the MMC3, see MMC6
+	// |+-------- PRG ROM bank mode (0: $8000-$9FFF swappable,
+	// |                                $C000-$DFFF fixed to second-last bank;
+	// |                             1: $C000-$DFFF swappable,
+	// |                                $8000-$9FFF fixed to second-last bank)
+	// +--------- CHR A12 inversion (0: two 2 KB banks at $0000-$0FFF,
+	//                                  four 1 KB banks at $1000-$1FFF;
+	//                               1: two 2 KB banks at $1000-$1FFF,
+	//                                  four 1 KB banks at $0000-$0FFF)
+
 	mapMode := m.bankSelect >> 7 & 0b1
-	switch {
+	switch { //
 	case location <= 0x03FF && mapMode == 0:
 		return m.cartridge.ChrRom[uint32(location)+uint32(0x0400)*uint32(m.bankSelections[0])]
 	case 0x0400 <= location && location <= 0x07FF && mapMode == 0:
@@ -271,7 +262,6 @@ func (m *Mapper004) PPURead(location uint16) uint8 {
 		return m.cartridge.ChrRom[uint32(location-0x1800)+uint32(0x0400)*uint32(m.bankSelections[1])]
 	case 0x1C00 <= location && location <= 0x1FFF && mapMode == 1:
 		return m.cartridge.ChrRom[uint32(location-0x1C00)+uint32(0x0400)*uint32(m.bankSelections[1]+1)]
-
 	}
 	// Mapper was not responsible for the location
 	return 0
@@ -282,6 +272,24 @@ func (m *Mapper004) PPUWrite(location uint16, data uint8) bool {
 	return false
 }
 
+func (m *Mapper004) Scanline() {
+	// When the IRQ is clocked (filtered A12 0→1), the counter value is checked - if zero or the reload flag
+	// is true, it's reloaded with the IRQ latched value at $C000; otherwise, it decrements.
+	if m.irqCounter == 0 || m.irqReload {
+		m.irqCounter = m.irqLatch
+		m.irqReload = false
+	} else {
+		m.irqCounter--
+	}
+
+	// Rising edge
+	// If the IRQ counter is zero and IRQs are enabled ($E001), an IRQ is triggered. The "alternate revision"
+	// checks the IRQ counter transition 1→0, whether from decrementing or reloading.
+	if m.irqCounter == 0 && m.irqEnabled {
+		m.cartridge.Bus.IRQ()
+	}
+}
+
 func (m *Mapper004) Reset() {
 	m.bankSelections = [8]uint8{}
 	m.bankSelect = 0
@@ -289,7 +297,6 @@ func (m *Mapper004) Reset() {
 	m.irqCounter = 0
 	m.irqLatch = 0
 	m.irqReload = false
-	m.a12LineLowCounter = 0
 }
 
 func (m *Mapper004) DebugDisplay(text *textutil.Text) {

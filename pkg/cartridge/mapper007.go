@@ -19,8 +19,6 @@ func NewMapper007(c *Cartridge) *Mapper007 {
 	}
 }
 
-func (m *Mapper007) Clock() {}
-
 // From NES DEV WIKI https://wiki.nesdev.org/w/index.php?title=AxROM
 
 func (m *Mapper007) CPUMap(location uint16) uint16 {
@@ -94,6 +92,9 @@ func (m *Mapper007) PPUWrite(location uint16, data uint8) bool {
 func (m *Mapper007) Reset() {
 	m.romBankSelect = 0
 	m.nameTablePage = 0
+}
+
+func (m *Mapper007) Scanline() {
 }
 
 func (m *Mapper007) DebugDisplay(text *textutil.Text) {

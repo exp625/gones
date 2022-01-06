@@ -50,8 +50,8 @@ func Load(rom []byte, bus bus.Bus) *Cartridge {
 	mapperNumberHi := rom[7] >> 4
 	mapperNumber := mapperNumberHi<<4 | mapperNumberLo
 
-	trainerPresent := (rom[6]&0b00000100)>>2 == 1
-	mirrorBit := rom[6]&0b00000001 == 1
+	trainerPresent := (rom[6]&0b0000_0100)>>2 == 1
+	mirrorBit := rom[6]&0b0000_0001 == 1
 
 	prgRom := make([]uint8, int(prgRomSize)*0x4000)
 	chrRom := make([]uint8, int(chrRomSize)*0x2000)
