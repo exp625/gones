@@ -76,6 +76,7 @@ func (m *Mapper004) CPURead(location uint16) uint8 {
 }
 
 func (m *Mapper004) CPUWrite(location uint16, data uint8) bool {
+	// 268407
 	switch {
 	case 0x6000 <= location && location <= 0x7FFF && m.programRamProtect>>7 == 1:
 		m.programRam[location-0x6000] = data
@@ -300,7 +301,7 @@ func (m *Mapper004) Reset() {
 }
 
 func (m *Mapper004) DebugDisplay(text *textutil.Text) {
-	plz.Just(fmt.Fprint(text, "Cartridge with Mapper 002\n"))
+	plz.Just(fmt.Fprint(text, "Cartridge with Mapper 004\n"))
 	plz.Just(fmt.Fprintf(text, "PRG ROM Size: %d * 16 KB\n", m.cartridge.PrgRomSize))
 	plz.Just(fmt.Fprintf(text, "PRG BANK    : %d \n", m.bankSelect))
 	plz.Just(fmt.Fprintf(text, "CHR ROM Size: %d * 8 KB\n", m.cartridge.ChrRomSize))
