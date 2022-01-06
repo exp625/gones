@@ -180,6 +180,9 @@ func (m *Mapper001) Reset() {
 	m.shiftRegister = 0
 	m.shiftRegisterCount = 0
 	m.control = 0x0C
+	m.chrBank0 = 0
+	m.chrBank1 = 0
+	m.prgBank = 0
 }
 
 func (m *Mapper001) Scanline() {

@@ -83,12 +83,12 @@ func (nes *NES) Clock() bool {
 
 // Reset resets the NES to a known state
 func (nes *NES) Reset() {
+	nes.Cartridge.Reset()
 	nes.APU.Reset()
 	nes.CPU.Reset()
 	nes.PPU.Reset()
 	nes.RAM.Reset()
 	nes.VRAM.Reset()
-	nes.Cartridge.Reset()
 	nes.MasterClockCount = 0
 	nes.EmulatedTime = 0
 }

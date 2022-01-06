@@ -23,6 +23,7 @@ func (apu *APU) Clock() {
 }
 
 func (apu *APU) Reset() {
+	apu.Cycle = 0
 }
 
 func (apu *APU) GetAudioSample() int32 {
