@@ -92,6 +92,9 @@ func Load(rom []byte, bus bus.Bus) *Cartridge {
 	case 2:
 		c.Mapper = NewMapper002(c)
 		log.Println("Created Cartridge with Mapper 002")
+	case 3:
+		c.Mapper = NewMapper003(c)
+		log.Println("Created Cartridge with Mapper 003")
 	case 4:
 		c.Mapper = NewMapper004(c)
 		log.Println("Created Cartridge with Mapper 004")
