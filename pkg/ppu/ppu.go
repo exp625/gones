@@ -333,7 +333,6 @@ func (ppu *PPU) Clock() {
 			} else {
 				ppu.SpriteCounters[spriteIndex] = 0
 			}
-		case 5:
 			// For convenience, we do the memory fetches that happen on actionIndex 5 and 7 together. Both only access secondaryOAM
 			// memory which can not be updated mid-frame by external devices
 			yPos := ppu.ScanLine - uint16(ppu.SpriteYCoordinate[spriteIndex])
@@ -361,8 +360,6 @@ func (ppu *PPU) Clock() {
 				ppu.SpritePatternHigh[spriteIndex].Set(ppu.Bus.PPURead(uint16(ppu.SpriteTileIndex[spriteIndex]&0b1)<<12 | uint16(ppu.SpriteTileIndex[spriteIndex]&0b11111110)<<4 | partIndex<<4 | 1<<3 | yPos))
 			}
 
-		case 7:
-			// Memory fetch happened already
 		}
 	}
 
@@ -484,7 +481,7 @@ func (ppu *PPU) CPURead(location uint16) uint8 {
 				ppu.GenLatch = ppu.Bus.PPURead(uint16(ppu.CurrVRAM))
 				// Reading the palettes still updates the internal read buffer,
 				// but the data placed in it is the mirrored nametable data that would appear "underneath" the palette.
-				ppu.ReadLatch = ppu.Bus.PPUReadRam(uint16(ppu.CurrVRAM))
+				ppu.ReadLatch = ppu.Bus.PPUReadRam(ppu.Bus.PPUMap(uint16(ppu.CurrVRAM) - 0x1000))
 			} else {
 				// When reading while the VRAM address is in the range 0-$3EFF (i.e., before the palettes), the read
 				// will return the contents of an internal read buffer.

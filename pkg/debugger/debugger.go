@@ -18,7 +18,7 @@ func New(nes *nes.NES) *Debugger {
 }
 
 func (nes *Debugger) CPURead(location uint16) uint8 {
-	mappedLocation := nes.Cartridge.CPUMapRead(location)
+	mappedLocation := nes.Cartridge.CPUMap(location)
 	switch {
 	case mappedLocation <= 0x1FFF:
 		// TODO:
@@ -77,7 +77,7 @@ func (nes *Debugger) PPURead(location uint16) uint8 {
 		if 0x3000 <= location && location <= 0x3EFF {
 			location -= 0x1000
 		}
-		return nes.VRAM.Read(nes.Cartridge.PPUMapRead(location) - 0x2000)
+		return nes.VRAM.Read(nes.Cartridge.PPUMap(location) - 0x2000)
 
 	// $3F00-3FFF is not configurable, always mapped to the internal palette control.
 	case 0x3F00 <= location:

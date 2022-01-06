@@ -26,11 +26,13 @@ func NewMapper001(c *Cartridge) *Mapper001 {
 	return m
 }
 
+func (m *Mapper001) Clock() {}
+
 // From NES DEV WIKI https://wiki.nesdev.org/w/index.php?title=MMC1
 
 // Required for ZELDA!!!
 
-func (m *Mapper001) CPUMapRead(location uint16) uint16 {
+func (m *Mapper001) CPUMap(location uint16) uint16 {
 	return location
 }
 
@@ -71,10 +73,6 @@ func (m *Mapper001) CPURead(location uint16) uint8 {
 	return 0
 }
 
-func (m *Mapper001) CPUMapWrite(location uint16) uint16 {
-	return location
-}
-
 func (m *Mapper001) CPUWrite(location uint16, data uint8) bool {
 	if location >= 0x6000 && location <= 0x7FFF {
 		// Write to 0x6001 should result in array index 1
@@ -109,27 +107,32 @@ func (m *Mapper001) CPUWrite(location uint16, data uint8) bool {
 	return false
 }
 
-func (m *Mapper001) PPUMapRead(location uint16) uint16 {
-	if m.control&0b11 == 0 {
-		// one-screen mirroring, lower bank
-		location = 0x2000 + location%0x400
-
-	}
-	if m.control&0b11 == 1 {
-		// one-screen mirroring, upper bank
-		location = 0x2400 + location%0x400
-	}
-	if m.control&0b11 == 2 {
-		// 1: vertical mirroring
-		location = 0x2000 + location%0x800
-	}
-	if m.control&0b11 == 3 {
-		// 1: horizontal mirroring
-		if location-0x2000 < 0x800 {
+func (m *Mapper001) PPUMap(location uint16) uint16 {
+	if 0x2000 <= location && location <= 0x3EFF {
+		if 0x3000 <= location && location <= 0x3FFF {
+			location -= 0x1000
+		}
+		if m.control&0b11 == 0 {
+			// one-screen mirroring, lower bank
 			location = 0x2000 + location%0x400
 
-		} else {
+		}
+		if m.control&0b11 == 1 {
+			// one-screen mirroring, upper bank
 			location = 0x2400 + location%0x400
+		}
+		if m.control&0b11 == 2 {
+			// 1: vertical mirroring
+			location = 0x2000 + location%0x800
+		}
+		if m.control&0b11 == 3 {
+			// 1: horizontal mirroring
+			if location-0x2000 < 0x800 {
+				location = 0x2000 + location%0x400
+
+			} else {
+				location = 0x2400 + location%0x400
+			}
 		}
 	}
 	return location
@@ -150,32 +153,6 @@ func (m *Mapper001) PPURead(location uint16) uint8 {
 		}
 	}
 	return 0
-}
-
-func (m *Mapper001) PPUMapWrite(location uint16) uint16 {
-	if m.control&0b11 == 0 {
-		// one-screen mirroring, lower bank
-		location = 0x2000 + location%0x400
-
-	}
-	if m.control&0b11 == 1 {
-		// one-screen mirroring, upper bank
-		location = 0x2400 + location%0x400
-	}
-	if m.control&0b11 == 2 {
-		// 1: vertical mirroring
-		location = 0x2000 + location%0x800
-	}
-	if m.control&0b11 == 3 {
-		// 1: horizontal mirroring
-		if location-0x2000 < 0x800 {
-			location = 0x2000 + location%0x400
-
-		} else {
-			location = 0x2400 + location%0x400
-		}
-	}
-	return location
 }
 
 func (m *Mapper001) PPUWrite(location uint16, data uint8) bool {
@@ -199,10 +176,6 @@ func (m *Mapper001) PPUWrite(location uint16, data uint8) bool {
 		return true
 	}
 	return false
-}
-
-func (m *Mapper001) Mirroring() bool {
-	return m.cartridge.MirrorBit
 }
 
 func (m *Mapper001) Reset() {

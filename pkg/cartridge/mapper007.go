@@ -19,9 +19,11 @@ func NewMapper007(c *Cartridge) *Mapper007 {
 	}
 }
 
+func (m *Mapper007) Clock() {}
+
 // From NES DEV WIKI https://wiki.nesdev.org/w/index.php?title=AxROM
 
-func (m *Mapper007) CPUMapRead(location uint16) uint16 {
+func (m *Mapper007) CPUMap(location uint16) uint16 {
 	return location
 }
 
@@ -36,10 +38,6 @@ func (m *Mapper007) CPURead(location uint16) uint8 {
 	// Mapper was no responsible for the location
 	return 0
 
-}
-
-func (m *Mapper007) CPUMapWrite(location uint16) uint16 {
-	return location
 }
 
 func (m *Mapper007) CPUWrite(location uint16, data uint8) bool {
@@ -59,14 +57,19 @@ func (m *Mapper007) CPUWrite(location uint16, data uint8) bool {
 	return false
 }
 
-func (m *Mapper007) PPUMapRead(location uint16) uint16 {
-	if m.nameTablePage == 0 {
-		// one-screen mirroring, lower bank
-		location = 0x2000 + location%0x400
+func (m *Mapper007) PPUMap(location uint16) uint16 {
+	if 0x2000 <= location && location <= 0x3EFF {
+		if 0x3000 <= location && location <= 0x3FFF {
+			location -= 0x1000
+		}
+		if m.nameTablePage == 0 {
+			// one-screen mirroring, lower bank
+			location = 0x2000 + location%0x400
 
-	} else {
-		// one-screen mirroring, upper bank
-		location = 0x2400 + location%0x400
+		} else {
+			// one-screen mirroring, upper bank
+			location = 0x2400 + location%0x400
+		}
 	}
 	return location
 }
@@ -78,18 +81,6 @@ func (m *Mapper007) PPURead(location uint16) uint8 {
 	return 0
 }
 
-func (m *Mapper007) PPUMapWrite(location uint16) uint16 {
-	if m.nameTablePage == 0 {
-		// one-screen mirroring, lower bank
-		location = 0x2000 + location%0x400
-
-	} else {
-		// one-screen mirroring, upper bank
-		location = 0x2400 + location%0x400
-	}
-	return location
-}
-
 func (m *Mapper007) PPUWrite(location uint16, data uint8) bool {
 	if location <= 0x1FFF {
 
@@ -98,10 +89,6 @@ func (m *Mapper007) PPUWrite(location uint16, data uint8) bool {
 		return true
 	}
 	return false
-}
-
-func (m *Mapper007) Mirroring() bool {
-	return m.cartridge.MirrorBit
 }
 
 func (m *Mapper007) Reset() {

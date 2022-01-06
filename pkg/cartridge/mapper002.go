@@ -17,11 +17,13 @@ func NewMapper002(c *Cartridge) *Mapper002 {
 	}
 }
 
+func (m *Mapper002) Clock() {}
+
 // From NES DEV WIKI https://wiki.nesdev.org/w/index.php?title=UxROM
 
 // Required for DUCK TALES! whooh ooh
 
-func (m *Mapper002) CPUMapRead(location uint16) uint16 {
+func (m *Mapper002) CPUMap(location uint16) uint16 {
 	return location
 }
 
@@ -50,10 +52,6 @@ func (m *Mapper002) CPURead(location uint16) uint8 {
 
 }
 
-func (m *Mapper002) CPUMapWrite(location uint16) uint16 {
-	return location
-}
-
 func (m *Mapper002) CPUWrite(location uint16, data uint8) bool {
 	if location >= 0x8000 {
 		// Any write to cartridge address space will change the selected bank
@@ -70,18 +68,23 @@ func (m *Mapper002) CPUWrite(location uint16, data uint8) bool {
 	return false
 }
 
-func (m *Mapper002) PPUMapRead(location uint16) uint16 {
-	if m.Mirroring() == false {
-		// 1: horizontal mirroring
-		if location-0x2000 < 0x800 {
-			location = 0x2000 + location%0x400
-
-		} else {
-			location = 0x2400 + location%0x400
+func (m *Mapper002) PPUMap(location uint16) uint16 {
+	if 0x2000 <= location && location <= 0x3EFF {
+		if 0x3000 <= location && location <= 0x3FFF {
+			location -= 0x1000
 		}
-	} else {
-		// 1: vertical mirroring
-		location = 0x2000 + location%0x800
+		if m.cartridge.MirrorBit == false {
+			// 1: horizontal mirroring
+			if location-0x2000 < 0x800 {
+				location = 0x2000 + location%0x400
+
+			} else {
+				location = 0x2400 + location%0x400
+			}
+		} else {
+			// 1: vertical mirroring
+			location = 0x2000 + location%0x800
+		}
 	}
 
 	return location
@@ -92,23 +95,6 @@ func (m *Mapper002) PPURead(location uint16) uint8 {
 		return m.cartridge.ChrRom[location]
 	}
 	return 0
-}
-
-func (m *Mapper002) PPUMapWrite(location uint16) uint16 {
-	if m.Mirroring() == false {
-		// 1: horizontal mirroring
-		if location-0x2000 < 0x800 {
-			location = 0x2000 + location%0x400
-
-		} else {
-			location = 0x2400 + location%0x400
-		}
-	} else {
-		// 1: vertical mirroring
-		location = 0x2000 + location%0x800
-	}
-
-	return location
 }
 
 func (m *Mapper002) PPUWrite(location uint16, data uint8) bool {
@@ -122,10 +108,6 @@ func (m *Mapper002) PPUWrite(location uint16, data uint8) bool {
 	return false
 }
 
-func (m *Mapper002) Mirroring() bool {
-	return m.cartridge.MirrorBit
-}
-
 func (m *Mapper002) Reset() {
 }
 
@@ -135,7 +117,7 @@ func (m *Mapper002) DebugDisplay(text *textutil.Text) {
 	plz.Just(fmt.Fprintf(text, "PRG BANK    : %d \n", m.bankSelect))
 	plz.Just(fmt.Fprintf(text, "CHR ROM Size: %d * 8 KB\n", m.cartridge.ChrRomSize))
 	str := "Horizontal "
-	if m.Mirroring() {
+	if m.cartridge.MirrorBit {
 		str = "Vertical "
 	}
 	plz.Just(fmt.Fprint(text, "Mirror Mode : ", str, "\n"))

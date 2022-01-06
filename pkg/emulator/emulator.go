@@ -83,7 +83,7 @@ func New(romFile string, debug bool) (*Emulator, error) {
 		if err != nil {
 			return nil, err
 		}
-		c := cartridge.Load(bytes)
+		c := cartridge.Load(bytes, e)
 		if c == nil {
 			return nil, fmt.Errorf("unsupported mapper")
 		}
@@ -166,7 +166,7 @@ func (e *Emulator) Update() error {
 			log.Println("failed to read file: ", err.Error())
 			return nil
 		}
-		c := cartridge.Load(bytes)
+		c := cartridge.Load(bytes, e)
 		if c == nil {
 			return nil
 		}

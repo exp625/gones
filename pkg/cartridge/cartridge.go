@@ -1,9 +1,13 @@
 package cartridge
 
-import "log"
+import (
+	"github.com/exp625/gones/pkg/bus"
+	"log"
+)
 
 type Cartridge struct {
 	Mapper
+	Bus        bus.Bus
 	PrgRomSize uint8
 	PrgRom     []uint8
 	ChrRomSize uint8
@@ -34,7 +38,7 @@ type Cartridge struct {
 // 9: Flags 9 - TV system (rarely used extension)
 // 10: Flags 10 - TV system, PRG-RAM presence (unofficial, rarely used extension)
 // 11-15: Unused padding (should be filled with zero, but some rippers put their name across bytes 7-15)
-func Load(rom []byte) *Cartridge {
+func Load(rom []byte, bus bus.Bus) *Cartridge {
 	prgRomSize := rom[4]
 	chrRomSize := rom[5]
 	chrRam := false
@@ -69,6 +73,7 @@ func Load(rom []byte) *Cartridge {
 	}
 
 	c := &Cartridge{
+		Bus:        bus,
 		PrgRomSize: prgRomSize,
 		PrgRom:     prgRom,
 		ChrRomSize: chrRomSize,
@@ -87,6 +92,9 @@ func Load(rom []byte) *Cartridge {
 	case 2:
 		c.Mapper = NewMapper002(c)
 		log.Println("Created Cartridge with Mapper 002")
+	case 4:
+		c.Mapper = NewMapper004(c)
+		log.Println("Created Cartridge with Mapper 004")
 	case 7:
 		c.Mapper = NewMapper007(c)
 		log.Println("Created Cartridge with Mapper 007")

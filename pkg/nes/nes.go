@@ -59,6 +59,7 @@ func (nes *NES) Clock() bool {
 	nes.MasterClockCount++
 
 	// Clock the PPU and APU
+	nes.Cartridge.Clock()
 	nes.PPU.Clock()
 	nes.APU.Clock()
 
@@ -99,8 +100,12 @@ func (nes *NES) InsertCartridge(c *cartridge.Cartridge) {
 	nes.Reset()
 }
 
+func (nes *NES) CPUMap(location uint16) uint16 {
+	return nes.Cartridge.CPUMap(location)
+}
+
 func (nes *NES) CPURead(location uint16) uint8 {
-	mappedLocation := nes.Cartridge.CPUMapRead(location)
+	mappedLocation := nes.CPUMap(location)
 	switch {
 	case mappedLocation <= 0x1FFF:
 		data := nes.RAM.Read(mappedLocation % 0x0800)
@@ -127,7 +132,7 @@ func (nes *NES) CPURead(location uint16) uint8 {
 }
 
 func (nes *NES) CPUWrite(location uint16, data uint8) {
-	mappedLocation := nes.Cartridge.CPUMapWrite(location)
+	mappedLocation := nes.CPUMap(location)
 	switch {
 	case mappedLocation <= 0x1FFF:
 		nes.RAM.Write(mappedLocation%0x0800, data)
@@ -149,8 +154,12 @@ func (nes *NES) CPUWrite(location uint16, data uint8) {
 	}
 }
 
-func (nes *NES) PPURead(location uint16) uint8 {
+func (nes *NES) PPUMap(location uint16) uint16 {
+	return nes.Cartridge.PPUMap(location)
+}
 
+func (nes *NES) PPURead(location uint16) uint8 {
+	location = nes.PPUMap(location)
 	switch {
 	case location <= 0x1FFF:
 		data := nes.Cartridge.PPURead(location)
@@ -182,15 +191,11 @@ func (nes *NES) PPUReadPalette(location uint16) uint8 {
 }
 
 func (nes *NES) PPUReadRam(location uint16) uint8 {
-	// $3000-$3EFF  -> 	Mirrors of $2000-$2EFF
-	if 0x3000 <= location && location <= 0x3FFF {
-		location -= 0x1000
-	}
-	return nes.VRAM.Read(nes.Cartridge.PPUMapRead(location) - 0x2000)
-
+	return nes.VRAM.Read(location - 0x2000)
 }
 
 func (nes *NES) PPUWrite(location uint16, data uint8) {
+	location = nes.PPUMap(location)
 	switch {
 	case location <= 0x1FFF:
 		nes.Cartridge.PPUWrite(location, data)
@@ -203,10 +208,7 @@ func (nes *NES) PPUWrite(location uint16, data uint8) {
 }
 
 func (nes *NES) PPUWriteRam(location uint16, data uint8) {
-	if 0x3000 <= location && location <= 0x3FFF {
-		location -= 0x1000
-	}
-	nes.VRAM.Write(nes.Cartridge.PPUMapRead(location)-0x2000, data)
+	nes.VRAM.Write(location-0x2000, data)
 }
 
 func (nes *NES) PPUWritePalette(location uint16, data uint8) {
