@@ -152,7 +152,6 @@ func (cpu *CPU) BIT(location uint16, length uint16) {
 	// Check if result is zero
 	cpu.P.SetZero((temp & 0x00FF) == 0)
 	// Transfer bit 7 to N
-	// Check if 8th bit is one
 	cpu.P.SetNegative((data>>7)&0x01 == 1)
 	// Transfer bit 6 to V
 	cpu.P.SetOverflow((data>>6)&0x01 == 1)

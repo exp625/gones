@@ -131,7 +131,7 @@ func (cpu *CPU) IRQ() {
 	// Set flags and store current pc onto stack
 	// From https://wiki.nesdev.org/w/index.php?title=Status_flags
 	// In the byte pushed, bit 5 is always set to 1, and bit 4 is 1 if from an instruction (PHP or BRK) or 0 if from an interrupt line being pulled low (/IRQ or /NMI).
-	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), uint8(cpu.P)|FlagInterruptDisable)
+	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), uint8(cpu.P)|FlagUnused)
 	cpu.S--
 	// Set Interrupt disable flag
 	// We don't want another interrupt inside the interrupt handler
@@ -154,7 +154,7 @@ func (cpu *CPU) NMI() {
 	// Set flags and store current pc onto stack
 	// From https://wiki.nesdev.org/w/index.php?title=Status_flags
 	// In the byte pushed, bit 5 is always set to 1, and bit 4 is 1 if from an instruction (PHP or BRK) or 0 if from an interrupt line being pulled low (/IRQ or /NMI).
-	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), uint8(cpu.P)|FlagInterruptDisable)
+	cpu.Bus.CPUWrite(StackPage|uint16(cpu.S), uint8(cpu.P)|FlagUnused)
 	cpu.S--
 	// Set Interrupt disable flag
 	// We don't want another interrupt inside the interrupt handler
