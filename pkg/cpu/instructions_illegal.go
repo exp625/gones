@@ -39,11 +39,15 @@ func (cpu *CPU) ANC(location uint16, length uint16) {
 
 // ANE  https://www.masswerk.at/6502/6502_instruction_set.html#ANE
 // Unstable / Unimplemented
-func (cpu *CPU) ANE(_ uint16, _ uint16) {}
+func (cpu *CPU) ANE(_ uint16, length uint16) {
+	cpu.PC += length
+}
 
 // ARR https://www.masswerk.at/6502/6502_instruction_set.html#ARR
 // Unused by NES Games
-func (cpu *CPU) ARR(_ uint16, _ uint16) {}
+func (cpu *CPU) ARR(_ uint16, length uint16) {
+	cpu.PC += length
+}
 
 // DCP https://www.masswerk.at/6502/6502_instruction_set.html#DCP
 // DEC oper + CMP oper
@@ -147,7 +151,9 @@ func (cpu *CPU) LAX(location uint16, length uint16) {
 
 // LXA  https://www.masswerk.at/6502/6502_instruction_set.html#LXA
 // Unstable / Unimplemented
-func (cpu *CPU) LXA(_ uint16, _ uint16) {}
+func (cpu *CPU) LXA(_ uint16, length uint16) {
+	cpu.PC += length
+}
 
 // RLA  https://www.masswerk.at/6502/6502_instruction_set.html#RLA
 // ROL oper + AND oper
@@ -247,15 +253,21 @@ func (cpu *CPU) SBX(location uint16, length uint16) {
 
 // SHA  https://www.masswerk.at/6502/6502_instruction_set.html#SHA
 // Unstable / Unimplemented
-func (cpu *CPU) SHA(_ uint16, _ uint16) {}
+func (cpu *CPU) SHA(_ uint16, length uint16) {
+	cpu.PC += length
+}
 
 // SHX  https://www.masswerk.at/6502/6502_instruction_set.html#SHX
 // Unstable / Unimplemented
-func (cpu *CPU) SHX(_ uint16, _ uint16) {}
+func (cpu *CPU) SHX(_ uint16, length uint16) {
+	cpu.PC += length
+}
 
 // SHY  https://www.masswerk.at/6502/6502_instruction_set.html#SHY
 // Unstable / Unimplemented
-func (cpu *CPU) SHY(_ uint16, _ uint16) {}
+func (cpu *CPU) SHY(_ uint16, length uint16) {
+	cpu.PC += length
+}
 
 // SRE  https://www.masswerk.at/6502/6502_instruction_set.html#SRE
 // LSR oper + EOR oper
@@ -301,7 +313,9 @@ func (cpu *CPU) SLO(location uint16, length uint16) {
 
 // TAS  https://www.masswerk.at/6502/6502_instruction_set.html#TAS
 // Unstable / Unimplemented
-func (cpu *CPU) TAS(_ uint16, _ uint16) {}
+func (cpu *CPU) TAS(_ uint16, length uint16) {
+	cpu.PC += length
+}
 
 // USBC  https://www.masswerk.at/6502/6502_instruction_set.html#USBC
 // SBC oper + NOP
