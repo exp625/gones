@@ -88,6 +88,7 @@ func New(romFile string, debug bool) (*Emulator, error) {
 			return nil, fmt.Errorf("unsupported mapper")
 		}
 		e.InsertCartridge(c)
+		e.LoadGame()
 	} else {
 		e.ActiveOverlay = OverlayROMChooser
 	}
@@ -171,6 +172,7 @@ func (e *Emulator) Update() error {
 			return nil
 		}
 		e.InsertCartridge(c)
+		e.LoadGame()
 		e.Reset()
 
 		e.ActiveOverlay = OverlayGame

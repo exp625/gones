@@ -106,6 +106,13 @@ func (m *Mapper002) PPUWrite(location uint16, data uint8) bool {
 	return false
 }
 
+func (m *Mapper002) Load(data []uint8) {
+}
+
+func (m *Mapper002) Save() []uint8 {
+	return []uint8{}
+}
+
 func (m *Mapper002) Reset() {
 }
 

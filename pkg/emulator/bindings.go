@@ -39,6 +39,11 @@ func DefaultBindings(e *Emulator) []*BindingGroup {
 				OnPressed:  e.ShowScreenPressedFunc(OverlayROMChooser),
 			},
 			{
+				Help:       "Save Game",
+				DefaultKey: ebiten.KeyF12,
+				OnPressed:  e.SaveButtonPressed(),
+			},
+			{
 				Help:       "Show the sprites debug screen",
 				DefaultKey: ebiten.KeyF6,
 				OnPressed:  e.ShowScreenPressedFunc(OverlaySprites),
@@ -302,5 +307,11 @@ func (e *Emulator) ControllerButtonPressedFunc(b controller.Button) func() {
 func (e *Emulator) ControllerButtonReleasedFunc(b controller.Button) func() {
 	return func() {
 		e.Controller1.Release(b)
+	}
+}
+
+func (e *Emulator) SaveButtonPressed() func() {
+	return func() {
+		e.SaveGame()
 	}
 }

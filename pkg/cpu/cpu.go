@@ -3,7 +3,6 @@ package cpu
 import (
 	"github.com/exp625/gones/pkg/bus"
 	"github.com/exp625/gones/pkg/logger"
-	"log"
 )
 
 type CPU struct {
@@ -112,10 +111,6 @@ func (cpu *CPU) Reset() {
 	// Load the program counter from the reset vector
 	low := uint16(cpu.Bus.CPURead(ResetVector))
 	high := uint16(cpu.Bus.CPURead(ResetVector + 1))
-	lowA := uint16(cpu.Bus.CPURead(IRQVector))
-	highA := uint16(cpu.Bus.CPURead(IRQVector + 1))
-	log.Printf("Reset: %x \n", (high<<8)|low)
-	log.Printf("IRQ: %x\n", (highA<<8)|lowA)
 	cpu.PC = (high << 8) | low
 }
 

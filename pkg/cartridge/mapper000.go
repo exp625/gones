@@ -113,6 +113,19 @@ func (m *Mapper000) Reset() {
 func (m *Mapper000) CPUClock() {
 }
 
+func (m *Mapper000) Load(data []uint8) {
+	if len(data) != len(m.prgRam) {
+		panic("Error loading save")
+	}
+	copy(m.prgRam[:], data[:])
+}
+
+func (m *Mapper000) Save() []uint8 {
+	data := make([]uint8, len(m.prgRam))
+	data = m.prgRam[:]
+	return data
+}
+
 func (m *Mapper000) DebugDisplay(text *textutil.Text) {
 	// If I understand the wiki correctly, the ram is only use by some weird type of nes.
 	// No other game has ram on the cartridge

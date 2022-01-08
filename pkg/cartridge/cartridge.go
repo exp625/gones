@@ -1,6 +1,7 @@
 package cartridge
 
 import (
+	"crypto/md5"
 	"github.com/exp625/gones/pkg/bus"
 	"log"
 )
@@ -14,6 +15,7 @@ type Cartridge struct {
 	ChrRom     []uint8
 	ChrRam     bool
 	MirrorBit  bool
+	Identifier [16]byte
 }
 
 // Load loads a Cartridge from an iNES file.
@@ -80,6 +82,7 @@ func Load(rom []byte, bus bus.Bus) *Cartridge {
 		ChrRom:     chrRom,
 		ChrRam:     chrRam,
 		MirrorBit:  mirrorBit,
+		Identifier: md5.Sum(rom),
 	}
 
 	switch mapperNumber {

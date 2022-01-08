@@ -306,6 +306,19 @@ func (m *Mapper004) PPUWrite(location uint16, data uint8) bool {
 	return false
 }
 
+func (m *Mapper004) Load(data []uint8) {
+	if len(data) != len(m.programRam) {
+		panic("Error loading save")
+	}
+	copy(m.programRam[:], data[:])
+}
+
+func (m *Mapper004) Save() []uint8 {
+	data := make([]uint8, len(m.programRam))
+	data = m.programRam[:]
+	return data
+}
+
 func (m *Mapper004) Reset() {
 	m.bankSelections = [8]uint8{}
 	m.bankSelect = 0

@@ -130,7 +130,7 @@ func (m *Mapper001) CPUWrite(location uint16, data uint8) bool {
 				// +++++- Select 4 KB or 8 KB CHR bank at PPU $0000 (low bit ignored in 8 KB mode)
 				m.chrBanks[0] = m.shiftRegister.Get() >> 3 & (m.cartridge.ChrRomSize - 1)
 				if m.cartridge.ChrRomSize <= 4 {
-					// TODO: Currently breaks 
+					// TODO: Currently breaks
 					m.ramBanks[0] = m.shiftRegister.Get() >> 5 & 0b11
 				}
 				if m.cartridge.PrgRomSize == 32 && m.shiftRegister.Get()>>7 == 1 {
@@ -231,6 +231,19 @@ func (m *Mapper001) PPUWrite(location uint16, data uint8) bool {
 		return true
 	}
 	return false
+}
+
+func (m *Mapper001) Load(data []uint8) {
+	if len(data) != len(m.prgRam) {
+		panic("Error loading save")
+	}
+	copy(m.prgRam[:], data[:])
+}
+
+func (m *Mapper001) Save() []uint8 {
+	data := make([]uint8, len(m.prgRam))
+	data = m.prgRam[:]
+	return data
 }
 
 func (m *Mapper001) Reset() {

@@ -10,4 +10,6 @@ type Mapper interface {
 	PPUWrite(location uint16, data uint8) bool
 	Reset()
 	CPUClock()
+	Save() []uint8
+	Load([]uint8)
 }

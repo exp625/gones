@@ -86,6 +86,13 @@ func (m *Mapper003) PPUWrite(location uint16, data uint8) bool {
 	return false
 }
 
+func (m *Mapper003) Load(data []uint8) {
+}
+
+func (m *Mapper003) Save() []uint8 {
+	return []uint8{}
+}
+
 func (m *Mapper003) Reset() {
 	m.bankSelect = 0
 }

@@ -89,6 +89,13 @@ func (m *Mapper007) PPUWrite(location uint16, data uint8) bool {
 	return false
 }
 
+func (m *Mapper007) Load(data []uint8) {
+}
+
+func (m *Mapper007) Save() []uint8 {
+	return []uint8{}
+}
+
 func (m *Mapper007) Reset() {
 	m.romBankSelect = 0
 	m.nameTablePage = 0
