@@ -15,7 +15,7 @@ func New() *APU {
 func (apu *APU) Clock() {
 	apu.Cycle++
 	if apu.Cycle > 14914*2 {
-		apu.Bus.IRQ()
+		//apu.Bus.IRQ()
 	}
 	if apu.Cycle == 14915*2 {
 		apu.Cycle = 0

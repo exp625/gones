@@ -656,7 +656,7 @@ func (cpu *CPU) PLP(_ uint16, length uint16) {
 	// pull p
 	cpu.S++
 	temp := cpu.Bus.CPURead(StackPage | uint16(cpu.S))
-	// Ignore bit 4 and 5 from Stack but keep the value of bit 4 and 5 on the PC
+	// Ignore bit 4 and 5 from Stack but keep the value of bit 4 and 5 on the P register
 	// Only bit 4 and 5 | Value from Stack without bit 4 and 5
 	cpu.P = StatusRegister((uint8(cpu.P) & (FlagBreak | FlagUnused)) | temp & ^(FlagBreak|FlagUnused))
 	// Advance program counter
