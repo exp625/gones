@@ -1,0 +1,150 @@
+{
+  "tests": [
+    {
+      "rom": "nes-test-roms/branch_timing_tests/1.Branch_Basics.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "NMI period is too short"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "NMI period is too too long"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Branch not taken is too long"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Branch not taken is too short"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Branch taken is too long"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "Branch taken is too short"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/branch_timing_tests/2.Backward_Branch.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Branch from $E4FD to $E4FC is too long"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Branch from $E4FD to $E4FC is too short"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Branch from $E5FE to $E5FD is too long"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Branch from $E5FE to $E5FD is too short"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Branch from $E700 to $E6FF is too long"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "Branch from $E700 to $E6FF is too short"
+        },
+        {
+          "code": 8,
+          "pass": false,
+          "message": "Branch from $E801 to $E800 is too long"
+        },
+        {
+          "code": 9,
+          "pass": false,
+          "message": "Branch from $E801 to $E800 is too short"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/branch_timing_tests/3.Forward_Branch.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Branch from $E5FC to $E5FF is too long"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Branch from $E5FC to $E5FF is too short"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Branch from $E6FD to $E700 is too long"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Branch from $E6FD to $E700 is too short"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Branch from $E7FE to $E801 is too long"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "Branch from $E7FE to $E801 is too short"
+        },
+        {
+          "code": 8,
+          "pass": false,
+          "message": "Branch from $E8FF to $E902 is too long"
+        },
+        {
+          "code": 9,
+          "pass": false,
+          "message": "Branch from $E8FF to $E902 is too short"
+        }
+      ]
+    }
+  ]
+}
