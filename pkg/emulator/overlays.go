@@ -39,9 +39,9 @@ func (e *Emulator) DrawOverlayCPU(screen *ebiten.Image) {
 	stackText := textutil.New(basicfont.Face7x13, width, height, 400, 400, 1)
 	ramText := textutil.New(basicfont.Face7x13, width, height, 4, 640, 1)
 	plz.Just(fmt.Fprintf(cpuText, "FPS: %0.2f \t Auto Run Mode: \t %t \t Logging Enabled: \t %t \n", ebiten.CurrentFPS(), e.AutoRunEnabled, e.Logger.LoggingEnabled()))
-	plz.Just(fmt.Fprintf(cpuText, "Master Clock Count: \t %d\n", e.MasterClockCount))
-	plz.Just(fmt.Fprintf(cpuText, "CPU Clock Count: \t %d \t Requested: \t %d \n", e.CPU.ClockCount, e.RequestedSteps))
-	plz.Just(fmt.Fprintf(cpuText, "Clock Cycles Per Second (during auto run): %0.2f/s\n\n",
+	plz.Just(fmt.Fprintf(cpuText, "Master CPUClock Count: \t %d\n", e.MasterClockCount))
+	plz.Just(fmt.Fprintf(cpuText, "CPU CPUClock Count: \t %d \t Requested: \t %d \n", e.CPU.ClockCount, e.RequestedSteps))
+	plz.Just(fmt.Fprintf(cpuText, "CPUClock Cycles Per Second (during auto run): %0.2f/s\n\n",
 		1000*1000*1000*float64(e.AutoRunCycles)/(float64(e.NanoSecondsSpentInAutoRun))))
 	e.Debugger.DrawCPU(cpuText)
 	cpuText.Draw(screen)

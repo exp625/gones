@@ -3,31 +3,30 @@ package cartridge
 import (
 	"fmt"
 	"github.com/exp625/gones/internal/plz"
+	"github.com/exp625/gones/internal/shift_register"
 	"github.com/exp625/gones/internal/textutil"
 )
 
 type Mapper001 struct {
-	cartridge          *Cartridge
-	shiftRegister      uint8
-	shiftRegisterCount uint8
-	prgRam             [0x2000]uint8
-	control            uint8
-	chrBank0           uint8
-	chrBank1           uint8
-	prgBank            uint8
-	ramEnable          bool
+	cartridge     *Cartridge
+	shiftRegister shift_register.ShiftRegister8
+	prgRam        [0x2000]uint8
+	control       uint8
+	chrBanks      [2]uint8
+	prgBanks      [1]uint8
 }
 
 func NewMapper001(c *Cartridge) *Mapper001 {
 	m := &Mapper001{
 		cartridge: c,
 	}
+	// We use the initial 1 to check when the register was shifted 5 times
+	m.shiftRegister.Set(1)
 	m.control = 0x0C
 	return m
 }
 
 // From NES DEV WIKI https://wiki.nesdev.org/w/index.php?title=MMC1
-
 // Required for ZELDA!!!
 
 func (m *Mapper001) CPUMap(location uint16) uint16 {
@@ -36,35 +35,49 @@ func (m *Mapper001) CPUMap(location uint16) uint16 {
 
 func (m *Mapper001) CPURead(location uint16) uint8 {
 	if 0x6000 <= location && location <= 0x7FFF {
-		// Read to 0x6001 should result in array index 1
+		// CPU $6000-$7FFF: 8 KB PRG RAM bank, (optional)
 		return m.prgRam[location-0x6000]
 	}
 
 	if 0x8000 <= location && location <= 0xBFFF {
+		// CPU $8000-$BFFF: 16 KB PRG ROM bank, either switchable or fixed to the first bank
 		switch (m.control >> 2) & 0b11 {
 		case 2:
 			// 2: fix first bank at $8000 and switch 16 KB bank at $C000
 			return m.cartridge.PrgRom[uint64(location-0x8000)]
 		case 3:
 			// 3: fix last bank at $C000 and switch 16 KB bank at $8000
-			return m.cartridge.PrgRom[uint64(location-0x8000)+0x4000*uint64(m.prgBank)]
+			if m.prgBanks[0] > m.cartridge.PrgRomSize {
+				return 0
+			}
+			return m.cartridge.PrgRom[uint64(location-0x8000)+0x4000*uint64(m.prgBanks[0])]
 		default:
 			// 0, 1: switch 32 KB at $8000, ignoring low bit of bank number
-			return m.cartridge.PrgRom[uint64(location-0x8000)+0x4000*uint64(m.prgBank&0b1110)]
+			if m.prgBanks[0]&0b1110 > m.cartridge.PrgRomSize {
+				return 0
+			}
+			return m.cartridge.PrgRom[uint64(location-0x8000)+0x4000*uint64(m.prgBanks[0]&0b1110)]
 		}
 	}
 
 	if location >= 0xC000 {
+		// CPU $C000-$FFFF: 16 KB PRG ROM bank, either fixed to the last bank or switchable
 		switch (m.control >> 2) & 0b11 {
 		case 2:
 			// 2: fix first bank at $8000 and switch 16 KB bank at $C000
-			return m.cartridge.PrgRom[uint64(location-0xC000)+0x4000*uint64(m.prgBank)]
+			if m.prgBanks[0] > m.cartridge.PrgRomSize {
+				return 0
+			}
+			return m.cartridge.PrgRom[uint64(location-0xC000)+0x4000*uint64(m.prgBanks[0])]
 		case 3:
 			// 3: fix last bank at $C000 and switch 16 KB bank at $8000
 			return m.cartridge.PrgRom[uint64(location-0xC000)+0x4000*uint64(m.cartridge.PrgRomSize-1)]
 		default:
+			if m.prgBanks[0]&0b1110 > m.cartridge.PrgRomSize {
+				return 0
+			}
 			// 0, 1: switch 32 KB at $8000, ignoring low bit of bank number
-			return m.cartridge.PrgRom[uint64(location-0xC000)+0x4000*uint64(m.prgBank&0b1110)+0x4000]
+			return m.cartridge.PrgRom[uint64(location-0xC000)+0x4000*uint64(m.prgBanks[0]&0b1110)+0x4000]
 		}
 	}
 
@@ -73,32 +86,71 @@ func (m *Mapper001) CPURead(location uint16) uint8 {
 
 func (m *Mapper001) CPUWrite(location uint16, data uint8) bool {
 	if location >= 0x6000 && location <= 0x7FFF {
-		// Write to 0x6001 should result in array index 1
+		// CPU $6000-$7FFF: 8 KB PRG RAM bank, (optional)
 		m.prgRam[location-0x6000] = data
 		return true
 	}
 	if location >= 0x8000 {
-		m.shiftRegister = m.shiftRegister | data&0b1<<m.shiftRegisterCount
-		m.shiftRegisterCount++
+		// Load register ($8000-$FFFF)
+		// 7  bit  0
+		// ---- ----
+		// Rxxx xxxD
+		// |       |
+		// |       +- Data bit to be shifted into shift register, LSB first
+		// +--------- 1: Reset shift register and write Control with (Control OR $0C),
+		//               locking PRG ROM at $C000-$FFFF to the last bank.
+		m.shiftRegister.ShiftLeft(data & 0b1)
 		if data>>7&0b1 == 1 {
 			// Reset shift register
-			m.shiftRegister = 0
-			m.shiftRegisterCount = 0
+			// We use the initial 1 to check when the register was shifted 5 times
+			m.shiftRegister.Set(1)
 			m.control = 0x0C
 		}
-		if m.shiftRegisterCount == 5 {
+		if m.shiftRegister.GetBit(5) == 1 {
 			switch {
 			case 0x8000 <= location && location <= 0x9FFF:
-				m.control = m.shiftRegister
+				// Control (internal, $8000-$9FFF)
+				// 4bit0
+				// -----
+				// CPPMM
+				// |||||
+				// |||++- Mirroring (0: one-screen, lower bank; 1: one-screen, upper bank;
+				// |||               2: vertical; 3: horizontal)
+				// |++--- PRG ROM bank mode (0, 1: switch 32 KB at $8000, ignoring low bit of bank number;
+				// |                         2: fix first bank at $8000 and switch 16 KB bank at $C000;
+				// |                         3: fix last bank at $C000 and switch 16 KB bank at $8000)
+				// +----- CHR ROM bank mode (0: switch 8 KB at a time; 1: switch two separate 4 KB banks)
+				m.control = m.shiftRegister.Get() & 0b0001_1111
 			case 0xA000 <= location && location <= 0xBFFF:
-				m.chrBank0 = m.shiftRegister
+				// CHR bank 0 (internal, $A000-$BFFF)
+				// 4bit0
+				// -----
+				// CCCCC
+				// |||||
+				// +++++- Select 4 KB or 8 KB CHR bank at PPU $0000 (low bit ignored in 8 KB mode)
+				m.chrBanks[0] = m.shiftRegister.Get() & 0b0001_1111
 			case 0xC000 <= location && location <= 0xDFFF:
-				m.chrBank1 = m.shiftRegister
+				// CHR bank 1 (internal, $C000-$DFFF)
+				// 4bit0
+				// -----
+				// CCCCC
+				// |||||
+				// +++++- Select 4 KB CHR bank at PPU $1000 (ignored in 8 KB mode)
+				m.chrBanks[1] = m.shiftRegister.Get() & 0b0001_1111
 			case 0xE000 <= location:
-				m.prgBank = m.shiftRegister & 0b1111
+				// PRG bank (internal, $E000-$FFFF)
+				// 4bit0
+				// -----
+				// RPPPP
+				// |||||
+				// |++++- Select 16 KB PRG ROM bank (low bit ignored in 32 KB mode)
+				// +----- MMC1B and later: PRG RAM chip enable (0: enabled; 1: disabled; ignored on MMC1A)
+				//        MMC1A: Bit 3 bypasses fixed bank logic in 16K mode (0: affected; 1: bypassed)
+				m.prgBanks[0] = m.shiftRegister.Get() & 0b0000_1111
 			}
-			m.shiftRegister = 0
-			m.shiftRegisterCount = 0
+			// Reset shift register
+			// We use the initial 1 to check when the register was shifted 5 times
+			m.shiftRegister.Set(1)
 		}
 		return true
 	}
@@ -107,7 +159,7 @@ func (m *Mapper001) CPUWrite(location uint16, data uint8) bool {
 
 func (m *Mapper001) PPUMap(location uint16) uint16 {
 	if 0x2000 <= location && location <= 0x3EFF {
-		if 0x3000 <= location && location <= 0x3FFF {
+		if 0x3000 <= location {
 			location -= 0x1000
 		}
 		if m.control&0b11 == 0 {
@@ -137,37 +189,33 @@ func (m *Mapper001) PPUMap(location uint16) uint16 {
 }
 
 func (m *Mapper001) PPURead(location uint16) uint8 {
-	if location <= 0x0FFF {
-		if m.control>>4&0b1 == 0 {
-			return m.cartridge.ChrRom[uint64(location)+0x1000*uint64(m.chrBank0&0b1110)]
+
+	if m.control>>4&0b1 == 0 {
+		// 0: switch 8 KB at a time;
+		return m.cartridge.ChrRom[uint64(location)+0x1000*uint64(m.chrBanks[0]&0b1110)]
+	} else {
+		//  1: switch two separate 4 KB banks
+		if location <= 0x0FFF {
+			return m.cartridge.ChrRom[uint64(location)+0x1000*uint64(m.chrBanks[0])]
 		} else {
-			return m.cartridge.ChrRom[uint64(location)+0x1000*uint64(m.chrBank0)]
-		}
-	} else if location <= 0x1FFF {
-		if m.control>>4&0b1 == 0 {
-			return m.cartridge.ChrRom[(uint64(location)-0x1000)+0x1000*uint64(m.chrBank0&0b1110)+0x1000]
-		} else {
-			return m.cartridge.ChrRom[(uint64(location)-0x1000)+0x1000*uint64(m.chrBank1)]
+			return m.cartridge.ChrRom[(uint64(location)-0x1000)+0x1000*uint64(m.chrBanks[1])]
 		}
 	}
-	return 0
 }
 
 func (m *Mapper001) PPUWrite(location uint16, data uint8) bool {
 	if location <= 0x1FFF {
 		if m.cartridge.ChrRam {
 			// CHR RAM
-			if location <= 0x0FFF {
-				if m.control>>5&0b1 == 0 {
-					m.cartridge.ChrRom[location+0x1000*uint16(m.chrBank0&0b1110)] = data
+			if m.control>>4&0b1 == 0 {
+				// 0: switch 8 KB at a time;
+				m.cartridge.ChrRom[uint64(location)+0x1000*uint64(m.chrBanks[0]&0b1110)] = data
+			} else {
+				//  1: switch two separate 4 KB banks
+				if location <= 0x0FFF {
+					m.cartridge.ChrRom[uint64(location)+0x1000*uint64(m.chrBanks[0])] = data
 				} else {
-					m.cartridge.ChrRom[location+0x1000*uint16(m.chrBank0)] = data
-				}
-			} else if location <= 0x1FFF {
-				if m.control>>5&0b1 == 0 {
-					m.cartridge.ChrRom[(location-0x1000)+0x1000*uint16(m.chrBank0&0b1110)+0x1000] = data
-				} else {
-					m.cartridge.ChrRom[(location-0x1000)+0x1000*uint16(m.chrBank1)] = data
+					m.cartridge.ChrRom[(uint64(location)-0x1000)+0x1000*uint64(m.chrBanks[1])] = data
 				}
 			}
 		}
@@ -177,24 +225,23 @@ func (m *Mapper001) PPUWrite(location uint16, data uint8) bool {
 }
 
 func (m *Mapper001) Reset() {
-	m.shiftRegister = 0
-	m.shiftRegisterCount = 0
+	// We use the initial 1 to check when the register was shifted 5 times
+	m.shiftRegister.Set(1)
 	m.control = 0x0C
-	m.chrBank0 = 0
-	m.chrBank1 = 0
-	m.prgBank = 0
+	m.chrBanks = [2]uint8{}
+	m.prgBanks = [1]uint8{}
 }
 
-func (m *Mapper001) Scanline() {
+func (m *Mapper001) CPUClock() {
 }
 
 func (m *Mapper001) DebugDisplay(text *textutil.Text) {
 	plz.Just(fmt.Fprint(text, "Cartridge with Mapper 001\n"))
 	plz.Just(fmt.Fprintf(text, "PRG ROM Size: %d * 16 KB\n", m.cartridge.PrgRomSize))
-	plz.Just(fmt.Fprintf(text, "PRG BANK    : %d \n", m.prgBank))
+	plz.Just(fmt.Fprintf(text, "PRG BANK    : %d \n", m.prgBanks[0]))
 	plz.Just(fmt.Fprintf(text, "CHR ROM Size: %d * 4 KB\n", m.cartridge.ChrRomSize*2))
-	plz.Just(fmt.Fprintf(text, "CHR BANK 0  : %d \n", m.chrBank0))
-	plz.Just(fmt.Fprintf(text, "CHR BANK 1  : %d \n", m.chrBank1))
+	plz.Just(fmt.Fprintf(text, "CHR BANK 0  : %d \n", m.chrBanks[0]))
+	plz.Just(fmt.Fprintf(text, "CHR BANK 1  : %d \n", m.chrBanks[1]))
 	plz.Just(fmt.Fprintf(text, "Control     : %b \n", m.control))
 	str := []string{"On-Screen lower", "On-Screen upper", "Vertical", "Horizontal"}
 	plz.Just(fmt.Fprint(text, "Mirror Mode : ", str[m.control&0b11], "\n"))

@@ -9,5 +9,5 @@ type Mapper interface {
 	PPURead(location uint16) uint8
 	PPUWrite(location uint16, data uint8) bool
 	Reset()
-	Scanline()
+	CPUClock()
 }

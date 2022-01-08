@@ -14,5 +14,4 @@ type Bus interface {
 	DMA(page uint8)
 	NMI()
 	IRQ()
-	Scanline()
 }

@@ -58,7 +58,8 @@ func (nes *NES) Clock() bool {
 	// Advance master clock count
 	nes.MasterClockCount++
 
-	// Clock the PPU and APU
+	// CPUClock the PPU, APU and Cartridge
+	nes.Cartridge.CPUClock()
 	nes.PPU.Clock()
 	nes.APU.Clock()
 
@@ -234,8 +235,4 @@ func (nes *NES) NMI() {
 
 func (nes *NES) IRQ() {
 	nes.CPU.RequestIRQ = true
-}
-
-func (nes *NES) Scanline() {
-	nes.Cartridge.Scanline()
 }

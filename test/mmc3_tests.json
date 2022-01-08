@@ -1,0 +1,221 @@
+{
+  "tests": [
+    {
+      "rom": "nes-test-roms/mmc3_irq_tests/1.Clocking.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Counter/IRQ/A12 clocking isn't working at all"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Should decrement when A12 is toggled via $2006"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Writing to $C000 shouldn't cause reload"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Writing to $C001 shouldn't cause immediate reload"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Should reload (no decrement) on first clock after clear"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "IRQ should be set when counter is decremented to 0"
+        },
+        {
+          "code": 8,
+          "pass": false,
+          "message": "IRQ should never be set when disabled"
+        },
+        {
+          "code": 9,
+          "pass": false,
+          "message": "Should reload when clocked when counter is 0"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/mmc3_irq_tests/2.Details.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Counter isn't working when reloaded with 255"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Counter should run even when IRQ is disabled"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Counter should run even after IRQ flag has been set"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "IRQ should not be set when counter reloads with non-zero"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "IRQ should not be set when counter is cleared via $C001"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "Counter should be clocked 241 times in PPU frame"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/mmc3_irq_tests/3.A12_Clocking.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Shouldn't be clocked when A12 doesn't change"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Shouldn't be clocked when A12 changes to 0"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Should be clocked when A12 changes to 1 via $2006 write"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Should be clocked when A12 changes to 1 via $2007 read"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Should be clocked when A12 changes to 1 via $2007 write"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/mmc3_irq_tests/4.Scanline_Timing.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Scanline 0 time is too soon"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "Scanline 0 time is too late"
+        },
+        {
+          "code": 4,
+          "pass": false,
+          "message": "Scanline 1 time is too soon"
+        },
+        {
+          "code": 5,
+          "pass": false,
+          "message": "Scanline 1 time is too late"
+        },
+        {
+          "code": 6,
+          "pass": false,
+          "message": "Scanline 239 time is too soon"
+        },
+        {
+          "code": 7,
+          "pass": false,
+          "message": "Scanline 239 time is too late"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/mmc3_irq_tests/5.MMC3_Rev_A.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "IRQ should be set when reloading to 0 after clear"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "IRQ shouldn't occur when reloading after counter normally reaches 0"
+        }
+      ]
+    },
+    {
+      "rom": "nes-test-roms/mmc3_irq_tests/6.MMC3_Rev_B.nes",
+      "frames": 60,
+      "output": "0x00F8",
+      "results": [
+        {
+          "code": 1,
+          "pass": true,
+          "message": "Test passed"
+        },
+        {
+          "code": 2,
+          "pass": false,
+          "message": "Should reload and set IRQ every clock when reload is 0"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "IRQ should be set when counter is 0 after reloading"
+        }
+      ]
+    }
+  ]
+}

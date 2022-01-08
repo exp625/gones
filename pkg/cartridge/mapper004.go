@@ -26,6 +26,10 @@ type Mapper004 struct {
 
 	// irqCounter
 	irqCounter uint8
+
+	// helper
+	lineLowCounter uint8
+	addressLatch   uint16
 }
 
 func NewMapper004(c *Cartridge) *Mapper004 {
@@ -172,7 +176,36 @@ func (m *Mapper004) CPUWrite(location uint16, data uint8) bool {
 	return true
 }
 
+func (m *Mapper004) CPUClock() {
+	if m.lineLowCounter != 3 && m.addressLatch>>12&0b1 == 0 {
+		m.lineLowCounter++
+	}
+}
+
 func (m *Mapper004) PPUMap(location uint16) uint16 {
+	m.addressLatch = location
+	if location>>12&0b1 == 1 {
+		if m.lineLowCounter == 3 {
+
+			// When the IRQ is clocked (filtered A12 0→1), the counter value is checked - if zero or the reload flag
+			// is true, it's reloaded with the IRQ latched value at $C000; otherwise, it decrements.
+			if m.irqCounter == 0 || m.irqReload {
+				m.irqCounter = m.irqLatch
+				m.irqReload = false
+			} else {
+				m.irqCounter--
+			}
+
+			// Rising edge
+			// If the IRQ counter is zero and IRQs are enabled ($E001), an IRQ is triggered. The "alternate revision"
+			// checks the IRQ counter transition 1→0, whether from decrementing or reloading.
+			if m.irqCounter == 0 && m.irqEnabled {
+				m.cartridge.Bus.IRQ()
+			}
+		}
+		m.lineLowCounter = 0
+	}
+
 	if 0x2000 <= location && location <= 0x3EFF {
 		if location >= 0x3000 {
 			location -= 0x1000
@@ -271,24 +304,6 @@ func (m *Mapper004) PPURead(location uint16) uint8 {
 func (m *Mapper004) PPUWrite(location uint16, data uint8) bool {
 	// No support for CHR Ram
 	return false
-}
-
-func (m *Mapper004) Scanline() {
-	// When the IRQ is clocked (filtered A12 0→1), the counter value is checked - if zero or the reload flag
-	// is true, it's reloaded with the IRQ latched value at $C000; otherwise, it decrements.
-	if m.irqCounter == 0 || m.irqReload {
-		m.irqCounter = m.irqLatch
-		m.irqReload = false
-	} else {
-		m.irqCounter--
-	}
-
-	// Rising edge
-	// If the IRQ counter is zero and IRQs are enabled ($E001), an IRQ is triggered. The "alternate revision"
-	// checks the IRQ counter transition 1→0, whether from decrementing or reloading.
-	if m.irqCounter == 0 && m.irqEnabled {
-		m.cartridge.Bus.IRQ()
-	}
 }
 
 func (m *Mapper004) Reset() {

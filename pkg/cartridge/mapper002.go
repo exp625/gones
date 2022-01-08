@@ -109,7 +109,7 @@ func (m *Mapper002) PPUWrite(location uint16, data uint8) bool {
 func (m *Mapper002) Reset() {
 }
 
-func (m *Mapper002) Scanline() {
+func (m *Mapper002) CPUClock() {
 }
 
 func (m *Mapper002) DebugDisplay(text *textutil.Text) {

@@ -368,10 +368,6 @@ func (ppu *PPU) Clock() {
 		ppu.Render()
 	}
 
-	if ppu.Dot == 260 && ppu.IsVisibleLine() && (ppu.Mask.ShowSprites() || ppu.Mask.ShowBackground()) {
-		ppu.Bus.Scanline()
-	}
-
 	if ppu.Dot < 340 {
 		// Advance the dot in the current scan line
 		ppu.Dot++

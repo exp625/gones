@@ -25,7 +25,7 @@ with open(sys.argv[1]) as io:
             # Create ne
             filename = folder.joinpath(lines[i-1].strip() + ".nes").as_posix()
             tests["tests"].append({
-                "rom": str(filename),
+                "rom": str(filename).replace(" ", "_"),
                 "frames": 60,
                 "output": sys.argv[3] if len(sys.argv) == 4 else "0x00F0",
                 "results": [{
