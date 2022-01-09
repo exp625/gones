@@ -25,8 +25,10 @@ const (
 
 func (e *Emulator) DrawOverlayGame(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(0, 5)
+
 	op.GeoM.Scale(4, 4)
+	op.GeoM.Translate((float64(screen.Bounds().Dx())-(256*4))/2, 0)
+	screen.Fill(e.PPU.Palette[e.PPU.PaletteRAM[0]][e.PPU.Mask.Emphasize()])
 	screen.DrawImage(ebiten.NewImageFromImage(e.PPU.ActiveFrame), op)
 }
 

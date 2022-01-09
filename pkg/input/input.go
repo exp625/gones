@@ -7,7 +7,7 @@ import (
 	"math"
 )
 
-const AxisThreshold = 0.2
+const AxisThreshold = 0.5
 
 var gamepads Gamepad
 

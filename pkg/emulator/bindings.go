@@ -22,9 +22,9 @@ func (e *Emulator) registerAllBindings() {
 }
 func (e *Emulator) registerEmulatorBindings() {
 	e.Bindings.Groups[input.Emulator][input.Reset].OnPressed = e.Reset
-	e.Bindings.Groups[input.Emulator][input.Load].OnPressed = func() { e.ActiveOverlay = OverlayROMChooser }
+	e.Bindings.Groups[input.Emulator][input.Load].OnPressed = func() { e.changeOverlay(OverlayROMChooser) }
 	e.Bindings.Groups[input.Emulator][input.Save].OnPressed = e.SaveGame
-	e.Bindings.Groups[input.Emulator][input.ScreenKeyBindings].OnPressed = func() { e.ActiveOverlay = OverlayKeybindings }
+	e.Bindings.Groups[input.Emulator][input.ScreenKeyBindings].OnPressed = func() { e.changeOverlay(OverlayKeybindings) }
 	e.Bindings.Groups[input.Emulator][input.ExecuteInstruction].OnPressed = e.executeOneCPUInstructionPressed
 	e.Bindings.Groups[input.Emulator][input.Pause].OnPressed = func() { e.AutoRunEnabled = !e.AutoRunEnabled }
 	e.Bindings.Groups[input.Emulator][input.ExecuteMasterClock].OnPressed = func() {
@@ -45,12 +45,12 @@ func (e *Emulator) registerEmulatorBindings() {
 }
 
 func (e *Emulator) registerDebugBindings() {
-	e.Bindings.Groups[input.Debug][input.ShowCPUDebug].OnPressed = func() { e.ActiveOverlay = OverlayCPU }
-	e.Bindings.Groups[input.Debug][input.ShowPPUDebug].OnPressed = func() { e.ActiveOverlay = OverlayPPU }
-	e.Bindings.Groups[input.Debug][input.ShowNametableDebug].OnPressed = func() { e.ActiveOverlay = OverlayNametables }
-	e.Bindings.Groups[input.Debug][input.ShowPaletteDebug].OnPressed = func() { e.ActiveOverlay = OverlayPalettes }
-	e.Bindings.Groups[input.Debug][input.ShowControllerDebug].OnPressed = func() { e.ActiveOverlay = OverlayControllers }
-	e.Bindings.Groups[input.Debug][input.ShowSpriteDebug].OnPressed = func() { e.ActiveOverlay = OverlaySprites }
+	e.Bindings.Groups[input.Debug][input.ShowCPUDebug].OnPressed = func() { e.changeOverlay(OverlayCPU) }
+	e.Bindings.Groups[input.Debug][input.ShowPPUDebug].OnPressed = func() { e.changeOverlay(OverlayPPU) }
+	e.Bindings.Groups[input.Debug][input.ShowNametableDebug].OnPressed = func() { e.changeOverlay(OverlayNametables) }
+	e.Bindings.Groups[input.Debug][input.ShowPaletteDebug].OnPressed = func() { e.changeOverlay(OverlayPalettes) }
+	e.Bindings.Groups[input.Debug][input.ShowControllerDebug].OnPressed = func() { e.changeOverlay(OverlayControllers) }
+	e.Bindings.Groups[input.Debug][input.ShowSpriteDebug].OnPressed = func() { e.changeOverlay(OverlaySprites) }
 	e.Bindings.Groups[input.Debug][input.EnableLogging].OnPressed = func() {
 		if e.Logger.LoggingEnabled() {
 			e.Logger.StopLogging()
@@ -83,6 +83,14 @@ func (e *Emulator) registerControllerBindings() {
 func (e *Emulator) registerNumberHandler() {
 	e.Bindings.NumberHandler = func(n int) {
 		e.RequestedSteps = e.RequestedSteps*10 + n
+	}
+}
+
+func (e *Emulator) changeOverlay(overlay Overlay) {
+	if e.ActiveOverlay != overlay {
+		e.ActiveOverlay = overlay
+	} else {
+		e.ActiveOverlay = OverlayGame
 	}
 }
 
