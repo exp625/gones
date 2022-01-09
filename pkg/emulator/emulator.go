@@ -7,11 +7,11 @@ import (
 	"github.com/exp625/gones/pkg/cartridge"
 	"github.com/exp625/gones/pkg/debugger"
 	"github.com/exp625/gones/pkg/file_explorer"
+	"github.com/exp625/gones/pkg/input"
 	"github.com/exp625/gones/pkg/logger"
 	"github.com/exp625/gones/pkg/nes"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"io"
 	"log"
 	"os"
@@ -34,7 +34,7 @@ type Emulator struct {
 	*nes.NES
 	Debugger *debugger.Debugger
 	Logger   logger.Logger
-	Bindings []*BindingGroup
+	Bindings *input.Bindings
 
 	AutoRunEnabled bool
 
@@ -73,7 +73,8 @@ func New(romFile string, debug bool) (*Emulator, error) {
 		NES:          nes.New(NESClockTime, NESAudioSampleTime),
 		FileExplorer: explorer,
 	}
-	e.Bindings = DefaultBindings(e)
+	e.Bindings = input.GetBindings()
+	e.registerAllBindings()
 	if debug {
 		e.ActiveOverlay = OverlayCPU
 	}
@@ -132,7 +133,7 @@ func (e *Emulator) Init() error {
 func (e *Emulator) Update() error {
 	textutil.Update()
 	if e.ActiveOverlay != OverlayROMChooser {
-		e.HandleInput()
+		input.HandleInput(e.Bindings)
 	}
 
 	// Measure time spent in auto run mode
@@ -214,24 +215,6 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 
 func (e *Emulator) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	return outsideWidth, outsideHeight
-}
-
-func (e *Emulator) HandleInput() {
-	for _, group := range e.Bindings {
-		for _, binding := range group.Bindings {
-			key := binding.Key()
-			if binding.OnPressed != nil {
-				if inpututil.IsKeyJustPressed(key) {
-					binding.OnPressed()
-				}
-			}
-			if binding.OnReleased != nil {
-				if inpututil.IsKeyJustReleased(key) {
-					binding.OnReleased()
-				}
-			}
-		}
-	}
 }
 
 func (e *Emulator) Log() {

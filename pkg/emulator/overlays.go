@@ -123,9 +123,9 @@ func (e *Emulator) DrawOverlaySprites(screen *ebiten.Image) {
 func (e *Emulator) DrawOverlayKeybindings(screen *ebiten.Image) {
 	width, height := ebiten.WindowSize()
 	text := textutil.New(basicfont.Face7x13, width, height, 4, 24, 2)
-	for _, group := range e.Bindings {
-		plz.Just(text.WriteString(fmt.Sprintf("%s: \n", group.Name)))
-		for _, binding := range group.Bindings {
+	for name, group := range e.Bindings.Groups {
+		plz.Just(text.WriteString(fmt.Sprintf("%s: \n", name)))
+		for _, binding := range group {
 			plz.Just(text.WriteString(fmt.Sprintf("    %s: %s\n", binding.Key().String(), binding.Help)))
 		}
 	}
