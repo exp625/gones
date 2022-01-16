@@ -8,17 +8,18 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"golang.org/x/image/colornames"
 	"golang.org/x/image/font/basicfont"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
 type FileExplorer struct {
-	// Ready indicates that the user has selected a file/directory. Retrieve the selected file/directory via Get().
+	// Ready indicates that the user has Selected a file/directory. Retrieve the Selected file/directory via Get().
 	Ready         bool
 	Directory     string
 	entries       *[]os.DirEntry
-	selected      int
+	Selected      int
 	selectedCache map[string]int
 	wait          int
 }
@@ -34,7 +35,7 @@ func (f *FileExplorer) Get() (string, error) {
 	if !f.Ready {
 		return "", fmt.Errorf("not ready")
 	}
-	s := (*f.entries)[f.selected]
+	s := (*f.entries)[f.Selected]
 	result, err := filepath.Abs(filepath.Join(f.Directory, s.Name()))
 	f.Ready = false
 	return result, err
@@ -43,9 +44,6 @@ func (f *FileExplorer) Get() (string, error) {
 func (f *FileExplorer) Update() error {
 	if f.Ready {
 		return nil
-	}
-	if err := f.handleInput(); err != nil {
-		return err
 	}
 	f.updateEntries()
 	return nil
@@ -61,8 +59,8 @@ func (f *FileExplorer) Draw(screen *ebiten.Image) {
 		return
 	}
 
-	min := f.selected - maxEntries/2
-	max := f.selected + maxEntries/2 - 1
+	min := f.Selected - maxEntries/2
+	max := f.Selected + maxEntries/2 - 1
 
 	if min < 0 {
 		min = 0
@@ -74,7 +72,7 @@ func (f *FileExplorer) Draw(screen *ebiten.Image) {
 	text := textutil.New(basicfont.Face7x13, img.Bounds().Dx(), (max-min+1)*entryHeight, 0, 0, scale)
 	for i := min; i <= max; i++ {
 		text.Color(colornames.White)
-		if i == f.selected {
+		if i == f.Selected {
 			text.Color(colornames.Green)
 		}
 		entry := (*f.entries)[i]
@@ -86,7 +84,7 @@ func (f *FileExplorer) Draw(screen *ebiten.Image) {
 	y := float64(0)
 	y += float64(screen.Bounds().Dy() / 2)
 	y -= float64(entryHeight / 2)
-	y -= float64(f.selected-min) * float64(entryHeight)
+	y -= float64(f.Selected-min) * float64(entryHeight)
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(0, y)
 
@@ -98,7 +96,7 @@ func (f *FileExplorer) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func (f *FileExplorer) Select(directory string) error {
-	f.selectedCache[f.Directory] = f.selected
+	f.selectedCache[f.Directory] = f.Selected
 	absolutePath, err := filepath.Abs(directory)
 	if err != nil {
 		return err
@@ -108,49 +106,36 @@ func (f *FileExplorer) Select(directory string) error {
 	if !ok || (ok && previouslySelected > len(*f.entries)-1) {
 		previouslySelected = 0
 	}
-	f.selected = previouslySelected
+	f.Selected = previouslySelected
 	return nil
 }
 
-func (f *FileExplorer) handleInput() error {
-	if inpututil.IsKeyJustPressed(ebiten.KeyEnter) {
-		f.Ready = true
-	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyArrowLeft) {
-		if err := f.Select(filepath.Dir(f.Directory)); err != nil {
-			return err
+func (f *FileExplorer) OpenFolder() {
+	s := (*f.entries)[f.Selected]
+	if s.IsDir() {
+		if err := f.Select(filepath.Join(f.Directory, s.Name())); err != nil {
+			log.Println(err)
 		}
 	}
-	if inpututil.IsKeyJustPressed(ebiten.KeyArrowRight) {
-		s := (*f.entries)[f.selected]
-		if s.IsDir() {
-			if err := f.Select(filepath.Join(f.Directory, s.Name())); err != nil {
-				return err
-			}
-		}
-	}
-	if repeatingKeyPressed(ebiten.KeyArrowUp) {
-		f.selected -= 1
-	}
-	if repeatingKeyPressed(ebiten.KeyArrowDown) {
-		f.selected += 1
-	}
+}
 
-outer:
-	for letter, key := range fileNameKeys {
-		if inpututil.IsKeyJustPressed(key) {
-			for index := 0; index < len(*f.entries); index++ {
-				entryIndex := (index + f.selected + 1) % len(*f.entries)
-				entry := (*f.entries)[entryIndex]
-				if strings.HasPrefix(strings.ToUpper(entry.Name()), letter) {
-					f.selected = entryIndex
-					break outer
-				}
-			}
+func (f *FileExplorer) CloseFolder() {
+	if err := f.Select(filepath.Dir(f.Directory)); err != nil {
+		log.Println(err)
+	}
+}
+
+func (f *FileExplorer) TextInput(char rune) {
+
+	for index := 0; index < len(*f.entries); index++ {
+		entryIndex := (index + f.Selected + 1) % len(*f.entries)
+		entry := (*f.entries)[entryIndex]
+		if strings.HasPrefix(strings.ToUpper(entry.Name()), string(char)) {
+			f.Selected = entryIndex
+			break
 		}
 	}
 
-	return nil
 }
 
 func (f *FileExplorer) updateEntries() {
@@ -178,11 +163,11 @@ func (f *FileExplorer) updateEntries() {
 	}
 
 	l := len(*f.entries) - 1
-	if f.selected > l {
-		f.selected = l
+	if f.Selected > l {
+		f.Selected = l
 	}
-	if f.selected < 0 {
-		f.selected = 0
+	if f.Selected < 0 {
+		f.Selected = 0
 	}
 }
 

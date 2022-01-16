@@ -9,10 +9,11 @@ type GroupName string
 type BindingName string
 
 const (
-	Emulator    GroupName = "Emulator"
-	Debug                 = "Debug"
-	Controller1           = "Controller 1"
-	Controller2           = "Controller 2"
+	Emulator     GroupName = "Emulator"
+	Debug                  = "Debug"
+	Controller1            = "Controller 1"
+	Controller2            = "Controller 2"
+	FileExplorer           = "File Explorer"
 
 	Reset  BindingName = "Reset"
 	Load               = "Load"
@@ -31,6 +32,12 @@ const (
 	ShowSpriteDebug     = "Show Sprite Debug"
 	ShowControllerDebug = "Show Controller Debug"
 	EnableLogging       = "EnableLogging"
+
+	Select            = "Select"
+	OpenFolder        = "OpenFolder"
+	ParentFolder      = "ParentFolder"
+	MoveSelectionUp   = "MoveSelectionUp"
+	MoveSelectionDown = "MoveSelectionDown"
 
 	A      = "A"
 	B      = "B"
@@ -228,6 +235,28 @@ func GetBindings() *Bindings {
 					HasDefaultControllerAxis:   true,
 					DefaultControllerAxis:      ebiten.StandardGamepadAxisLeftStickHorizontal,
 					DefaultControllerAxisSign:  +1,
+				},
+			},
+			FileExplorer: BindingGroup{
+				Select: &Binding{
+					Help:       "Open the selected file",
+					DefaultKey: ebiten.KeyEnter,
+				},
+				OpenFolder: &Binding{
+					Help:       "Open the selected folder",
+					DefaultKey: ebiten.KeyArrowRight,
+				},
+				ParentFolder: &Binding{
+					Help:       "Open the parent folder",
+					DefaultKey: ebiten.KeyArrowLeft,
+				},
+				MoveSelectionUp: &Binding{
+					Help:       "Move the selected on file up",
+					DefaultKey: ebiten.KeyArrowUp,
+				},
+				MoveSelectionDown: &Binding{
+					Help:       "Move the selected on file down",
+					DefaultKey: ebiten.KeyArrowDown,
 				},
 			},
 		},

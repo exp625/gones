@@ -38,8 +38,8 @@ type Emulator struct {
 
 	AutoRunEnabled bool
 
-	ActiveOverlay Overlay
-	FileExplorer  *file_explorer.FileExplorer
+	ActiveScreen Screen
+	FileExplorer *file_explorer.FileExplorer
 
 	RequestedSteps int
 	AutoRunCycles  int
@@ -76,7 +76,7 @@ func New(romFile string, debug bool) (*Emulator, error) {
 	e.Bindings = input.GetBindings()
 	e.registerAllBindings()
 	if debug {
-		e.ActiveOverlay = OverlayCPU
+		e.ChangeScreen(ScreenCPU)
 	}
 
 	if romFile != "" {
@@ -90,8 +90,9 @@ func New(romFile string, debug bool) (*Emulator, error) {
 		}
 		e.InsertCartridge(c)
 		e.LoadGame()
+		e.ChangeScreen(ScreenGame)
 	} else {
-		e.ActiveOverlay = OverlayROMChooser
+		e.ChangeScreen(OverlayROMChooser)
 	}
 
 	if err := e.Init(); err != nil {
@@ -132,9 +133,7 @@ func (e *Emulator) Init() error {
 
 func (e *Emulator) Update() error {
 	textutil.Update()
-	if e.ActiveOverlay != OverlayROMChooser {
-		input.HandleInput(e.Bindings)
-	}
+	input.HandleInput(e.Bindings)
 
 	// Measure time spent in auto run mode
 	if e.AutoRunEnabled {
@@ -142,7 +141,7 @@ func (e *Emulator) Update() error {
 	}
 	e.AutoRunStarted = time.Now()
 
-	if e.ActiveOverlay == OverlayROMChooser {
+	if e.ActiveScreen == OverlayROMChooser {
 		if err := e.FileExplorer.Update(); err != nil {
 			return err
 		}
@@ -176,7 +175,7 @@ func (e *Emulator) Update() error {
 		e.LoadGame()
 		e.Reset()
 
-		e.ActiveOverlay = OverlayGame
+		e.ChangeScreen(ScreenGame)
 		e.AutoRunEnabled = true
 		if err := config.Set(config.LastROMFile, absolutePath); err != nil {
 			log.Println("failed to set last ROM file in config: ", err.Error())
@@ -190,10 +189,10 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 
 	e.DrawHeader(screen)
 
-	switch e.ActiveOverlay {
-	case OverlayGame:
+	switch e.ActiveScreen {
+	case ScreenGame:
 		e.DrawOverlayGame(screen)
-	case OverlayCPU:
+	case ScreenCPU:
 		e.DrawOverlayCPU(screen)
 	case OverlayPPU:
 		e.DrawOverlayPPU(screen)

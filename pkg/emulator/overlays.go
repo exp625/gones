@@ -9,11 +9,11 @@ import (
 	"image/color"
 )
 
-type Overlay int
+type Screen int
 
 const (
-	OverlayGame Overlay = iota
-	OverlayCPU
+	ScreenGame Screen = iota
+	ScreenCPU
 	OverlayPPU
 	OverlayNametables
 	OverlayPalettes
@@ -22,6 +22,23 @@ const (
 	OverlayKeybindings
 	OverlayROMChooser
 )
+
+func (e *Emulator) ChangeScreen(screen Screen) {
+	e.clearAllBindings()
+	if e.ActiveScreen == screen {
+		e.ActiveScreen = ScreenGame
+		e.registerAllBindings()
+	} else {
+		switch screen {
+		case OverlayROMChooser:
+			e.registerFileExplorerBindings()
+			e.ActiveScreen = screen
+		default:
+			e.registerAllBindings()
+			e.ActiveScreen = screen
+		}
+	}
+}
 
 func (e *Emulator) DrawOverlayGame(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}

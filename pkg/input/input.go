@@ -44,6 +44,26 @@ func handleKeyboardInputs(bindings *Bindings) {
 			}
 		}
 	}
+
+	if bindings.NumberHandler != nil {
+		for number, keys := range numberKeys {
+			for _, key := range keys {
+				if inpututil.IsKeyJustPressed(key) {
+					bindings.NumberHandler(number)
+				}
+			}
+		}
+	}
+
+	if bindings.NumberHandler != nil {
+		for rune, keys := range textKeys {
+			for _, key := range keys {
+				if inpututil.IsKeyJustPressed(key) {
+					bindings.TextHandler(rune)
+				}
+			}
+		}
+	}
 }
 
 func handleControllerInputs(bindings *Bindings) {

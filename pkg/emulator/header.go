@@ -35,7 +35,7 @@ func (e *Emulator) DrawHeader(screen *ebiten.Image) {
 
 	for i := range headerEntries {
 		headerEntry := textutil.New(basicfont.Face7x13, width, 20, (width/len(headerEntries))*i, 3, 1)
-		if e.ActiveOverlay == Overlay(i+1) {
+		if e.ActiveScreen == Screen(i+1) {
 			screen.DrawImage(bg, op)
 			headerEntry.Color(color.White)
 		} else {
