@@ -93,7 +93,17 @@ func (e *Emulator) registerFileExplorerBindings() {
 	e.Bindings.Groups[input.FileExplorer][input.MoveSelectionDown].OnPressed = func() { e.FileExplorer.Selected += 1 }
 	e.Bindings.Groups[input.FileExplorer][input.OpenFolder].OnPressed = e.FileExplorer.OpenFolder
 	e.Bindings.Groups[input.FileExplorer][input.ParentFolder].OnPressed = e.FileExplorer.CloseFolder
+	e.Bindings.Groups[input.Emulator][input.Cancel].OnPressed = func() { e.ChangeScreen(ScreenGame) }
 	e.Bindings.TextHandler = e.FileExplorer.TextInput
+}
+
+func (e *Emulator) registerInputBindings() {
+
+	e.Bindings.Groups[input.FileExplorer][input.MoveSelectionUp].OnPressed = e.Bindings.MoveSelectionUp
+	e.Bindings.Groups[input.FileExplorer][input.MoveSelectionDown].OnPressed = e.Bindings.MoveSelectionDown
+	e.Bindings.Groups[input.FileExplorer][input.OpenFolder].OnPressed = e.Bindings.Select
+	e.Bindings.Groups[input.FileExplorer][input.ParentFolder].OnPressed = e.Bindings.Deselect
+	e.Bindings.Groups[input.Emulator][input.Cancel].OnPressed = func() { e.ChangeScreen(ScreenGame) }
 
 }
 

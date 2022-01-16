@@ -33,6 +33,10 @@ func (e *Emulator) ChangeScreen(screen Screen) {
 		case OverlayROMChooser:
 			e.registerFileExplorerBindings()
 			e.ActiveScreen = screen
+		case OverlayKeybindings:
+			e.registerInputBindings()
+			e.registerDebugBindings()
+			e.ActiveScreen = screen
 		default:
 			e.registerAllBindings()
 			e.ActiveScreen = screen
@@ -140,15 +144,7 @@ func (e *Emulator) DrawOverlaySprites(screen *ebiten.Image) {
 }
 
 func (e *Emulator) DrawOverlayKeybindings(screen *ebiten.Image) {
-	width, height := ebiten.WindowSize()
-	text := textutil.New(basicfont.Face7x13, width, height, 4, 24, 2)
-	for name, group := range e.Bindings.Groups {
-		plz.Just(text.WriteString(fmt.Sprintf("%s: \n", name)))
-		for _, binding := range group {
-			plz.Just(text.WriteString(fmt.Sprintf("    %s: %s\n", binding.Key().String(), binding.Help)))
-		}
-	}
-	text.Draw(screen)
+	e.Bindings.Draw(screen)
 }
 
 func (e *Emulator) DrawROMChooser(screen *ebiten.Image) {
@@ -162,7 +158,8 @@ func (e *Emulator) DrawROMChooser(screen *ebiten.Image) {
 		"<RIGHT> to go into the selected directory\n",
 		"<UP>/<DOWN> to browse through the current directory\n",
 		"<ENTER> to choose the currently selected file/directory\n",
-		"<A-Z>/<0-9> to quickly selected a file/directory starting with the letter/number",
+		"<A-Z>/<0-9> to quickly selected a file/directory starting with the letter/number \n",
+		"<ESC> close file explorer",
 	}
 	text := textutil.New(basicfont.Face7x13, screen.Bounds().Dx()-2*pad, len(lines)*basicfont.Face7x13.Height+2*pad, pad, pad, 1)
 	for _, line := range lines {

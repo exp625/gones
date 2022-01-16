@@ -69,9 +69,11 @@ type Binding struct {
 }
 
 type Bindings struct {
-	Groups        BindingGroups
-	NumberHandler func(int)
-	TextHandler   func(rune)
+	Groups          BindingGroups
+	NumberHandler   func(int)
+	TextHandler     func(rune)
+	selectedGroup   GroupName
+	selectedBinding BindingName
 }
 
 func (b *Binding) Key() ebiten.Key {
@@ -266,6 +268,7 @@ func GetBindings() *Bindings {
 		TextHandler: func(rune) {
 
 		},
+		selectedGroup: Controller1,
 	}
 }
 
