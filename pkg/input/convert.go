@@ -5,6 +5,9 @@ import (
 	"strings"
 )
 
+type StandardGamepadButton ebiten.StandardGamepadButton
+type StandardGamepadAxis ebiten.StandardGamepadAxis
+
 func keyNameToKeyCode(name string) (ebiten.Key, bool) {
 	switch strings.ToLower(name) {
 	case "0":
@@ -297,4 +300,134 @@ func keyNameToKeyCode(name string) (ebiten.Key, bool) {
 		return ebiten.KeyUp, true
 	}
 	return 0, false
+}
+
+func (btn StandardGamepadButton) String() string {
+	switch ebiten.StandardGamepadButton(btn) {
+	case ebiten.StandardGamepadButtonRightBottom:
+		return "ButtonRightBottom"
+	case ebiten.StandardGamepadButtonRightRight:
+		return "ButtonRightRight"
+	case ebiten.StandardGamepadButtonRightLeft:
+		return "ButtonRightLeft"
+	case ebiten.StandardGamepadButtonRightTop:
+		return "ButtonRightTop"
+	case ebiten.StandardGamepadButtonFrontTopLeft:
+		return "ButtonFrontTopLeft"
+	case ebiten.StandardGamepadButtonFrontTopRight:
+		return "ButtonFrontTopRight"
+	case ebiten.StandardGamepadButtonFrontBottomLeft:
+		return "ButtonFrontBottomLeft"
+	case ebiten.StandardGamepadButtonFrontBottomRight:
+		return "ButtonFrontBottomRight"
+	case ebiten.StandardGamepadButtonCenterLeft:
+		return "ButtonCenterLeft"
+	case ebiten.StandardGamepadButtonCenterRight:
+		return "ButtonCenterRight"
+	case ebiten.StandardGamepadButtonLeftStick:
+		return "ButtonLeftStick"
+	case ebiten.StandardGamepadButtonRightStick:
+		return "ButtonRightStick"
+	case ebiten.StandardGamepadButtonLeftTop:
+		return "ButtonLeftTop"
+	case ebiten.StandardGamepadButtonLeftBottom:
+		return "ButtonLeftBottom"
+	case ebiten.StandardGamepadButtonLeftLeft:
+		return "ButtonLeftLeft"
+	case ebiten.StandardGamepadButtonLeftRight:
+		return "ButtonLeftRight"
+	case ebiten.StandardGamepadButtonCenterCenter:
+		return "ButtonCenterCenter"
+	}
+	return ""
+}
+
+func buttonNameToButtonCode(name string) (ebiten.StandardGamepadButton, bool) {
+	switch strings.ToLower(name) {
+	case "buttonrightbottom":
+		return ebiten.StandardGamepadButtonRightBottom, true
+	case "buttonrightright":
+		return ebiten.StandardGamepadButtonRightRight, true
+	case "buttonrightleft":
+		return ebiten.StandardGamepadButtonRightLeft, true
+	case "buttonrighttop":
+		return ebiten.StandardGamepadButtonRightTop, true
+	case "buttonfronttopleft":
+		return ebiten.StandardGamepadButtonFrontTopLeft, true
+	case "buttonfronttopright":
+		return ebiten.StandardGamepadButtonFrontTopRight, true
+	case "buttonfrontbottomleft":
+		return ebiten.StandardGamepadButtonFrontBottomLeft, true
+	case "buttonfrontbottomright":
+		return ebiten.StandardGamepadButtonFrontBottomRight, true
+	case "buttoncenterleft":
+		return ebiten.StandardGamepadButtonCenterLeft, true
+	case "buttoncenterright":
+		return ebiten.StandardGamepadButtonCenterRight, true
+	case "buttonleftstick":
+		return ebiten.StandardGamepadButtonLeftStick, true
+	case "buttonrightstick":
+		return ebiten.StandardGamepadButtonRightStick, true
+	case "buttonlefttop":
+		return ebiten.StandardGamepadButtonLeftTop, true
+	case "buttonleftbottom":
+		return ebiten.StandardGamepadButtonLeftBottom, true
+	case "buttonleftleft":
+		return ebiten.StandardGamepadButtonLeftLeft, true
+	case "buttonleftright":
+		return ebiten.StandardGamepadButtonLeftRight, true
+	case "buttoncentercenter":
+		return ebiten.StandardGamepadButtonCenterCenter, true
+	}
+	return 0, false
+}
+
+func (axis StandardGamepadAxis) String(sign bool) string {
+	if sign {
+		switch ebiten.StandardGamepadAxis(axis) {
+		case ebiten.StandardGamepadAxisLeftStickHorizontal:
+			return "AxisLeftStickHorizontal-"
+		case ebiten.StandardGamepadAxisLeftStickVertical:
+			return "AxisLeftStickVertical-"
+		case ebiten.StandardGamepadAxisRightStickHorizontal:
+			return "AxisRightStickHorizontal-"
+		case ebiten.StandardGamepadAxisRightStickVertical:
+			return "AxisRightStickVertical-"
+		}
+	} else {
+		switch ebiten.StandardGamepadAxis(axis) {
+		case ebiten.StandardGamepadAxisLeftStickHorizontal:
+			return "AxisLeftStickHorizontal+"
+		case ebiten.StandardGamepadAxisLeftStickVertical:
+			return "AxisLeftStickVertical+"
+		case ebiten.StandardGamepadAxisRightStickHorizontal:
+			return "AxisRightStickHorizontal+"
+		case ebiten.StandardGamepadAxisRightStickVertical:
+			return "AxisRightStickVertical+"
+		}
+	}
+	return ""
+}
+
+func axisNameToAxisCode(name string) (ebiten.StandardGamepadAxis, float64, bool) {
+
+	switch strings.ToLower(name) {
+	case "axisleftstickhorizontal+":
+		return ebiten.StandardGamepadAxisLeftStickHorizontal, 1, true
+	case "axisleftstickvertical+":
+		return ebiten.StandardGamepadAxisLeftStickVertical, 1, true
+	case "axisrightstickhorizontal+":
+		return ebiten.StandardGamepadAxisRightStickHorizontal, 1, true
+	case "axisrightstickvertical+":
+		return ebiten.StandardGamepadAxisRightStickVertical, 1, true
+	case "axisleftstickhorizontal-":
+		return ebiten.StandardGamepadAxisLeftStickHorizontal, -1, true
+	case "axisleftstickvertical-":
+		return ebiten.StandardGamepadAxisLeftStickVertical, -1, true
+	case "axisrightstickhorizontal-":
+		return ebiten.StandardGamepadAxisRightStickHorizontal, -1, true
+	case "axisrightstickvertical-":
+		return ebiten.StandardGamepadAxisRightStickVertical, -1, true
+	}
+	return 0, 0, false
 }

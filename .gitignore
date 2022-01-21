@@ -25,3 +25,4 @@ bin
 /saves
 *.log
 *.nes
+bindings.json

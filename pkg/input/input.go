@@ -29,21 +29,6 @@ func HandleInput(bindings *Bindings) {
 }
 
 func handleKeyboardInputs(bindings *Bindings) {
-	for _, group := range bindings.Groups {
-		for _, binding := range group {
-			key := binding.Key()
-			if binding.OnPressed != nil {
-				if inpututil.IsKeyJustPressed(key) {
-					binding.OnPressed()
-				}
-			}
-			if binding.OnReleased != nil {
-				if inpututil.IsKeyJustReleased(key) {
-					binding.OnReleased()
-				}
-			}
-		}
-	}
 
 	if bindings.NumberHandler != nil {
 		for number, keys := range numberKeys {
@@ -55,11 +40,57 @@ func handleKeyboardInputs(bindings *Bindings) {
 		}
 	}
 
-	if bindings.NumberHandler != nil {
+	if bindings.TextHandler != nil {
 		for rune, keys := range textKeys {
 			for _, key := range keys {
 				if inpututil.IsKeyJustPressed(key) {
 					bindings.TextHandler(rune)
+				}
+			}
+		}
+	}
+
+	if bindings.GlobalHandler != nil {
+		for key := ebiten.KeyA; key <= ebiten.KeyMeta; key++ {
+			if inpututil.IsKeyJustPressed(key) {
+				bindings.GlobalHandler(key, -1, -1, 0)
+			}
+		}
+		for id := range gamepads.gamepadIDs {
+			if !ebiten.IsStandardGamepadLayoutAvailable(id) {
+				continue
+			}
+			for btn := ebiten.StandardGamepadButtonRightBottom; btn <= ebiten.StandardGamepadButtonMax; btn++ {
+				if inpututil.IsStandardGamepadButtonJustPressed(id, btn) {
+					bindings.GlobalHandler(-1, btn, -1, 0)
+				}
+			}
+			for axis := ebiten.StandardGamepadAxis(0); axis <= ebiten.StandardGamepadAxis(3); axis++ {
+				v := ebiten.StandardGamepadAxisValue(id, axis)
+				if math.Abs(v) >= AxisThreshold {
+					sign := math.Signbit(v)
+					if sign {
+						bindings.GlobalHandler(-1, -1, axis, -1)
+					} else {
+						bindings.GlobalHandler(-1, -1, axis, 1)
+					}
+
+				}
+			}
+		}
+	}
+
+	for _, group := range bindings.Groups {
+		for _, binding := range group {
+			key := binding.Key()
+			if binding.OnPressed != nil {
+				if inpututil.IsKeyJustPressed(key) {
+					binding.OnPressed()
+				}
+			}
+			if binding.OnReleased != nil {
+				if inpututil.IsKeyJustReleased(key) {
+					binding.OnReleased()
 				}
 			}
 		}
@@ -92,13 +123,16 @@ func handleControllerInputs(bindings *Bindings) {
 				axisId := float64(axis+1) * sign
 				if math.Abs(v) >= AxisThreshold && math.Signbit(sign) == math.Signbit(v) && hasAxis && !gamepads.gamepadAxis[id][axisId] {
 					gamepads.gamepadAxis[id][axisId] = true
-					binding.OnPressed()
+					if binding.OnPressed != nil {
+						binding.OnPressed()
+					}
 				} else if gamepads.gamepadAxis[id][axisId] && math.Abs(v) < AxisThreshold {
-					binding.OnReleased()
+					if binding.OnReleased != nil {
+						binding.OnReleased()
+					}
 					gamepads.gamepadAxis[id][axisId] = false
 				}
 			}
-
 		}
 	}
 }

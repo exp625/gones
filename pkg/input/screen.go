@@ -8,6 +8,7 @@ import (
 	"golang.org/x/image/colornames"
 	"golang.org/x/image/font/basicfont"
 	"image/color"
+	"math"
 	"sort"
 )
 
@@ -21,7 +22,8 @@ func (b *Bindings) Draw(screen *ebiten.Image) {
 		"<RIGHT> select group or binding\n",
 		"<UP>/<DOWN> move selection up or down\n",
 		"<ENTER> select new key for the selected input\n",
-		"<ESC> close the keybindings",
+		"<ESC> close the keybindings\n",
+		"<R> reset to defaults",
 	}
 	helperText := textutil.New(basicfont.Face7x13, screen.Bounds().Dx()-2*pad, len(lines)*basicfont.Face7x13.Height+2*pad, pad, pad, 1)
 	for _, line := range lines {
@@ -50,7 +52,22 @@ func (b *Bindings) Draw(screen *ebiten.Image) {
 				if key == string(b.selectedBinding) {
 					text.Color(colornames.Green)
 				}
-				plz.Just(text.WriteString(fmt.Sprintf("    %s: %s\n", binding.Key().String(), binding.Help)))
+				if key == string(b.toChange) {
+					text.Color(colornames.Yellow)
+				}
+				plz.Just(text.WriteString(fmt.Sprintf("    %s:\n", binding.Help)))
+				plz.Just(text.WriteString(fmt.Sprintf("        <%s>", binding.Key().String())))
+				if has, btn := binding.ControllerButton(); has {
+					plz.Just(text.WriteString(fmt.Sprintf(", <%s>", StandardGamepadButton(btn).String())))
+				} else {
+					plz.Just(text.WriteString(fmt.Sprintf(", <%s>", "None")))
+				}
+				if has, axis, sign := binding.ControllerAxis(); has {
+					plz.Just(text.WriteString(fmt.Sprintf(", <%s>\n", StandardGamepadAxis(axis).String(math.Signbit(sign)))))
+				} else {
+					plz.Just(text.WriteString(fmt.Sprintf(", <%s>\n", "None")))
+				}
+
 				text.Color(colornames.White)
 			}
 		} else {
@@ -121,7 +138,51 @@ func (b *Bindings) MoveSelectionDown() {
 }
 
 func (b *Bindings) Select() {
-	b.selectedBinding = BindingName(sortBindingKeys(b.Groups[b.selectedGroup])[0])
+	if b.selectedBinding == "" {
+		b.selectedBinding = BindingName(sortBindingKeys(b.Groups[b.selectedGroup])[0])
+	}
+}
+
+func (b *Bindings) ChangeKeybinding() {
+	if b.selectedBinding != "" {
+		b.toChange = b.selectedBinding
+	}
+}
+
+func (b *Bindings) ApplyKeybinding(key ebiten.Key, btn ebiten.StandardGamepadButton, axis ebiten.StandardGamepadAxis, sign float64) {
+	if b.toChange == "" {
+		return
+	}
+	if key != -1 {
+		if b.Groups[b.selectedGroup][b.selectedBinding].DefaultKey != key {
+			b.Groups[b.selectedGroup][b.selectedBinding].HasBoundKey = true
+			b.Groups[b.selectedGroup][b.selectedBinding].BoundKey = key
+		} else {
+			b.Groups[b.selectedGroup][b.selectedBinding].HasBoundKey = false
+			b.Groups[b.selectedGroup][b.selectedBinding].BoundKey = 0
+		}
+	}
+	if btn != -1 {
+		if b.Groups[b.selectedGroup][b.selectedBinding].DefaultControllerButton != btn {
+			b.Groups[b.selectedGroup][b.selectedBinding].HasBoundControllerButton = true
+			b.Groups[b.selectedGroup][b.selectedBinding].BoundControllerButton = btn
+		} else {
+			b.Groups[b.selectedGroup][b.selectedBinding].HasBoundControllerButton = false
+			b.Groups[b.selectedGroup][b.selectedBinding].BoundControllerButton = 0
+		}
+	}
+	if axis != -1 {
+		if b.Groups[b.selectedGroup][b.selectedBinding].DefaultControllerAxis != axis || b.Groups[b.selectedGroup][b.selectedBinding].DefaultControllerAxisSign != sign {
+			b.Groups[b.selectedGroup][b.selectedBinding].HasBoundControllerAxis = true
+			b.Groups[b.selectedGroup][b.selectedBinding].BoundControllerAxis = axis
+			b.Groups[b.selectedGroup][b.selectedBinding].BoundControllerAxisSign = sign
+		} else {
+			b.Groups[b.selectedGroup][b.selectedBinding].HasBoundControllerAxis = false
+			b.Groups[b.selectedGroup][b.selectedBinding].BoundControllerAxis = 0
+			b.Groups[b.selectedGroup][b.selectedBinding].BoundControllerAxisSign = 0
+		}
+	}
+	b.toChange = ""
 }
 
 func (b *Bindings) Deselect() {

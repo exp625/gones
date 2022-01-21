@@ -8,10 +8,14 @@ import (
 func (e *Emulator) clearAllBindings() {
 	for _, group := range e.Bindings.Groups {
 		for _, binding := range group {
-			binding.OnPressed = func() {}
-			binding.OnReleased = func() {}
+			binding.OnPressed = nil
+			binding.OnReleased = nil
 		}
 	}
+	e.Bindings.GlobalHandler = nil
+	e.Bindings.TextHandler = nil
+	e.Bindings.NumberHandler = nil
+
 }
 
 func (e *Emulator) registerAllBindings() {
@@ -103,7 +107,13 @@ func (e *Emulator) registerInputBindings() {
 	e.Bindings.Groups[input.FileExplorer][input.MoveSelectionDown].OnPressed = e.Bindings.MoveSelectionDown
 	e.Bindings.Groups[input.FileExplorer][input.OpenFolder].OnPressed = e.Bindings.Select
 	e.Bindings.Groups[input.FileExplorer][input.ParentFolder].OnPressed = e.Bindings.Deselect
-	e.Bindings.Groups[input.Emulator][input.Cancel].OnPressed = func() { e.ChangeScreen(ScreenGame) }
+	e.Bindings.Groups[input.Emulator][input.Cancel].OnPressed = func() {
+		e.Bindings.SaveCustomBindings()
+		e.ChangeScreen(ScreenGame)
+	}
+	e.Bindings.Groups[input.Emulator][input.Reset].OnPressed = e.Bindings.Reset
+	e.Bindings.Groups[input.FileExplorer][input.Select].OnPressed = e.Bindings.ChangeKeybinding
+	e.Bindings.GlobalHandler = e.Bindings.ApplyKeybinding
 
 }
 

@@ -74,6 +74,7 @@ func New(romFile string, debug bool) (*Emulator, error) {
 		FileExplorer: explorer,
 	}
 	e.Bindings = input.GetBindings()
+	e.Bindings.LoadCustomBindings()
 	e.registerAllBindings()
 	if debug {
 		e.ChangeScreen(ScreenCPU)

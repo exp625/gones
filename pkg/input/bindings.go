@@ -2,7 +2,6 @@ package input
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"
-	"os"
 )
 
 type GroupName string
@@ -63,7 +62,7 @@ type Binding struct {
 	HasDefaultControllerAxis   bool
 	BoundControllerAxis        ebiten.StandardGamepadAxis
 	BoundControllerAxisSign    float64
-	HAsBoundControllerAxis     bool
+	HasBoundControllerAxis     bool
 	OnPressed                  func()
 	OnReleased                 func()
 }
@@ -72,8 +71,10 @@ type Bindings struct {
 	Groups          BindingGroups
 	NumberHandler   func(int)
 	TextHandler     func(rune)
+	GlobalHandler   func(key ebiten.Key, btn ebiten.StandardGamepadButton, axis ebiten.StandardGamepadAxis, sign float64)
 	selectedGroup   GroupName
 	selectedBinding BindingName
+	toChange        BindingName
 }
 
 func (b *Binding) Key() ebiten.Key {
@@ -94,7 +95,7 @@ func (b *Binding) ControllerButton() (bool, ebiten.StandardGamepadButton) {
 }
 
 func (b *Binding) ControllerAxis() (bool, ebiten.StandardGamepadAxis, float64) {
-	if b.HAsBoundControllerAxis {
+	if b.HasBoundControllerAxis {
 		return true, b.BoundControllerAxis, b.BoundControllerAxisSign
 	}
 	if b.HasDefaultControllerAxis {
@@ -272,6 +273,27 @@ func GetBindings() *Bindings {
 	}
 }
 
-func LoadCustomBindings(file os.File, bindings Bindings) {
+func (b *Bindings) SaveCustomBindings() {
+	file := b.convertToFileFormat()
+	file.Save()
+}
 
+func (b *Bindings) LoadCustomBindings() {
+	var file FileBindings
+	file.Load()
+	b.loadFromFileFormat(&file)
+}
+
+func (b *Bindings) Reset() {
+	for group, _ := range b.Groups {
+		for binding, _ := range b.Groups[group] {
+			b.Groups[group][binding].HasBoundKey = false
+			b.Groups[group][binding].BoundKey = 0
+			b.Groups[group][binding].HasBoundControllerButton = false
+			b.Groups[group][binding].BoundControllerButton = 0
+			b.Groups[group][binding].HasBoundControllerAxis = false
+			b.Groups[group][binding].BoundControllerAxis = 0
+			b.Groups[group][binding].BoundControllerAxisSign = 0
+		}
+	}
 }
