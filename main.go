@@ -8,6 +8,7 @@ import (
 )
 
 //go:generate go run gen/cmd/main.go
+
 func main() {
 
 	romFile := ""

@@ -9,11 +9,11 @@ import (
 	"image/color"
 )
 
-type Overlay int
+type Screen int
 
 const (
-	OverlayGame Overlay = iota
-	OverlayCPU
+	ScreenGame Screen = iota
+	ScreenCPU
 	OverlayPPU
 	OverlayNametables
 	OverlayPalettes
@@ -23,10 +23,33 @@ const (
 	OverlayROMChooser
 )
 
+func (e *Emulator) ChangeScreen(screen Screen) {
+	e.clearAllBindings()
+	if e.ActiveScreen == screen {
+		e.ActiveScreen = ScreenGame
+		e.registerAllBindings()
+	} else {
+		switch screen {
+		case OverlayROMChooser:
+			e.registerFileExplorerBindings()
+			e.ActiveScreen = screen
+		case OverlayKeybindings:
+			e.registerInputBindings()
+			e.registerDebugBindings()
+			e.ActiveScreen = screen
+		default:
+			e.registerAllBindings()
+			e.ActiveScreen = screen
+		}
+	}
+}
+
 func (e *Emulator) DrawOverlayGame(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(0, 5)
+
 	op.GeoM.Scale(4, 4)
+	op.GeoM.Translate((float64(screen.Bounds().Dx())-(256*4))/2, 0)
+	screen.Fill(e.PPU.Palette[e.PPU.PaletteRAM[0]][e.PPU.Mask.Emphasize()])
 	screen.DrawImage(ebiten.NewImageFromImage(e.PPU.ActiveFrame), op)
 }
 
@@ -121,15 +144,7 @@ func (e *Emulator) DrawOverlaySprites(screen *ebiten.Image) {
 }
 
 func (e *Emulator) DrawOverlayKeybindings(screen *ebiten.Image) {
-	width, height := ebiten.WindowSize()
-	text := textutil.New(basicfont.Face7x13, width, height, 4, 24, 2)
-	for _, group := range e.Bindings {
-		plz.Just(text.WriteString(fmt.Sprintf("%s: \n", group.Name)))
-		for _, binding := range group.Bindings {
-			plz.Just(text.WriteString(fmt.Sprintf("    %s: %s\n", binding.Key().String(), binding.Help)))
-		}
-	}
-	text.Draw(screen)
+	e.Bindings.Draw(screen)
 }
 
 func (e *Emulator) DrawROMChooser(screen *ebiten.Image) {
@@ -143,7 +158,8 @@ func (e *Emulator) DrawROMChooser(screen *ebiten.Image) {
 		"<RIGHT> to go into the selected directory\n",
 		"<UP>/<DOWN> to browse through the current directory\n",
 		"<ENTER> to choose the currently selected file/directory\n",
-		"<A-Z>/<0-9> to quickly selected a file/directory starting with the letter/number",
+		"<A-Z>/<0-9> to quickly selected a file/directory starting with the letter/number \n",
+		"<ESC> close file explorer",
 	}
 	text := textutil.New(basicfont.Face7x13, screen.Bounds().Dx()-2*pad, len(lines)*basicfont.Face7x13.Height+2*pad, pad, pad, 1)
 	for _, line := range lines {

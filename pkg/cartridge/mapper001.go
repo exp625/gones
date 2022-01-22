@@ -112,15 +112,6 @@ func (m *Mapper001) CPUWrite(location uint16, data uint8) bool {
 				// |                         3: fix last bank at $C000 and switch 16 KB bank at $8000)
 				// +----- CHR ROM bank mode (0: switch 8 KB at a time; 1: switch two separate 4 KB banks)
 				m.control = m.shiftRegister.Get() >> 3
-				if m.cartridge.ChrRomSize <= 4 {
-					// TODO: Currently breaks
-					// m.ramBanks[0] = m.shiftRegister.Get() >> 5 & 0b11
-				}
-				if m.cartridge.PrgRomSize == 32 && m.shiftRegister.Get()>>7 == 1 {
-					m.prgBanksDouble = 1
-				} else {
-					m.prgBanksDouble = 0
-				}
 			case 0xA000 <= location && location <= 0xBFFF:
 				// CHR bank 0 (internal, $A000-$BFFF)
 				// 4bit0
@@ -128,16 +119,16 @@ func (m *Mapper001) CPUWrite(location uint16, data uint8) bool {
 				// CCCCC
 				// |||||
 				// +++++- Select 4 KB or 8 KB CHR bank at PPU $0000 (low bit ignored in 8 KB mode)
-				m.chrBanks[0] = m.shiftRegister.Get() >> 3 & (m.cartridge.ChrRomSize - 1)
-				if m.cartridge.ChrRomSize <= 4 {
-					// TODO: Currently breaks
-					m.ramBanks[0] = m.shiftRegister.Get() >> 5 & 0b11
-				}
-				if m.cartridge.PrgRomSize == 32 && m.shiftRegister.Get()>>7 == 1 {
-					m.prgBanksDouble = 1
-				} else {
-					m.prgBanksDouble = 0
-				}
+				m.chrBanks[0] = m.shiftRegister.Get() >> 3 & (m.cartridge.ChrRomSize*2 - 1)
+				// if m.cartridge.ChrRomSize <= 4 {
+				// TODO: Currently breaks
+				// m.ramBanks[0] = m.shiftRegister.Get() >> 5 & 0b11
+				//}
+				//if m.cartridge.PrgRomSize == 32 && m.shiftRegister.Get()>>7 == 1 {
+				//	m.prgBanksDouble = 1
+				//} else {
+				//	m.prgBanksDouble = 0
+				//}
 			case 0xC000 <= location && location <= 0xDFFF:
 				// CHR bank 1 (internal, $C000-$DFFF)
 				// 4bit0
@@ -145,7 +136,16 @@ func (m *Mapper001) CPUWrite(location uint16, data uint8) bool {
 				// CCCCC
 				// |||||
 				// +++++- Select 4 KB CHR bank at PPU $1000 (ignored in 8 KB mode)
-				m.chrBanks[1] = m.shiftRegister.Get() >> 3 & (m.cartridge.ChrRomSize - 1)
+				m.chrBanks[1] = m.shiftRegister.Get() >> 3 & (m.cartridge.ChrRomSize*2 - 1)
+				// if m.cartridge.ChrRomSize <= 4 {
+				// TODO: Currently breaks
+				// m.ramBanks[0] = m.shiftRegister.Get() >> 5 & 0b11
+				//}
+				//if m.cartridge.PrgRomSize == 32 && m.shiftRegister.Get()>>7 == 1 {
+				//	m.prgBanksDouble = 1
+				//} else {
+				//	m.prgBanksDouble = 0
+				//}
 			case 0xE000 <= location:
 				// PRG bank (internal, $E000-$FFFF)
 				// 4bit0
@@ -156,7 +156,7 @@ func (m *Mapper001) CPUWrite(location uint16, data uint8) bool {
 				// +----- MMC1B and later: PRG RAM chip enable (0: enabled; 1: disabled; ignored on MMC1A)
 				//        MMC1A: Bit 3 bypasses fixed bank logic in 16K mode (0: affected; 1: bypassed)
 				m.prgBanks[0] = m.shiftRegister.Get() >> 3 & 0b0000_1111
-				m.ramEnable = m.shiftRegister.Get()>>7 == 0
+				//m.ramEnable = m.shiftRegister.Get()>>7 == 0
 			}
 			// Reset shift register
 			// We use the initial 0b1000_0000 to check when the register was shifted 5 times

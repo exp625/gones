@@ -7,11 +7,11 @@ import (
 	"github.com/exp625/gones/pkg/cartridge"
 	"github.com/exp625/gones/pkg/debugger"
 	"github.com/exp625/gones/pkg/file_explorer"
+	"github.com/exp625/gones/pkg/input"
 	"github.com/exp625/gones/pkg/logger"
 	"github.com/exp625/gones/pkg/nes"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
-	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"io"
 	"log"
 	"os"
@@ -34,12 +34,12 @@ type Emulator struct {
 	*nes.NES
 	Debugger *debugger.Debugger
 	Logger   logger.Logger
-	Bindings []*BindingGroup
+	Bindings *input.Bindings
 
 	AutoRunEnabled bool
 
-	ActiveOverlay Overlay
-	FileExplorer  *file_explorer.FileExplorer
+	ActiveScreen Screen
+	FileExplorer *file_explorer.FileExplorer
 
 	RequestedSteps int
 	AutoRunCycles  int
@@ -73,9 +73,11 @@ func New(romFile string, debug bool) (*Emulator, error) {
 		NES:          nes.New(NESClockTime, NESAudioSampleTime),
 		FileExplorer: explorer,
 	}
-	e.Bindings = DefaultBindings(e)
+	e.Bindings = input.GetBindings()
+	e.Bindings.LoadCustomBindings()
+	e.registerAllBindings()
 	if debug {
-		e.ActiveOverlay = OverlayCPU
+		e.ChangeScreen(ScreenCPU)
 	}
 
 	if romFile != "" {
@@ -89,8 +91,9 @@ func New(romFile string, debug bool) (*Emulator, error) {
 		}
 		e.InsertCartridge(c)
 		e.LoadGame()
+		e.ChangeScreen(ScreenGame)
 	} else {
-		e.ActiveOverlay = OverlayROMChooser
+		e.ChangeScreen(OverlayROMChooser)
 	}
 
 	if err := e.Init(); err != nil {
@@ -131,9 +134,7 @@ func (e *Emulator) Init() error {
 
 func (e *Emulator) Update() error {
 	textutil.Update()
-	if e.ActiveOverlay != OverlayROMChooser {
-		e.HandleInput()
-	}
+	input.HandleInput(e.Bindings)
 
 	// Measure time spent in auto run mode
 	if e.AutoRunEnabled {
@@ -141,7 +142,7 @@ func (e *Emulator) Update() error {
 	}
 	e.AutoRunStarted = time.Now()
 
-	if e.ActiveOverlay == OverlayROMChooser {
+	if e.ActiveScreen == OverlayROMChooser {
 		if err := e.FileExplorer.Update(); err != nil {
 			return err
 		}
@@ -175,7 +176,7 @@ func (e *Emulator) Update() error {
 		e.LoadGame()
 		e.Reset()
 
-		e.ActiveOverlay = OverlayGame
+		e.ChangeScreen(ScreenGame)
 		e.AutoRunEnabled = true
 		if err := config.Set(config.LastROMFile, absolutePath); err != nil {
 			log.Println("failed to set last ROM file in config: ", err.Error())
@@ -189,10 +190,10 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 
 	e.DrawHeader(screen)
 
-	switch e.ActiveOverlay {
-	case OverlayGame:
+	switch e.ActiveScreen {
+	case ScreenGame:
 		e.DrawOverlayGame(screen)
-	case OverlayCPU:
+	case ScreenCPU:
 		e.DrawOverlayCPU(screen)
 	case OverlayPPU:
 		e.DrawOverlayPPU(screen)
@@ -214,24 +215,6 @@ func (e *Emulator) Draw(screen *ebiten.Image) {
 
 func (e *Emulator) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	return outsideWidth, outsideHeight
-}
-
-func (e *Emulator) HandleInput() {
-	for _, group := range e.Bindings {
-		for _, binding := range group.Bindings {
-			key := binding.Key()
-			if binding.OnPressed != nil {
-				if inpututil.IsKeyJustPressed(key) {
-					binding.OnPressed()
-				}
-			}
-			if binding.OnReleased != nil {
-				if inpututil.IsKeyJustReleased(key) {
-					binding.OnReleased()
-				}
-			}
-		}
-	}
 }
 
 func (e *Emulator) Log() {

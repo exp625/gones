@@ -104,7 +104,7 @@ func New() *PPU {
 
 	// Create the render frames
 	upLeft := image.Point{X: 0, Y: 0}
-	lowRight := image.Point{X: 255, Y: 239}
+	lowRight := image.Point{X: 256, Y: 240}
 	p.ActiveFrame = image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
 	p.RenderFrame = image.NewRGBA(image.Rectangle{Min: upLeft, Max: lowRight})
 	return p
