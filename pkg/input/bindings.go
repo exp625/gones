@@ -71,6 +71,7 @@ type Bindings struct {
 	Groups          BindingGroups
 	NumberHandler   func(int)
 	TextHandler     func(rune)
+	RepeatKeys      bool
 	GlobalHandler   func(key ebiten.Key, btn ebiten.StandardGamepadButton, axis ebiten.StandardGamepadAxis, sign float64)
 	selectedGroup   GroupName
 	selectedBinding BindingName

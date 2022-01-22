@@ -15,6 +15,7 @@ func (e *Emulator) clearAllBindings() {
 	e.Bindings.GlobalHandler = nil
 	e.Bindings.TextHandler = nil
 	e.Bindings.NumberHandler = nil
+	e.Bindings.RepeatKeys = false
 
 }
 
@@ -99,6 +100,7 @@ func (e *Emulator) registerFileExplorerBindings() {
 	e.Bindings.Groups[input.FileExplorer][input.ParentFolder].OnPressed = e.FileExplorer.CloseFolder
 	e.Bindings.Groups[input.Emulator][input.Cancel].OnPressed = func() { e.ChangeScreen(ScreenGame) }
 	e.Bindings.TextHandler = e.FileExplorer.TextInput
+	e.Bindings.RepeatKeys = true
 }
 
 func (e *Emulator) registerInputBindings() {

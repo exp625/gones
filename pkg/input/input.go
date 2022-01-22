@@ -33,7 +33,7 @@ func handleKeyboardInputs(bindings *Bindings) {
 	if bindings.NumberHandler != nil {
 		for number, keys := range numberKeys {
 			for _, key := range keys {
-				if inpututil.IsKeyJustPressed(key) {
+				if isKeyJustPressed(key, bindings.RepeatKeys) {
 					bindings.NumberHandler(number)
 				}
 			}
@@ -43,7 +43,7 @@ func handleKeyboardInputs(bindings *Bindings) {
 	if bindings.TextHandler != nil {
 		for rune, keys := range textKeys {
 			for _, key := range keys {
-				if inpututil.IsKeyJustPressed(key) {
+				if isKeyJustPressed(key, bindings.RepeatKeys) {
 					bindings.TextHandler(rune)
 				}
 			}
@@ -52,7 +52,7 @@ func handleKeyboardInputs(bindings *Bindings) {
 
 	if bindings.GlobalHandler != nil {
 		for key := ebiten.KeyA; key <= ebiten.KeyMeta; key++ {
-			if inpututil.IsKeyJustPressed(key) {
+			if isKeyJustPressed(key, bindings.RepeatKeys) {
 				bindings.GlobalHandler(key, -1, -1, 0)
 			}
 		}
@@ -84,7 +84,7 @@ func handleKeyboardInputs(bindings *Bindings) {
 		for _, binding := range group {
 			key := binding.Key()
 			if binding.OnPressed != nil {
-				if inpututil.IsKeyJustPressed(key) {
+				if isKeyJustPressed(key, bindings.RepeatKeys) {
 					binding.OnPressed()
 				}
 			}
@@ -94,6 +94,19 @@ func handleKeyboardInputs(bindings *Bindings) {
 				}
 			}
 		}
+	}
+}
+
+func isKeyJustPressed(key ebiten.Key, repeating bool) bool {
+	const (
+		delay    = 15
+		interval = 3
+	)
+	if !repeating {
+		return inpututil.IsKeyJustPressed(key)
+	} else {
+		d := inpututil.KeyPressDuration(key)
+		return d == 1 || (d >= delay && (d-delay)%interval == 0)
 	}
 }
 
