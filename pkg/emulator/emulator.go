@@ -53,6 +53,7 @@ type Emulator struct {
 }
 
 func New(romFile string, debug bool) (*Emulator, error) {
+
 	var directory string
 	lastROMFile, ok := config.Get(config.LastROMFile)
 	if ok {
@@ -99,6 +100,7 @@ func New(romFile string, debug bool) (*Emulator, error) {
 	if err := e.Init(); err != nil {
 		return nil, err
 	}
+
 	e.Debugger = debugger.New(e.NES)
 	e.Logger = &logger.FileLogger{}
 	e.CPU.Logger = e
@@ -126,6 +128,10 @@ func (e *Emulator) Init() error {
 		if err != nil {
 			return err
 		}
+		a := NESAudioSampleTime * 1000000000.0
+		i := int(a)
+		e.Player.SetBufferSize((time.Duration)(i))
+		e.Player.SetVolume(0.1)
 		e.Player.Play()
 	}
 
@@ -181,6 +187,7 @@ func (e *Emulator) Update() error {
 		if err := config.Set(config.LastROMFile, absolutePath); err != nil {
 			log.Println("failed to set last ROM file in config: ", err.Error())
 		}
+
 	}
 
 	return nil
