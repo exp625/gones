@@ -113,16 +113,18 @@ func (nes *NES) CPURead(location uint16) uint8 {
 	case 0x2000 <= mappedLocation && mappedLocation <= 0x3FFF:
 		data := nes.PPU.CPURead(mappedLocation)
 		return data
+	case 0x4000 <= mappedLocation && mappedLocation <= 0x4014:
+		// Open Bus
+		return nes.APU.CPURead(mappedLocation)
+	case mappedLocation == 0x4015:
+		return nes.APU.CPURead(mappedLocation)
 	case mappedLocation == 0x4016:
 		return nes.Controller1.SerialRead()
 	case mappedLocation == 0x4017:
 		return nes.Controller2.SerialRead()
-	case 0x4000 <= mappedLocation && mappedLocation <= 0x4015:
-		// TODO: APU and I/O Registers
-		return 0xFF
 	case 0x4018 <= mappedLocation && mappedLocation <= 0x401F:
-		// TODO: APU and I/O functionality that is normally disabled
-		return 0
+		// APU test functionality that is normally disabled
+		return nes.APU.CPURead(mappedLocation)
 	case 0x4020 <= mappedLocation:
 		data := nes.Cartridge.CPURead(mappedLocation)
 		return data
@@ -138,15 +140,20 @@ func (nes *NES) CPUWrite(location uint16, data uint8) {
 		nes.RAM.Write(mappedLocation%0x0800, data)
 	case 0x2000 <= mappedLocation && mappedLocation <= 0x3FFF:
 		nes.PPU.CPUWrite(mappedLocation, data)
+	case 0x4000 <= mappedLocation && mappedLocation <= 0x4013:
+		nes.APU.CPUWrite(mappedLocation, data)
 	case mappedLocation == 0x4014:
 		nes.DMA(data)
+	case mappedLocation == 0x4015:
+		nes.APU.CPUWrite(mappedLocation, data)
 	case mappedLocation == 0x4016:
 		nes.Controller1.SetMode(data&0b1 == 0)
 		nes.Controller2.SetMode(data&0b1 == 0)
-	case 0x4000 <= mappedLocation && mappedLocation <= 0x4015 || mappedLocation == 0x4017:
-		// TODO: APU and I/O Registers
+	case mappedLocation == 0x4017:
+		nes.APU.CPUWrite(mappedLocation, data)
+		// APU test functionality that is normally disabled
 	case 0x4018 <= mappedLocation && mappedLocation <= 0x401F:
-		// TODO: APU and I/O functionality that is normally disabled
+		nes.APU.CPUWrite(mappedLocation, data)
 	case 0x4020 <= mappedLocation:
 		nes.Cartridge.CPUWrite(mappedLocation, data)
 	default:

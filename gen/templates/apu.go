@@ -84,18 +84,8 @@ type APUControlRegister struct {
 	Pulse1Enable   bool  `bitfield:"1"`
 }
 
-type APUStatusRegister struct {
-	DMCInterrupt   bool `bitfield:"1"`
-	FrameInterrupt bool `bitfield:"1"`
-	_              bool `bitfield:"1"`
-	NoiseStatus    bool `bitfield:"1"`
-	TriangleStatus bool `bitfield:"1"`
-	Pulse2Status   bool `bitfield:"1"`
-	Pulse1Status   bool `bitfield:"1"`
-}
-
 type APUFrameCounterRegister struct {
-	FiveFrameSequence bool  `bitfield:"1"`
-	DisableFrameIRQ   bool  `bitfield:"1"`
-	_                 uint8 `bitfield:"6"`
+	Mode            bool  `bitfield:"1"`
+	DisableFrameIRQ bool  `bitfield:"1"`
+	_               uint8 `bitfield:"6"`
 }

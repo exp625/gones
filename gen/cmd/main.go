@@ -22,7 +22,6 @@ func main() {
 		{templates.PPUStatusRegister{}, "pkg/ppu/status_register.gen.go", "ppu", "StatusRegister"},
 		{templates.PPUAddressRegister{}, "pkg/ppu/address_register.gen.go", "ppu", "AddressRegister"},
 		{templates.APUControlRegister{}, "pkg/apu/control_register.gen.go", "apu", "ControlRegister"},
-		{templates.APUStatusRegister{}, "pkg/apu/status_register.gen.go", "apu", "StatusRegister"},
 		{templates.APUFrameCounterRegister{}, "pkg/apu/frame_counter_register.gen.go", "apu", "FrameCounterRegister"},
 		{templates.APUPulseChannelGlobalRegister{}, "pkg/apu/pulse_channel_global_register.gen.go", "apu", "PulseChannelGlobalRegister"},
 		{templates.APUPulseChannelSweepRegister{}, "pkg/apu/pulse_channel_sweep_register.gen.go", "apu", "PulseChannelSweepRegister"},
