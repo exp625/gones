@@ -21,6 +21,23 @@ func main() {
 		{templates.PPUMaskRegister{}, "pkg/ppu/mask_register.gen.go", "ppu", "MaskRegister"},
 		{templates.PPUStatusRegister{}, "pkg/ppu/status_register.gen.go", "ppu", "StatusRegister"},
 		{templates.PPUAddressRegister{}, "pkg/ppu/address_register.gen.go", "ppu", "AddressRegister"},
+		{templates.APUControlRegister{}, "pkg/apu/control_register.gen.go", "apu", "ControlRegister"},
+		{templates.APUStatusRegister{}, "pkg/apu/status_register.gen.go", "apu", "StatusRegister"},
+		{templates.APUFrameCounterRegister{}, "pkg/apu/frame_counter_register.gen.go", "apu", "FrameCounterRegister"},
+		{templates.APUPulseChannelGlobalRegister{}, "pkg/apu/pulse_channel_global_register.gen.go", "apu", "PulseChannelGlobalRegister"},
+		{templates.APUPulseChannelSweepRegister{}, "pkg/apu/pulse_channel_sweep_register.gen.go", "apu", "PulseChannelSweepRegister"},
+		{templates.APUPulseChannelTimerLowRegister{}, "pkg/apu/pulse_channel_timer_low_register.gen.go", "apu", "PulseChannelTimerLowRegister"},
+		{templates.APUPulseChannelTimerHighRegister{}, "pkg/apu/pulse_channel_timer_high_register.gen.go", "apu", "PulseChannelTimerHighRegister"},
+		{templates.APUTriangleChannelGlobalRegister{}, "pkg/apu/triangle_channel_global_register.gen.go", "apu", "TriangleChannelGlobalRegister"},
+		{templates.APUTriangleChannelTimerLowRegister{}, "pkg/apu/triangle_channel_timer_low_register.gen.go", "apu", "TriangleChannelTimerLowRegister"},
+		{templates.APUTriangleChannelTimerHighRegister{}, "pkg/apu/triangle_channel_timer_high_register.gen.go", "apu", "TriangleChannelTimerHighRegister"},
+		{templates.APUNoiseChannelGlobalRegister{}, "pkg/apu/noise_channel_global_register.gen.go", "apu", "NoiseChannelGlobalRegister"},
+		{templates.APUNoiseChannelPeriodRegister{}, "pkg/apu/noise_channel_period_register.gen.go", "apu", "NoiseChannelPeriodRegister"},
+		{templates.APUNoiseChannelLengthRegister{}, "pkg/apu/noise_channel_length_register.gen.go", "apu", "NoiseChannelLengthRegister"},
+		{templates.APUDMCChannelGlobalRegister{}, "pkg/apu/dmc_channel_global_register.gen.go", "apu", "DMCChannelGlobalRegister"},
+		{templates.APUDMCChannelDirectLoadRegister{}, "pkg/apu/dmc_channel_direct_load_register.gen.go", "apu", "DMCChannelDirectLoadRegister"},
+		{templates.APUDMCChannelSampleAddressRegister{}, "pkg/apu/dmc_channel_sample_address_register.gen.go", "apu", "DMCChannelSampleAddressRegister"},
+		{templates.APUDMCChannelSampleLengthRegister{}, "pkg/apu/dmc_channel_sample_length_register.gen.go", "apu", "DMCChannelSampleLengthRegister"},
 	} {
 		if err := GenerateBitfield(entry); err != nil {
 			log.Fatal(err)
