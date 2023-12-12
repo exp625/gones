@@ -10,15 +10,17 @@ type BindingName string
 const (
 	Emulator     GroupName = "Emulator"
 	Debug                  = "Debug"
-	Controller1            = "Controller 1"
-	Controller2            = "Controller 2"
+	Settings               = "Settings"
+	Controller             = "Controller"
 	FileExplorer           = "File Explorer"
 
-	Reset  BindingName = "Reset"
-	Load               = "Load"
-	Save               = "Save"
-	Pause              = "Pause"
-	Cancel             = "Cancel"
+	Reset        BindingName = "Reset"
+	Load                     = "Load"
+	Save                     = "Save"
+	Pause                    = "Pause"
+	Cancel                   = "Cancel"
+	OpenDebug                = "Open Debug"
+	OpenSettings             = "Open Settings"
 
 	ScreenKeyBindings   = "Key Bindings Screen"
 	ExecuteInstruction  = "Execute Instruction"
@@ -26,11 +28,18 @@ const (
 	ExecuteMasterClock  = "ExecuteMasterClock"
 	ShowCPUDebug        = "Show CPU Debug"
 	ShowPPUDebug        = "Show PPU Debug"
+	ShowAPUDebug        = "Show APU Debug"
 	ShowNametableDebug  = "Show Nametable Debug"
 	ShowPaletteDebug    = "Show Palette Debug"
 	ShowSpriteDebug     = "Show Sprite Debug"
 	ShowControllerDebug = "Show Controller Debug"
 	EnableLogging       = "EnableLogging"
+	LeaveDebug          = "Close Debugger"
+
+	ROMChooser    = "ROM Chooser"
+	SAVEChooser   = "Save/Load Game"
+	Keybindings   = "Key Bindings"
+	AudioSettings = "Audio Settings"
 
 	Select            = "Select"
 	OpenFolder        = "OpenFolder"
@@ -148,6 +157,36 @@ func GetBindings() *Bindings {
 					Help:       "Clear the 'requested number of cycles' field",
 					DefaultKey: ebiten.KeyEscape,
 				},
+				OpenDebug: &Binding{
+					Help:       "Open the debug screen",
+					DefaultKey: ebiten.KeyF1,
+				},
+				OpenSettings: &Binding{
+					Help:       "Open the settings screen",
+					DefaultKey: ebiten.KeyF2,
+				},
+			},
+			Settings: BindingGroup{
+				ROMChooser: &Binding{
+					Help:       "Open the ROM chooser screen",
+					DefaultKey: ebiten.KeyF1,
+				},
+				SAVEChooser: &Binding{
+					Help:       "Open the save/load game screen",
+					DefaultKey: ebiten.KeyF2,
+				},
+				Keybindings: &Binding{
+					Help:       "Open the key bindings screen",
+					DefaultKey: ebiten.KeyF3,
+				},
+				AudioSettings: &Binding{
+					Help:       "Open the audio settings screen",
+					DefaultKey: ebiten.KeyF4,
+				},
+				Cancel: &Binding{
+					Help:       "Close the settings screen",
+					DefaultKey: ebiten.KeyEscape,
+				},
 			},
 			Debug: BindingGroup{
 				ShowCPUDebug: &Binding{
@@ -158,28 +197,36 @@ func GetBindings() *Bindings {
 					Help:       "Show the PPU debug screen",
 					DefaultKey: ebiten.KeyF2,
 				},
+				ShowAPUDebug: &Binding{
+					Help:       "Show the APU debug screen",
+					DefaultKey: ebiten.KeyF3,
+				},
 				ShowNametableDebug: &Binding{
 					Help:       "Show the nametable debug screen",
-					DefaultKey: ebiten.KeyF3,
+					DefaultKey: ebiten.KeyF4,
 				},
 				ShowPaletteDebug: &Binding{
 					Help:       "Show the palette debug screen",
-					DefaultKey: ebiten.KeyF4,
+					DefaultKey: ebiten.KeyF5,
 				},
 				ShowControllerDebug: &Binding{
 					Help:       "Show the controller debug screen",
-					DefaultKey: ebiten.KeyF5,
+					DefaultKey: ebiten.KeyF6,
 				},
 				ShowSpriteDebug: &Binding{
 					Help:       "Show the sprites debug screen",
-					DefaultKey: ebiten.KeyF6,
+					DefaultKey: ebiten.KeyF7,
 				},
 				EnableLogging: &Binding{
 					Help:       "Enable logging",
 					DefaultKey: ebiten.KeyL,
 				},
+				LeaveDebug: &Binding{
+					Help:       "Close the debug screen",
+					DefaultKey: ebiten.KeyEscape,
+				},
 			},
-			Controller1: BindingGroup{
+			Controller: BindingGroup{
 				A: &Binding{
 					Help:                       "NES standard controller 'A' button",
 					DefaultKey:                 ebiten.KeyP,
@@ -270,7 +317,7 @@ func GetBindings() *Bindings {
 		TextHandler: func(rune) {
 
 		},
-		selectedGroup: Controller1,
+		selectedGroup: Controller,
 	}
 }
 

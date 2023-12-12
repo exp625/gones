@@ -78,7 +78,7 @@ func New(romFile string, debug bool) (*Emulator, error) {
 	e.Bindings.LoadCustomBindings()
 	e.registerAllBindings()
 	if debug {
-		e.ChangeScreen(ScreenCPU)
+		e.ChangeScreen(OverlayCPU)
 	}
 
 	if romFile != "" {
@@ -94,7 +94,7 @@ func New(romFile string, debug bool) (*Emulator, error) {
 		e.LoadGame()
 		e.ChangeScreen(ScreenGame)
 	} else {
-		e.ChangeScreen(OverlayROMChooser)
+		e.ChangeScreen(SettingROMChooser)
 	}
 
 	if err := e.Init(); err != nil {
@@ -148,7 +148,7 @@ func (e *Emulator) Update() error {
 	}
 	e.AutoRunStarted = time.Now()
 
-	if e.ActiveScreen == OverlayROMChooser {
+	if e.ActiveScreen == SettingROMChooser {
 		if err := e.FileExplorer.Update(); err != nil {
 			return err
 		}
@@ -195,26 +195,41 @@ func (e *Emulator) Update() error {
 
 func (e *Emulator) Draw(screen *ebiten.Image) {
 
-	e.DrawHeader(screen)
-
 	switch e.ActiveScreen {
 	case ScreenGame:
 		e.DrawOverlayGame(screen)
-	case ScreenCPU:
+	case OverlayCPU:
+		e.DrawHeader(debuggerHeaderEntries, screen)
 		e.DrawOverlayCPU(screen)
 	case OverlayPPU:
+		e.DrawHeader(debuggerHeaderEntries, screen)
 		e.DrawOverlayPPU(screen)
+	case OverlayAPU:
+		e.DrawHeader(debuggerHeaderEntries, screen)
+		e.DrawOverlayAPU(screen)
 	case OverlayNametables:
+		e.DrawHeader(debuggerHeaderEntries, screen)
 		e.DrawOverlayNametables(screen)
 	case OverlayPalettes:
+		e.DrawHeader(debuggerHeaderEntries, screen)
 		e.DrawOverlayPalettes(screen)
 	case OverlayControllers:
+		e.DrawHeader(debuggerHeaderEntries, screen)
 		e.DrawOverlayControllers(screen)
 	case OverlaySprites:
+		e.DrawHeader(debuggerHeaderEntries, screen)
 		e.DrawOverlaySprites(screen)
-	case OverlayKeybindings:
+	case SettingKeybindings:
+		e.DrawHeader(settingsHeaderEntries, screen)
 		e.DrawOverlayKeybindings(screen)
-	case OverlayROMChooser:
+	case SettingAudio:
+		e.DrawHeader(settingsHeaderEntries, screen)
+		e.DrawOverlayAudioSettings(screen)
+	case SettingsSave:
+		e.DrawHeader(settingsHeaderEntries, screen)
+		e.DrawSAVEChooser(screen)
+	case SettingROMChooser:
+		e.DrawHeader(settingsHeaderEntries, screen)
 		e.DrawROMChooser(screen)
 	}
 

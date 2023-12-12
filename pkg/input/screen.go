@@ -12,11 +12,14 @@ import (
 	"sort"
 )
 
-func (b *Bindings) Draw(screen *ebiten.Image) {
-	gray := color.Gray{Y: 20}
-	screen.Fill(gray)
+func (b *Bindings) Draw() *ebiten.Image {
+	width := 32 * 8 * 4
+	height := 30 * 8 * 4
+	ret := ebiten.NewImage(width, height)
+	ret.Fill(color.Gray{Y: 20})
 
-	const pad = 20
+	pad := 20
+
 	lines := []string{
 		"<LEFT> to go to the parent\n",
 		"<RIGHT> select group or binding\n",
@@ -25,18 +28,15 @@ func (b *Bindings) Draw(screen *ebiten.Image) {
 		"<ESC> close the keybindings\n",
 		"<R> reset to defaults",
 	}
-	helperText := textutil.New(basicfont.Face7x13, screen.Bounds().Dx()-2*pad, len(lines)*basicfont.Face7x13.Height+2*pad, pad, pad, 1)
+	helperText := textutil.New(basicfont.Face7x13, ret.Bounds().Dx(), len(lines)*basicfont.Face7x13.Height+pad, pad, pad, 1)
 	for _, line := range lines {
 		plz.Just(helperText.WriteString(line))
 	}
-	helperText.Draw(screen)
+	helperText.Draw(ret)
 
-	img := ebiten.NewImage(screen.Bounds().Dx()-2*pad, screen.Bounds().Dy()-(len(lines)*basicfont.Face7x13.Height)-3*pad)
+	img := ebiten.NewImage(ret.Bounds().Dx()-2*pad, ret.Bounds().Dy()-(len(lines)*basicfont.Face7x13.Height)-3*pad)
 	img.Fill(color.Gray{Y: 70})
 
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(pad, float64(len(lines)*basicfont.Face7x13.Height+2*pad))
-	width, height := ebiten.WindowSize()
 	text := textutil.New(basicfont.Face7x13, width, height, 4, 24, 2)
 
 	keys := sortGroupKeys(b.Groups)
@@ -74,8 +74,11 @@ func (b *Bindings) Draw(screen *ebiten.Image) {
 			plz.Just(text.WriteString(fmt.Sprintf("%s: \n", key)))
 		}
 	}
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(float64(pad), float64(len(lines)*basicfont.Face7x13.Height+2*pad))
 	text.Draw(img)
-	screen.DrawImage(img, op)
+	ret.DrawImage(ebiten.NewImageFromImage(img), op)
+	return ret
 }
 
 func (b *Bindings) MoveSelectionUp() {

@@ -13,34 +13,44 @@ type Screen int
 
 const (
 	ScreenGame Screen = iota
-	ScreenCPU
+	OverlayCPU
 	OverlayPPU
+	OverlayAPU
 	OverlayNametables
 	OverlayPalettes
 	OverlayControllers
 	OverlaySprites
-	OverlayKeybindings
-	OverlayROMChooser
+	SettingKeybindings
+	SettingAudio
+	SettingROMChooser
+	SettingsSave
 )
 
 func (e *Emulator) ChangeScreen(screen Screen) {
+	// If no cartridge is loaded, don't allow debug screens
+	if e.NES.Cartridge == nil && screen != SettingROMChooser && screen != SettingKeybindings && screen != SettingAudio && screen != SettingsSave && screen != ScreenGame {
+		return
+	}
+
 	e.clearAllBindings()
-	if e.ActiveScreen == screen {
-		e.ActiveScreen = ScreenGame
-		e.registerAllBindings()
-	} else {
-		switch screen {
-		case OverlayROMChooser:
-			e.registerFileExplorerBindings()
-			e.ActiveScreen = screen
-		case OverlayKeybindings:
-			e.registerInputBindings()
-			e.registerDebugBindings()
-			e.ActiveScreen = screen
-		default:
-			e.registerAllBindings()
-			e.ActiveScreen = screen
-		}
+	e.ActiveScreen = screen
+	switch screen {
+	case SettingROMChooser:
+		e.registerSettingsBindings()
+		e.registerFileExplorerBindings()
+	case SettingsSave:
+		e.registerSettingsBindings()
+		e.registerFileExplorerBindings()
+	case SettingKeybindings:
+		e.registerSettingsBindings()
+		e.registerInputBindings()
+	case SettingAudio:
+		e.registerSettingsBindings()
+		e.registerAudioBindings()
+	case ScreenGame:
+		e.registerEmulatorBindings()
+	default:
+		e.registerDebugBindings()
 	}
 }
 
@@ -49,8 +59,15 @@ func (e *Emulator) DrawOverlayGame(screen *ebiten.Image) {
 
 	op.GeoM.Scale(4, 4)
 	op.GeoM.Translate((float64(screen.Bounds().Dx())-(256*4))/2, 0)
-	screen.Fill(e.PPU.Palette[e.PPU.PaletteRAM[0]][e.PPU.Mask.Emphasize()])
-	screen.DrawImage(ebiten.NewImageFromImage(e.PPU.ActiveFrame), op)
+	if e.NES.Cartridge != nil {
+		screen.Fill(e.PPU.Palette[e.PPU.PaletteRAM[0]][e.PPU.Mask.Emphasize()])
+		screen.DrawImage(ebiten.NewImageFromImage(e.PPU.ActiveFrame), op)
+	} else {
+		screen.Fill(color.Black)
+		noGameText := textutil.New(basicfont.Face7x13, screen.Bounds().Dx(), screen.Bounds().Dy(), (screen.Bounds().Dx())/2-basicfont.Face7x13.Advance*14, (screen.Bounds().Dy())/2-basicfont.Face7x13.Height, 2)
+		plz.Just(fmt.Fprint(noGameText, "No Game Loaded"))
+		noGameText.Draw(screen)
+	}
 }
 
 func (e *Emulator) DrawOverlayCPU(screen *ebiten.Image) {
@@ -102,6 +119,10 @@ func (e *Emulator) DrawOverlayPPU(screen *ebiten.Image) {
 	screen.DrawImage(e.Debugger.DrawPalettes(), op)
 }
 
+func (e *Emulator) DrawOverlayAPU(screen *ebiten.Image) {
+
+}
+
 func (e *Emulator) DrawOverlayNametables(screen *ebiten.Image) {
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Scale(2, 2)
@@ -144,36 +165,22 @@ func (e *Emulator) DrawOverlaySprites(screen *ebiten.Image) {
 }
 
 func (e *Emulator) DrawOverlayKeybindings(screen *ebiten.Image) {
-	e.Bindings.Draw(screen)
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(0, 20)
+	screen.DrawImage(e.Bindings.Draw(), op)
+
+}
+
+func (e *Emulator) DrawOverlayAudioSettings(screen *ebiten.Image) {
+
+}
+
+func (e *Emulator) DrawSAVEChooser(screen *ebiten.Image) {
+
 }
 
 func (e *Emulator) DrawROMChooser(screen *ebiten.Image) {
-	gray := color.Gray{Y: 20}
-	screen.Fill(gray)
-
-	const pad = 20
-	lines := []string{
-		fmt.Sprintf("%s\n", e.FileExplorer.Directory),
-		"<LEFT> to go to the parent directory\n",
-		"<RIGHT> to go into the selected directory\n",
-		"<UP>/<DOWN> to browse through the current directory\n",
-		"<ENTER> to choose the currently selected file/directory\n",
-		"<A-Z>/<0-9> to quickly selected a file/directory starting with the letter/number \n",
-		"<ESC> close file explorer",
-	}
-	text := textutil.New(basicfont.Face7x13, screen.Bounds().Dx()-2*pad, len(lines)*basicfont.Face7x13.Height+2*pad, pad, pad, 1)
-	for _, line := range lines {
-		plz.Just(text.WriteString(line))
-	}
-	text.Draw(screen)
-
-	img := ebiten.NewImage(screen.Bounds().Dx()-2*pad, screen.Bounds().Dy()-(len(lines)*basicfont.Face7x13.Height)-3*pad)
-	img.Fill(color.Gray{Y: 70})
-
-	e.FileExplorer.Draw(img)
-
 	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(pad, float64(len(lines)*basicfont.Face7x13.Height+2*pad))
-
-	screen.DrawImage(img, op)
+	op.GeoM.Translate(0, 20)
+	screen.DrawImage(e.FileExplorer.Draw(), op)
 }

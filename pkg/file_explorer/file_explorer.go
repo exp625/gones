@@ -7,6 +7,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 	"golang.org/x/image/colornames"
 	"golang.org/x/image/font/basicfont"
+	"image/color"
 	"log"
 	"os"
 	"path/filepath"
@@ -48,46 +49,72 @@ func (f *FileExplorer) Update() error {
 	return nil
 }
 
-func (f *FileExplorer) Draw(screen *ebiten.Image) {
+func (f *FileExplorer) Draw() *ebiten.Image {
+	width := 32 * 8 * 4
+	height := 30 * 8 * 4
+	ret := ebiten.NewImage(width, height)
+	ret.Fill(color.Gray{Y: 20})
+	const pad = 20
+
+	lines := []string{
+		fmt.Sprintf("%s\n", f.Directory),
+		"<LEFT> to go to the parent directory\n",
+		"<RIGHT> to go into the selected directory\n",
+		"<UP>/<DOWN> to browse through the current directory\n",
+		"<ENTER> to choose the currently selected file/directory\n",
+		"<A-Z>/<0-9> to quickly selected a file/directory starting with the letter/number \n",
+		"<ESC> close file explorer",
+	}
+	text := textutil.New(basicfont.Face7x13, ret.Bounds().Dx()-2*pad, len(lines)*basicfont.Face7x13.Height+2*pad, pad, pad, 1)
+	for _, line := range lines {
+		plz.Just(text.WriteString(line))
+	}
+	text.Draw(ret)
+
+	img := ebiten.NewImage(ret.Bounds().Dx()-2*pad, ret.Bounds().Dy()-(len(lines)*basicfont.Face7x13.Height)-3*pad)
+	textImage := ebiten.NewImage(ret.Bounds().Dx()-2*pad, ret.Bounds().Dy()-(len(lines)*basicfont.Face7x13.Height)-3*pad)
+	img.Fill(color.Gray{Y: 70})
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Translate(pad, float64(len(lines)*basicfont.Face7x13.Height+2*pad))
+	ret.DrawImage(ebiten.NewImageFromImage(img), op)
+
 	const scale = 2
 	entryHeight := scale * basicfont.Face7x13.Height
-	img := ebiten.NewImage(screen.Bounds().Dx(), screen.Bounds().Dy())
 
 	maxEntries := img.Bounds().Dy() / entryHeight
-	if maxEntries == 0 {
-		return
-	}
+	if maxEntries != 0 {
+		min := f.Selected - maxEntries/2
+		max := f.Selected + maxEntries/2 - 1
 
-	min := f.Selected - maxEntries/2
-	max := f.Selected + maxEntries/2 - 1
-
-	if min < 0 {
-		min = 0
-	}
-	if max > len(*f.entries)-1 {
-		max = len(*f.entries) - 1
-	}
-
-	text := textutil.New(basicfont.Face7x13, img.Bounds().Dx(), (max-min+1)*entryHeight, 0, 0, scale)
-	for i := min; i <= max; i++ {
-		text.Color(colornames.White)
-		if i == f.Selected {
-			text.Color(colornames.Green)
+		if min < 0 {
+			min = 0
 		}
-		entry := (*f.entries)[i]
-		plz.Just(text.WriteString(fmt.Sprintf("%s %s\n", entry.Type().String(), entry.Name())))
+		if max > len(*f.entries)-1 {
+			max = len(*f.entries) - 1
+		}
+
+		text := textutil.New(basicfont.Face7x13, img.Bounds().Dx(), (max-min+1)*entryHeight, 0, 0, scale)
+		for i := min; i <= max; i++ {
+			text.Color(colornames.White)
+			if i == f.Selected {
+				text.Color(colornames.Green)
+			}
+			entry := (*f.entries)[i]
+			plz.Just(text.WriteString(fmt.Sprintf("%s %s\n", entry.Type().String(), entry.Name())))
+		}
+
+		text.Draw(textImage)
+
+		y := float64(0)
+		y += float64(ret.Bounds().Dy() / 2)
+		y -= float64(entryHeight / 2)
+		y -= float64(f.Selected-min) * float64(entryHeight)
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(pad, y)
+		ret.DrawImage(textImage, op)
 	}
 
-	text.Draw(img)
-
-	y := float64(0)
-	y += float64(screen.Bounds().Dy() / 2)
-	y -= float64(entryHeight / 2)
-	y -= float64(f.Selected-min) * float64(entryHeight)
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(0, y)
-
-	screen.DrawImage(img, op)
+	return ret
 }
 
 func (f *FileExplorer) Layout(outsideWidth, outsideHeight int) (int, int) {
