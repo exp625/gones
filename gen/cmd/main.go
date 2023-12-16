@@ -34,7 +34,6 @@ func main() {
 		{templates.APUNoiseChannelPeriodRegister{}, "pkg/apu/noise_channel_period_register.gen.go", "apu", "NoiseChannelPeriodRegister"},
 		{templates.APUNoiseChannelLengthRegister{}, "pkg/apu/noise_channel_length_register.gen.go", "apu", "NoiseChannelLengthRegister"},
 		{templates.APUDMCChannelGlobalRegister{}, "pkg/apu/dmc_channel_global_register.gen.go", "apu", "DMCChannelGlobalRegister"},
-		{templates.APUDMCChannelDirectLoadRegister{}, "pkg/apu/dmc_channel_direct_load_register.gen.go", "apu", "DMCChannelDirectLoadRegister"},
 		{templates.APUDMCChannelSampleAddressRegister{}, "pkg/apu/dmc_channel_sample_address_register.gen.go", "apu", "DMCChannelSampleAddressRegister"},
 		{templates.APUDMCChannelSampleLengthRegister{}, "pkg/apu/dmc_channel_sample_length_register.gen.go", "apu", "DMCChannelSampleLengthRegister"},
 	} {

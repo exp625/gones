@@ -62,11 +62,6 @@ type APUDMCChannelGlobalRegister struct {
 	FrequencyIndex uint8 `bitfield:"4"`
 }
 
-type APUDMCChannelDirectLoadRegister struct {
-	_          bool  `bitfield:"1"`
-	DirectLoad uint8 `bitfield:"7"`
-}
-
 type APUDMCChannelSampleAddressRegister struct {
 	SampleAddress uint8 `bitfield:"8"`
 }

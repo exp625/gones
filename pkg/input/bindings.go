@@ -34,6 +34,7 @@ const (
 	ShowSpriteDebug     = "Show Sprite Debug"
 	ShowControllerDebug = "Show Controller Debug"
 	EnableLogging       = "EnableLogging"
+	ForceC000           = "Force PC 0xC000"
 	LeaveDebug          = "Close Debugger"
 
 	ROMChooser    = "ROM Chooser"
@@ -159,11 +160,11 @@ func GetBindings() *Bindings {
 				},
 				OpenDebug: &Binding{
 					Help:       "Open the debug screen",
-					DefaultKey: ebiten.KeyF1,
+					DefaultKey: ebiten.KeyF2,
 				},
 				OpenSettings: &Binding{
 					Help:       "Open the settings screen",
-					DefaultKey: ebiten.KeyF2,
+					DefaultKey: ebiten.KeyF1,
 				},
 			},
 			Settings: BindingGroup{
@@ -224,6 +225,10 @@ func GetBindings() *Bindings {
 				LeaveDebug: &Binding{
 					Help:       "Close the debug screen",
 					DefaultKey: ebiten.KeyEscape,
+				},
+				ForceC000: &Binding{
+					Help:       "Force the PC to 0xC000",
+					DefaultKey: ebiten.KeyQ,
 				},
 			},
 			Controller: BindingGroup{

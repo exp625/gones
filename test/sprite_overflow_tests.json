@@ -117,7 +117,12 @@
         {
           "code": 2,
           "pass": false,
-          "message": "Cleared too late/3)too early at end of VBL"
+          "message": "Cleared too late"
+        },
+        {
+          "code": 3,
+          "pass": false,
+          "message": "too early at end of VBL"
         },
         {
           "code": 4,
@@ -132,17 +137,32 @@
         {
           "code": 7,
           "pass": false,
-          "message": "Set too early/8)late for last sprites on first scanline"
+          "message": "Set too early"
+        },
+        {
+          "code": 8,
+          "pass": false,
+          "message": "late for last sprites on first scanline"
         },
         {
           "code": 9,
           "pass": false,
-          "message": "Set too early/10)too late for last scanline"
+          "message": "Set too early"
+        },
+        {
+          "code": 10,
+          "pass": false,
+          "message": "too late for last scanline"
         },
         {
           "code": 11,
           "pass": false,
-          "message": "Set too early/12)too late when 9th sprite # is way after 8th"
+          "message": "Set too early"
+        },
+        {
+          "code": 12,
+          "pass": false,
+          "message": "too late when 9th sprite # is way after 8th"
         },
         {
           "code": 13,
