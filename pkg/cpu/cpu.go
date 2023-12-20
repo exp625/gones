@@ -27,10 +27,14 @@ type CPU struct {
 	ClockCount  int64
 	CycleCount  int
 	RequestNMI  bool
-	RequestIRQ  bool
-	DMA         bool
-	DMAPrepared bool
-	DMAAddress  uint16
+	ClockCount     int64
+	CycleCount     int
+	RequestNMI     bool
+	RequestIRQ     bool
+	APUDMA         bool
+	PPUDMA         bool
+	PPUDMAPrepared bool
+	PPUDMAAddress  uint16
 
 	Logger logger.Loggable
 }
@@ -39,6 +43,11 @@ func New() *CPU {
 	c := &CPU{}
 	c.generateInstructions()
 	return c
+}
+
+// AddBus connects the CPU to the Bus
+func (cpu *CPU) AddBus(bus bus.Bus) {
+	cpu.Bus = bus
 }
 
 const (

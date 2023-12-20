@@ -11,7 +11,8 @@ type Bus interface {
 	PPUWrite(location uint16, data uint8)
 	PPUWriteRam(location uint16, data uint8)
 	PPUWritePalette(location uint16, data uint8)
-	DMA(page uint8)
+	PPUDMA(page uint8)
+	APUDMA()
 	NMI()
 	IRQ()
 }

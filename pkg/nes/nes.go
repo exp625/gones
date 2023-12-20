@@ -11,8 +11,8 @@ import (
 
 // NES struct
 type NES struct {
-	APU  *apu.APU
 	CPU  *cpu.CPU
+	APU  *apu.APU
 	PPU  *ppu.PPU
 	RAM  *ram.RAM
 	VRAM *ram.RAM
@@ -35,18 +35,18 @@ func New(clockTime float64, audioSampleTime float64) *NES {
 		ClockTime:       clockTime,
 		AudioSampleTime: audioSampleTime,
 		CPU:             cpu.New(),
+		APU:             apu.New(),
 		RAM:             ram.New(),
 		VRAM:            ram.New(),
 		Controller1:     controller.New(),
 		Controller2:     controller.New(),
 		PPU:             ppu.New(),
-		APU:             apu.New(),
 	}
 
 	// Wire everything up
-	nes.CPU.Bus = nes
+	nes.CPU.AddBus(nes)
 	nes.PPU.AddBus(nes)
-	nes.APU.Bus = nes
+	nes.APU.AddBus(nes)
 	return nes
 }
 
@@ -58,14 +58,15 @@ func (nes *NES) Clock() bool {
 	// Advance master clock count
 	nes.MasterClockCount++
 
-	// CPUClock the PPU, APU and Cartridge
-	nes.Cartridge.CPUClock()
+	// Clock the PPU, APU and Cartridge
+	nes.Cartridge.Clock()
 	nes.PPU.Clock()
-	nes.APU.Clock()
 
 	// The NES CPU runs a one third of the frequency of the master clock
 	if nes.MasterClockCount%3 == 0 {
+		nes.APU.Clock()
 		nes.CPU.Clock()
+		nes.APU.ClockAudio()
 	}
 
 	// Add the time for one master clock cycle to the emulated time.
@@ -85,8 +86,8 @@ func (nes *NES) Clock() bool {
 // Reset resets the NES to a known state
 func (nes *NES) Reset() {
 	nes.Cartridge.Reset()
-	nes.APU.Reset()
 	nes.CPU.Reset()
+	nes.APU.Reset()
 	nes.PPU.Reset()
 	nes.RAM.Reset()
 	nes.VRAM.Reset()
@@ -143,7 +144,7 @@ func (nes *NES) CPUWrite(location uint16, data uint8) {
 	case 0x4000 <= mappedLocation && mappedLocation <= 0x4013:
 		nes.APU.CPUWrite(mappedLocation, data)
 	case mappedLocation == 0x4014:
-		nes.DMA(data)
+		nes.PPUDMA(data)
 	case mappedLocation == 0x4015:
 		nes.APU.CPUWrite(mappedLocation, data)
 	case mappedLocation == 0x4016:
@@ -230,16 +231,24 @@ func (nes *NES) PPUWritePalette(location uint16, data uint8) {
 
 }
 
-func (nes *NES) DMA(page uint8) {
-	nes.CPU.DMA = true
-	nes.CPU.DMAPrepared = false
-	nes.CPU.DMAAddress = uint16(page) << 8
+// PPUDMA triggers a PPU PPUDMA request
+func (nes *NES) PPUDMA(page uint8) {
+	nes.CPU.PPUDMA = true
+	nes.CPU.PPUDMAPrepared = false
+	nes.CPU.PPUDMAAddress = uint16(page) << 8
 }
 
+// APUDMA triggers a APU PPUDMA request
+func (nes *NES) APUDMA() {
+	nes.CPU.APUDMA = true
+}
+
+// NMI triggers a NMI interrupt
 func (nes *NES) NMI() {
 	nes.CPU.RequestNMI = true
 }
 
+// IRQ triggers a IRQ interrupt
 func (nes *NES) IRQ() {
 	nes.CPU.RequestIRQ = true
 }
