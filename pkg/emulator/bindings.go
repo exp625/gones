@@ -19,14 +19,8 @@ func (e *Emulator) clearAllBindings() {
 
 }
 
-func (e *Emulator) registerAllBindings() {
-	e.registerEmulatorBindings()
-	e.registerControllerBindings()
-	e.registerNumberHandler()
-	e.registerDebugBindings()
-}
-
 func (e *Emulator) registerEmulatorBindings() {
+
 	e.Bindings.Groups[input.Emulator][input.Reset].OnPressed = e.Reset
 	e.Bindings.Groups[input.Emulator][input.Load].OnPressed = func() { e.ChangeScreen(SettingROMChooser) }
 	e.Bindings.Groups[input.Emulator][input.Save].OnPressed = e.SaveGame
@@ -66,6 +60,11 @@ func (e *Emulator) registerDebugBindings() {
 			e.Logger.StopLogging()
 		} else {
 			e.Logger.StartLogging()
+		}
+	}
+	e.Bindings.Groups[input.Debug][input.ForceC000].OnPressed = func() {
+		if !e.AutoRunEnabled {
+			e.CPU.PC = 0xC000
 		}
 	}
 }

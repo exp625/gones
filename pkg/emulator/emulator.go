@@ -76,7 +76,6 @@ func New(romFile string, debug bool) (*Emulator, error) {
 	}
 	e.Bindings = input.GetBindings()
 	e.Bindings.LoadCustomBindings()
-	e.registerAllBindings()
 	if debug {
 		e.ChangeScreen(OverlayCPU)
 	}
@@ -131,7 +130,7 @@ func (e *Emulator) Init() error {
 		a := NESAudioSampleTime * 1000000000.0
 		i := int(a)
 		e.Player.SetBufferSize((time.Duration)(i))
-		e.Player.SetVolume(0)
+		e.Player.SetVolume(0.5)
 		e.Player.Play()
 	}
 

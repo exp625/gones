@@ -19,7 +19,7 @@ func (e *Emulator) Read(buf []byte) (int, error) {
 
 	newBuffer := make([]byte, TotalNumberOfBytesForAllAudioSamplesInOneFrame)
 	for i := 0; i < TotalNumberOfAudioSamplesInOneFrame; i++ {
-		var sample int16
+		var sample uint16
 		if e.AutoRunEnabled {
 			for {
 				audioSampleReady := e.Clock()
