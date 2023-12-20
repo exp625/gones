@@ -97,7 +97,7 @@ func (m *Mapper003) Reset() {
 	m.bankSelect = 0
 }
 
-func (m *Mapper003) CPUClock() {
+func (m *Mapper003) Clock() {
 }
 
 func (m *Mapper003) DebugDisplay(text *textutil.Text) {

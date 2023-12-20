@@ -101,7 +101,7 @@ func (m *Mapper007) Reset() {
 	m.nameTablePage = 0
 }
 
-func (m *Mapper007) CPUClock() {
+func (m *Mapper007) Clock() {
 }
 
 func (m *Mapper007) DebugDisplay(text *textutil.Text) {

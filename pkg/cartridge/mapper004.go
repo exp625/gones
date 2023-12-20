@@ -176,7 +176,7 @@ func (m *Mapper004) CPUWrite(location uint16, data uint8) bool {
 	return true
 }
 
-func (m *Mapper004) CPUClock() {
+func (m *Mapper004) Clock() {
 	if m.lineLowCounter != 3 && m.addressLatch>>12&0b1 == 0 {
 		m.lineLowCounter++
 	}

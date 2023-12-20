@@ -116,7 +116,7 @@ func (m *Mapper002) Save() []uint8 {
 func (m *Mapper002) Reset() {
 }
 
-func (m *Mapper002) CPUClock() {
+func (m *Mapper002) Clock() {
 }
 
 func (m *Mapper002) DebugDisplay(text *textutil.Text) {

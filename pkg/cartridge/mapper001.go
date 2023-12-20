@@ -256,7 +256,7 @@ func (m *Mapper001) Reset() {
 	m.prgBanksDouble = 0
 }
 
-func (m *Mapper001) CPUClock() {
+func (m *Mapper001) Clock() {
 }
 
 func (m *Mapper001) DebugDisplay(text *textutil.Text) {
