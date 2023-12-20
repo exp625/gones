@@ -36,16 +36,79 @@ func New() *APU {
 	return &APU{}
 }
 
+// AddBus connects the APU to the Bus
+func (apu *APU) AddBus(bus bus.Bus) {
+	apu.Bus = bus
+}
+
+// Clock the APU (this is only the logic part, not the audio part)
 func (apu *APU) Clock() {
 	apu.Cycle++
-	if apu.Cycle%3 == 0 {
-		apu.FrameCounterHalfs++
+	apu.FrameCounterHalfs++
+	// Clock channels
+	apu.DMC.Clock()
+
+	if apu.FrameCounterHalfs == 3728*2+1 ||
+		apu.FrameCounterHalfs == 7456*2+1 ||
+		apu.FrameCounterHalfs == 11185*2+1 ||
+		apu.FrameCounterHalfs == 14914*2+1 ||
+		apu.FrameCounterHalfs == 18640*2+1 {
+		// Envelopes & triangle's linear counter
 	}
-	if apu.FrameCounterHalfs > 14914*2 {
-		//apu.Bus.IRQ()
+	if apu.FrameCounterHalfs == 7456*2+1 ||
+		apu.FrameCounterHalfs == 14914*2+1 ||
+		apu.FrameCounterHalfs == 18640*2+1 {
+		// Length counters & sweep units
 	}
-	if apu.FrameCounterHalfs == 14915*2 {
-		apu.FrameCounterHalfs = 0
+
+	if apu.FrameCounterRegister.FiveFrameSequence() {
+		if apu.FrameCounterHalfs >= 18641*2 {
+			apu.FrameCounterHalfs = 0
+		}
+	}
+	if !apu.FrameCounterRegister.FiveFrameSequence() {
+		if !apu.FrameCounterRegister.DisableFrameIRQ() && apu.FrameCounterHalfs >= 14914*2 {
+			apu.FrameInterrupt = true
+		}
+		if apu.FrameCounterHalfs >= 14915*2 {
+			apu.FrameCounterHalfs = 0
+		}
+	}
+
+	if apu.DMC.SampleBufferEmpty && apu.DMC.BytesRemainingCounter != 0 {
+		// DMA
+	}
+
+	// Interrupts
+	if apu.FrameInterrupt || apu.DMCInterrupt {
+		apu.Bus.IRQ()
+	}
+}
+
+// ClockAudio will clock the audio part of the APU
+func (apu *APU) ClockAudio() {
+	// Clock channels
+	apu.DMC.ClockAudio()
+}
+
+func (apu *APU) DMA() {
+	// The sample buffer is filled with the next sample byte read from the current address, subject to whatever mapping hardware is present.
+	apu.DMC.SampleBuffer = apu.Bus.CPURead(apu.DMC.AddressCounter)
+	apu.DMC.SampleBufferEmpty = false
+	// The address is incremented; if it exceeds $FFFF, it is wrapped around to $8000.
+	apu.DMC.AddressCounter++
+	if apu.DMC.AddressCounter > 0xFFFF {
+		apu.DMC.AddressCounter = 0x8000
+	}
+	apu.DMC.BytesRemainingCounter--
+	// The bytes remaining counter is decremented; if it becomes zero and the loop flag is set, the sample is restarted (see above); otherwise, if the bytes remaining counter becomes zero and the IRQ enabled flag is set, the interrupt flag is set.
+	if apu.DMC.BytesRemainingCounter == 0 && apu.DMC.GlobalRegister.Loop() {
+		// Sample address = %11AAAAAA.AA000000 = $C000 + (A * 64)
+		apu.DMC.AddressCounter = 0xC000 + uint16(apu.DMC.SampleAddressRegister)*64
+		// Sample length = %LLLL.LLLL0001 = (L * 16) + 1 bytes
+		apu.DMC.BytesRemainingCounter = uint16(apu.DMC.SampleLengthRegister)*16 + 1
+	} else if apu.DMC.BytesRemainingCounter == 0 && apu.DMC.GlobalRegister.IRQEnable() {
+		apu.DMCInterrupt = true
 	}
 }
 
@@ -54,30 +117,38 @@ func (apu *APU) Reset() {
 	apu.FrameCounterHalfs = 0
 	apu.FrameInterrupt = false
 	apu.DMCInterrupt = false
+	apu.FrameCounterRegister = 0
+	apu.FrameCounterRegister.SetDisableFrameIRQ(true)
+	apu.ControlRegister = 0
 
-	apu.Pulse1.Reset()
-	apu.Pulse2.Reset()
-	apu.Triangle.Reset()
-	apu.Noise.Reset()
 	apu.DMC.Reset()
 }
 
-func (apu *APU) GetAudioSample() int16 {
-	const freq = 880.0
-	sinVal := (float64)(apu.Cycle) / float64(6*14915) * freq * 2 * math.Pi / 60.0
-	val := (math.Sin(sinVal))*0.5*float64(math.MaxInt16) + float64(math.MaxInt16)*0.5
-
+func (apu *APU) GetAudioSample() uint16 {
 	/*
-		Ist auch falsch jetzt, leider:
+		output = pulse_out + tnd_out
 
-					MaxUint16    |            -
-				                 |           / \
-			        MaxUint16/2  |  --------/---\--------------------
-				                 |               \
-				    0            |_____________________________________________
+		                            95.88
+		pulse_out = ------------------------------------
+		             (8128 / (pulse1 + pulse2)) + 100
+
+		                                       159.79
+		tnd_out = -------------------------------------------------------------
+		                                    1
+		           ----------------------------------------------------- + 100
+		            (triangle / 8227) + (noise / 12241) + (dmc / 22638)
 	*/
+	pulseOut := 0.0
+	if apu.Pulse1.GetValue() != 0 || apu.Pulse2.GetValue() != 0 {
+		pulseOut = 95.88 / (8128/(float64(apu.Pulse1.GetValue())+float64(apu.Pulse2.GetValue())) + 100.0)
+	}
 
-	return int16(val)
+	tnd_out := 0.0
+	if apu.Triangle.GetValue() != 0 || apu.Noise.GetValue() != 0 || apu.DMC.GetValue() != 0 {
+		tnd_out = 159.79 / ((1 / (float64(apu.Triangle.GetValue())/8227.0 + float64(apu.Noise.GetValue())/12241.0 + float64(apu.DMC.GetValue())/22638.0)) + 100.0)
+	}
+	out := uint16((pulseOut + tnd_out) * math.MaxInt16)
+	return out
 }
 
 // CPURead performs a read operation coming from the cpu bus
@@ -99,7 +170,7 @@ func (apu *APU) CPURead(location uint16) uint8 {
 		}
 		//   N/T/2/1 will read as 1 if the corresponding length counter has not been halted through either expiring or a write of 0 to the corresponding bit. For the triangle channel, the status of the linear counter is irrelevant.
 		//   D will read as 1 if the DMC bytes remaining is more than 0.
-		//   Reading this register clears the frame interrupt flag (but not the DMC interrupt flag).
+		//   TODO: Reading this register clears the frame interrupt flag (but not the DMC interrupt flag).
 		apu.FrameInterrupt = false
 		//   TODO: If an interrupt flag was set at the same moment of the read, it will read back as 1 but it will not be cleared.
 		//   TODO: This register is internal to the CPU and so the external CPU data bus is disconnected when reading it. Therefore the returned value cannot be seen by external devices and the value does not affect open bus.
@@ -119,53 +190,68 @@ func (apu *APU) CPUWrite(location uint16, data uint8) {
 	if location >= 0x4000 && location <= 0x4017 {
 		switch location {
 		case 0x4000:
-			apu.Pulse1.GlobalRegister = PulseChannelGlobalRegister(data)
+			// apu.Pulse1.GlobalRegister = PulseChannelGlobalRegister(data)
 		case 0x4001:
-			apu.Pulse1.SweepRegister = PulseChannelSweepRegister(data)
+			// apu.Pulse1.SweepRegister = PulseChannelSweepRegister(data)
 		case 0x4002:
-			apu.Pulse1.TimerLow = PulseChannelTimerLowRegister(data)
+			// apu.Pulse1.TimerLow = PulseChannelTimerLowRegister(data)
 		case 0x4003:
-			apu.Pulse1.TimerHigh = PulseChannelTimerHighRegister(data)
+			// apu.Pulse1.TimerHigh = PulseChannelTimerHighRegister(data)
 		case 0x4004:
-			apu.Pulse2.GlobalRegister = PulseChannelGlobalRegister(data)
+			// apu.Pulse2.GlobalRegister = PulseChannelGlobalRegister(data)
 		case 0x4005:
-			apu.Pulse2.SweepRegister = PulseChannelSweepRegister(data)
+			// apu.Pulse2.SweepRegister = PulseChannelSweepRegister(data)
 		case 0x4006:
-			apu.Pulse2.TimerLow = PulseChannelTimerLowRegister(data)
+			// apu.Pulse2.TimerLow = PulseChannelTimerLowRegister(data)
 		case 0x4007:
-			apu.Pulse2.TimerHigh = PulseChannelTimerHighRegister(data)
+			// apu.Pulse2.TimerHigh = PulseChannelTimerHighRegister(data)
 		case 0x4008:
-			apu.Triangle.GlobalRegister = TriangleChannelGlobalRegister(data)
+			// apu.Triangle.GlobalRegister = TriangleChannelGlobalRegister(data)
 		case 0x4009:
 			// Unused
 		case 0x400A:
-			apu.Triangle.TimerLow = TriangleChannelTimerLowRegister(data)
+			// apu.Triangle.TimerLow = TriangleChannelTimerLowRegister(data)
 		case 0x400B:
-			apu.Triangle.TimerHigh = TriangleChannelTimerHighRegister(data)
+			// apu.Triangle.TimerHigh = TriangleChannelTimerHighRegister(data)
 		case 0x400C:
-			apu.Noise.GlobalRegister = NoiseChannelGlobalRegister(data)
+			// apu.Noise.GlobalRegister = NoiseChannelGlobalRegister(data)
 		case 0x400D:
 			// Unused
 		case 0x400E:
-			apu.Noise.PeriodRegister = NoiseChannelPeriodRegister(data)
+			// apu.Noise.PeriodRegister = NoiseChannelPeriodRegister(data)
 		case 0x400F:
-			apu.Noise.LengthRegister = NoiseChannelLengthRegister(data)
+			// apu.Noise.LengthRegister = NoiseChannelLengthRegister(data)
 		case 0x4010:
 			apu.DMC.GlobalRegister = DMCChannelGlobalRegister(data)
+			if !apu.DMC.GlobalRegister.IRQEnable() {
+				apu.DMCInterrupt = false
+			}
 		case 0x4011:
-			apu.DMC.DirectLoadRegister = DMCChannelDirectLoadRegister(data)
+			// The DMC output level is set to D, an unsigned value. If the timer is outputting a clock at the same time, the output level is occasionally not changed properly.
+			apu.DMC.OutputLevelCounter = data & 0b01111111
 		case 0x4012:
 			apu.DMC.SampleAddressRegister = DMCChannelSampleAddressRegister(data)
 		case 0x4013:
 			apu.DMC.SampleLengthRegister = DMCChannelSampleLengthRegister(data)
 		case 0x4014:
-			panic("DMA")
+			panic("PPUDMA")
 		case 0x4015:
 			apu.ControlRegister = ControlRegister(data)
+			apu.DMCInterrupt = false
+			if !apu.ControlRegister.DMCEnable() {
+				apu.DMC.BytesRemainingCounter = 0
+			} else {
+				apu.DMC.BytesRemainingCounter = uint16(apu.DMC.SampleLengthRegister)*16 + 1
+				apu.DMC.AddressCounter = 0xC000 + uint16(apu.DMC.SampleAddressRegister)*64
+			}
 		case 0x4016:
 			panic("Joystick")
 		case 0x4017:
 			apu.FrameCounterRegister = FrameCounterRegister(data)
+			if apu.FrameCounterRegister.DisableFrameIRQ() {
+				apu.FrameInterrupt = false
+			}
+			apu.FrameCounterHalfs = 0
 		}
 		return
 	}

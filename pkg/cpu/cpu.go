@@ -24,9 +24,6 @@ type CPU struct {
 	Instructions [256]Instruction
 	Mnemonics    map[uint8][2]string
 
-	ClockCount  int64
-	CycleCount  int
-	RequestNMI  bool
 	ClockCount     int64
 	CycleCount     int
 	RequestNMI     bool
@@ -65,19 +62,19 @@ func (cpu *CPU) Clock() {
 	}
 
 	if cpu.CycleCount == 0 {
-		if cpu.DMA {
-			if cpu.DMAAddress&0xFF == 0xFF {
-				cpu.DMA = false
+		if cpu.PPUDMA {
+			if cpu.PPUDMAAddress&0xFF == 0xFF {
+				cpu.PPUDMA = false
 			}
-			if !cpu.DMAPrepared {
+			if !cpu.PPUDMAPrepared {
 				cpu.CycleCount++
 				if cpu.CycleCount%2 != 0 {
 					cpu.CycleCount++
 				}
-				cpu.DMAPrepared = true
+				cpu.PPUDMAPrepared = true
 			} else {
-				cpu.Bus.CPUWrite(0x2004, cpu.Bus.CPURead(cpu.DMAAddress))
-				cpu.DMAAddress++
+				cpu.Bus.CPUWrite(0x2004, cpu.Bus.CPURead(cpu.PPUDMAAddress))
+				cpu.PPUDMAAddress++
 				// Transfer takes one clock cycle
 				cpu.CycleCount++
 			}
