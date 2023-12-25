@@ -150,17 +150,24 @@ func (apu *APU) GetAudioSample() uint16 {
 		           ----------------------------------------------------- + 100
 		            (triangle / 8227) + (noise / 12241) + (dmc / 22638)
 	*/
-	pulseOut := 0.0
-	if apu.Pulse1.GetValue() != 0 || apu.Pulse2.GetValue() != 0 {
-		pulseOut = 95.88 / (8128/(float64(apu.Pulse1.GetValue())+float64(apu.Pulse2.GetValue())) + 100.0)
-	}
+	// pulseOut := 0.0
+	// if apu.Pulse1.GetValue() != 0 || apu.Pulse2.GetValue() != 0 {
+	// 	pulseOut = 95.88 / (8128/(float64(apu.Pulse1.GetValue())+float64(apu.Pulse2.GetValue())) + 100.0)
+	// }
+	//
+	// tnd_out := 0.0
+	// if apu.Triangle.GetValue() != 0 || apu.Noise.GetValue() != 0 || apu.DMC.GetValue() != 0 {
+	// 	tnd_out = 159.79 / ((1 / (float64(apu.Triangle.GetValue())/8227.0 + float64(apu.Noise.GetValue())/12241.0 + float64(apu.DMC.GetValue())/22638.0)) + 100.0)
+	// }
+	// out := uint16((pulseOut + tnd_out) * math.MaxInt16)
 
-	tnd_out := 0.0
-	if apu.Triangle.GetValue() != 0 || apu.Noise.GetValue() != 0 || apu.DMC.GetValue() != 0 {
-		tnd_out = 159.79 / ((1 / (float64(apu.Triangle.GetValue())/8227.0 + float64(apu.Noise.GetValue())/12241.0 + float64(apu.DMC.GetValue())/22638.0)) + 100.0)
+	// Calculate a 440 Hz square wave depending on the cycle
+	apuClockRate := 5369318.0 / 3
+	if apu.Cycle%(uint64(apuClockRate)/440) < uint64(apuClockRate)/880 {
+		return math.MaxInt16
+	} else {
+		return 0
 	}
-	out := uint16((pulseOut + tnd_out) * math.MaxInt16)
-	return out
 }
 
 // CPURead performs a read operation coming from the cpu bus
@@ -218,13 +225,13 @@ func (apu *APU) CPUWrite(location uint16, data uint8) {
 		case 0x4007:
 			// apu.Pulse2.TimerHigh = PulseChannelTimerHighRegister(data)
 		case 0x4008:
-			// apu.Triangle.GlobalRegister = TriangleChannelGlobalRegister(data)
+			apu.Triangle.GlobalRegister = TriangleChannelGlobalRegister(data)
 		case 0x4009:
 			// Unused
 		case 0x400A:
-			// apu.Triangle.TimerLow = TriangleChannelTimerLowRegister(data)
+			apu.Triangle.TimerLow = TriangleChannelTimerLowRegister(data)
 		case 0x400B:
-			// apu.Triangle.TimerHigh = TriangleChannelTimerHighRegister(data)
+			apu.Triangle.TimerHigh = TriangleChannelTimerHighRegister(data)
 		case 0x400C:
 			// apu.Noise.GlobalRegister = NoiseChannelGlobalRegister(data)
 		case 0x400D:
