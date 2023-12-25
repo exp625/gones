@@ -127,11 +127,11 @@ func (e *Emulator) Init() error {
 		if err != nil {
 			return err
 		}
-		a := NESAudioSampleTime * 1000000000.0
-		i := int(a)
-		e.Player.SetBufferSize((time.Duration)(i))
+
+		e.Player.SetBufferSize(time.Millisecond * 50)
 		e.Player.SetVolume(0.5)
 		e.Player.Play()
+
 	}
 
 	return nil

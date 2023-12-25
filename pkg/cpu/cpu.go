@@ -73,22 +73,21 @@ func (cpu *CPU) Clock() {
 	cpu.ClockCount++
 
 	if cpu.CycleCount == 0 && cpu.CurrentInstruction.Length != 0 {
-		cpu.CurrentInstruction.Execute(cpu.CurrentLocation, cpu.CurrentInstruction.Length)
-		cpu.CurrentInstruction = Instruction{}
 
 		if cpu.NMILine {
 			cpu.NMIRequested = true
 		}
-		cpu.NMILine = false
 
-		if cpu.IRQLinePreviousCycle {
+		if cpu.IRQLinePreviousCycle && !cpu.P.InterruptDisable() {
 			cpu.IRQRequested = true
 		}
 		cpu.IRQLinePreviousCycle = cpu.IRQLine
 
-		if cpu.P.InterruptDisable() && cpu.IRQLine {
-			cpu.IRQLine = false
-		}
+		cpu.NMILine = false
+		cpu.IRQLine = false
+
+		cpu.CurrentInstruction.Execute(cpu.CurrentLocation, cpu.CurrentInstruction.Length)
+		cpu.CurrentInstruction = Instruction{}
 	}
 
 	if cpu.CycleCount == 0 {
@@ -117,7 +116,7 @@ func (cpu *CPU) Clock() {
 				cpu.NMI()
 				cpu.NMIRequested = false
 				cpu.CycleCount += 7
-			} else if cpu.IRQRequested && !cpu.P.InterruptDisable() {
+			} else if cpu.IRQRequested {
 				cpu.IRQ()
 				cpu.IRQRequested = false
 				cpu.CycleCount += 8
@@ -178,6 +177,9 @@ func (cpu *CPU) IRQ() {
 	low := uint16(cpu.Bus.CPURead(IRQVector))
 	high := uint16(cpu.Bus.CPURead(IRQVector + 1))
 	cpu.PC = (high << 8) | low
+
+	cpu.IRQRequested = false
+	cpu.NMIRequested = false
 }
 
 func (cpu *CPU) NMI() {
@@ -201,6 +203,9 @@ func (cpu *CPU) NMI() {
 	low := uint16(cpu.Bus.CPURead(NMIVector))
 	high := uint16(cpu.Bus.CPURead(NMIVector + 1))
 	cpu.PC = (high << 8) | low
+
+	cpu.IRQRequested = false
+	cpu.NMIRequested = false
 }
 
 func (cpu *CPU) log() {

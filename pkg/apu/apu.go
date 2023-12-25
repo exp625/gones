@@ -106,9 +106,11 @@ func (apu *APU) DMA() {
 	apu.DMC.SampleBuffer = apu.Bus.CPURead(apu.DMC.AddressCounter)
 	apu.DMC.SampleBufferEmpty = false
 	// The address is incremented; if it exceeds $FFFF, it is wrapped around to $8000.
-	apu.DMC.AddressCounter++
-	if apu.DMC.AddressCounter > 0xFFFF {
+
+	if apu.DMC.AddressCounter == 0xFFFF {
 		apu.DMC.AddressCounter = 0x8000
+	} else {
+		apu.DMC.AddressCounter++
 	}
 	apu.DMC.BytesRemainingCounter--
 	// The bytes remaining counter is decremented; if it becomes zero and the loop flag is set, the sample is restarted (see above); otherwise, if the bytes remaining counter becomes zero and the IRQ enabled flag is set, the interrupt flag is set.
@@ -233,6 +235,7 @@ func (apu *APU) CPUWrite(location uint16, data uint8) {
 			// apu.Noise.LengthRegister = NoiseChannelLengthRegister(data)
 		case 0x4010:
 			apu.DMC.GlobalRegister = DMCChannelGlobalRegister(data)
+			apu.DMC.TimerCounter = 0
 			if !apu.DMC.GlobalRegister.IRQEnable() {
 				apu.DMCInterrupt = false
 			}
@@ -250,7 +253,7 @@ func (apu *APU) CPUWrite(location uint16, data uint8) {
 			apu.DMCInterrupt = false
 			if !apu.ControlRegister.DMCEnable() {
 				apu.DMC.BytesRemainingCounter = 0
-			} else {
+			} else if apu.DMC.BytesRemainingCounter == 0 {
 				apu.DMC.BytesRemainingCounter = uint16(apu.DMC.SampleLengthRegister)*16 + 1
 				apu.DMC.AddressCounter = 0xC000 + uint16(apu.DMC.SampleAddressRegister)*64
 			}

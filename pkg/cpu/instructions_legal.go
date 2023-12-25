@@ -664,7 +664,7 @@ func (cpu *CPU) PLP(_ uint16, length uint16) {
 	// Advance program counter
 	cpu.PC += length
 	// Clear IRQ line
-	cpu.IRQLinePreviousCycle = false
+	cpu.IRQRequested = false
 }
 
 // ROL https://www.masswerk.at/6502/6502_instruction_set.html#ROL

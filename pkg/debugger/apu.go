@@ -42,6 +42,7 @@ func (nes *Debugger) DrawAPUDMC(t *textutil.Text) {
 	plz.Just(fmt.Fprint(t, "DMC Channel \n"))
 	t.Color(colornames.White)
 	plz.Just(fmt.Fprintf(t, "Loop: %t\n", nes.APU.DMC.GlobalRegister.Loop()))
+	plz.Just(fmt.Fprintf(t, "Frequency: %d\n", nes.APU.DMC.GlobalRegister.FrequencyIndex()))
 	plz.Just(fmt.Fprintf(t, "Interrup: %t\n", nes.APU.DMC.GlobalRegister.IRQEnable()))
 	plz.Just(fmt.Fprintf(t, "Address: 0x%02X\n", nes.APU.DMC.SampleAddressRegister))
 	plz.Just(fmt.Fprintf(t, "Length: 0x%02X\n", nes.APU.DMC.SampleLengthRegister))

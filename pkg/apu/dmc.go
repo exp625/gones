@@ -98,6 +98,7 @@ func (D *DMCChannel) Reset() {
 	D.BitsRemainingCounter = 0
 	D.SampleAddressRegister = 0
 	D.SampleLengthRegister = 0
+	D.BytesRemainingCounter = 0
 }
 
 func (D *DMCChannel) GetValue() uint8 {
