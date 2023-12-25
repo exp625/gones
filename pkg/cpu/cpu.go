@@ -1,6 +1,7 @@
 package cpu
 
 import (
+	"github.com/exp625/gones/pkg/apu"
 	"github.com/exp625/gones/pkg/bus"
 	"github.com/exp625/gones/pkg/logger"
 )
@@ -20,6 +21,8 @@ type CPU struct {
 	P StatusRegister
 
 	Bus bus.Bus
+
+	APU *apu.APU
 
 	Instructions [256]Instruction
 	Mnemonics    map[uint8][2]string
@@ -45,6 +48,11 @@ func New() *CPU {
 // AddBus connects the CPU to the Bus
 func (cpu *CPU) AddBus(bus bus.Bus) {
 	cpu.Bus = bus
+}
+
+// AddAPU connects the CPU to the APU
+func (cpu *CPU) AddAPU(apu *apu.APU) {
+	cpu.APU = apu
 }
 
 const (
@@ -78,6 +86,10 @@ func (cpu *CPU) Clock() {
 				// Transfer takes one clock cycle
 				cpu.CycleCount++
 			}
+		} else if cpu.APUDMA {
+			cpu.CycleCount += 4
+			cpu.APUDMA = false
+			cpu.APU.DMA()
 		} else {
 			opcode := cpu.Bus.CPURead(cpu.PC)
 			inst := cpu.Instructions[opcode]

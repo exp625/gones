@@ -1,10 +1,11 @@
 package apu
 
 import (
-	"github.com/exp625/gones/pkg/bus"
 	"io"
 	"math"
 	"math/rand"
+
+	"github.com/exp625/gones/pkg/bus"
 )
 
 type audioStream interface {
@@ -76,7 +77,7 @@ func (apu *APU) Clock() {
 	}
 
 	if apu.DMC.SampleBufferEmpty && apu.DMC.BytesRemainingCounter != 0 {
-		// DMA
+		apu.Bus.APUDMA()
 	}
 
 	// Interrupts

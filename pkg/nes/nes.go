@@ -45,6 +45,7 @@ func New(clockTime float64, audioSampleTime float64) *NES {
 
 	// Wire everything up
 	nes.CPU.AddBus(nes)
+	nes.CPU.AddAPU(nes.APU)
 	nes.PPU.AddBus(nes)
 	nes.APU.AddBus(nes)
 	return nes
@@ -195,7 +196,6 @@ func (nes *NES) PPUReadPalette(location uint16) uint8 {
 	}
 	data := nes.PPU.PaletteRAM[mirroredLocation-0x3F00]
 	return data
-
 }
 
 func (nes *NES) PPUReadRam(location uint16) uint8 {
@@ -228,7 +228,6 @@ func (nes *NES) PPUWritePalette(location uint16, data uint8) {
 		mirroredLocation -= 0x010
 	}
 	nes.PPU.PaletteRAM[mirroredLocation-0x3F00] = data
-
 }
 
 // PPUDMA triggers a PPU PPUDMA request
