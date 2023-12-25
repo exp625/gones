@@ -27,14 +27,20 @@ type CPU struct {
 	Instructions [256]Instruction
 	Mnemonics    map[uint8][2]string
 
-	ClockCount     int64
-	CycleCount     int
-	RequestNMI     bool
-	RequestIRQ     bool
-	APUDMA         bool
-	PPUDMA         bool
-	PPUDMAPrepared bool
-	PPUDMAAddress  uint16
+	ClockCount           int64
+	CycleCount           int
+	IRQLine              bool
+	IRQRequested         bool
+	IRQLinePreviousCycle bool
+	NMILine              bool
+	NMIRequested         bool
+	APUDMA               bool
+	PPUDMA               bool
+	PPUDMAPrepared       bool
+	PPUDMAAddress        uint16
+
+	CurrentInstruction Instruction
+	CurrentLocation    uint16
 
 	Logger logger.Loggable
 }
@@ -65,8 +71,24 @@ const (
 
 func (cpu *CPU) Clock() {
 	cpu.ClockCount++
-	if cpu.P.InterruptDisable() && cpu.RequestIRQ {
-		cpu.RequestIRQ = false
+
+	if cpu.CycleCount == 0 && cpu.CurrentInstruction.Length != 0 {
+		cpu.CurrentInstruction.Execute(cpu.CurrentLocation, cpu.CurrentInstruction.Length)
+		cpu.CurrentInstruction = Instruction{}
+
+		if cpu.NMILine {
+			cpu.NMIRequested = true
+		}
+		cpu.NMILine = false
+
+		if cpu.IRQLinePreviousCycle {
+			cpu.IRQRequested = true
+		}
+		cpu.IRQLinePreviousCycle = cpu.IRQLine
+
+		if cpu.P.InterruptDisable() && cpu.IRQLine {
+			cpu.IRQLine = false
+		}
 	}
 
 	if cpu.CycleCount == 0 {
@@ -91,21 +113,22 @@ func (cpu *CPU) Clock() {
 			cpu.APUDMA = false
 			cpu.APU.DMA()
 		} else {
-			opcode := cpu.Bus.CPURead(cpu.PC)
-			inst := cpu.Instructions[opcode]
-			if cpu.RequestNMI {
+			if cpu.NMIRequested {
 				cpu.NMI()
-				cpu.RequestNMI = false
+				cpu.NMIRequested = false
 				cpu.CycleCount += 7
-			} else if cpu.RequestIRQ && !cpu.P.InterruptDisable() {
+			} else if cpu.IRQRequested && !cpu.P.InterruptDisable() {
 				cpu.IRQ()
-				cpu.RequestIRQ = false
+				cpu.IRQRequested = false
 				cpu.CycleCount += 8
 			} else {
+				opcode := cpu.Bus.CPURead(cpu.PC)
+				inst := cpu.Instructions[opcode]
 				if inst.Length != 0 {
 					cpu.log()
 					loc, addCycle := inst.AddressMode(cpu.Bus.CPURead)
-					inst.Execute(loc, inst.Length)
+					cpu.CurrentInstruction = inst
+					cpu.CurrentLocation = loc
 					cpu.CycleCount += inst.ClockCycles + int(addCycle)
 				}
 			}
@@ -130,6 +153,8 @@ func (cpu *CPU) Reset() {
 	low := uint16(cpu.Bus.CPURead(ResetVector))
 	high := uint16(cpu.Bus.CPURead(ResetVector + 1))
 	cpu.PC = (high << 8) | low
+	cpu.CurrentInstruction = Instruction{}
+	cpu.CurrentLocation = 0
 }
 
 func (cpu *CPU) IRQ() {

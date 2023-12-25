@@ -65,8 +65,8 @@ func (nes *NES) Clock() bool {
 
 	// The NES CPU runs a one third of the frequency of the master clock
 	if nes.MasterClockCount%3 == 0 {
-		nes.APU.Clock()
 		nes.CPU.Clock()
+		nes.APU.Clock()
 		nes.APU.ClockAudio()
 	}
 
@@ -244,10 +244,10 @@ func (nes *NES) APUDMA() {
 
 // NMI triggers a NMI interrupt
 func (nes *NES) NMI() {
-	nes.CPU.RequestNMI = true
+	nes.CPU.NMILine = true
 }
 
 // IRQ triggers a IRQ interrupt
 func (nes *NES) IRQ() {
-	nes.CPU.RequestIRQ = true
+	nes.CPU.IRQLine = true
 }

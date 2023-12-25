@@ -319,6 +319,8 @@ func (cpu *CPU) CLI(_ uint16, length uint16) {
 	cpu.P.SetInterruptDisable(false)
 	// Advance program counter
 	cpu.PC += length
+	// Clear IRQ line
+	cpu.IRQLinePreviousCycle = false
 }
 
 // CLV https://www.masswerk.at/6502/6502_instruction_set.html#CLV
@@ -661,6 +663,8 @@ func (cpu *CPU) PLP(_ uint16, length uint16) {
 	cpu.P = StatusRegister((uint8(cpu.P) & (FlagBreak | FlagUnused)) | temp & ^(FlagBreak|FlagUnused))
 	// Advance program counter
 	cpu.PC += length
+	// Clear IRQ line
+	cpu.IRQLinePreviousCycle = false
 }
 
 // ROL https://www.masswerk.at/6502/6502_instruction_set.html#ROL
@@ -828,6 +832,8 @@ func (cpu *CPU) SEI(_ uint16, length uint16) {
 	cpu.P.SetInterruptDisable(true)
 	// Advance program counter
 	cpu.PC += length
+	// Clear IRQ line
+	cpu.IRQLinePreviousCycle = false
 }
 
 // STA https://www.masswerk.at/6502/6502_instruction_set.html#STA

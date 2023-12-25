@@ -126,13 +126,13 @@ func (cpu *CPU) IZY(cpuRead func(location uint16) uint8) (uint16, uint8) {
 		// offset + 1 is on next page. However, we want low to wrap around and disallow page turn
 		offset -= 0x0100
 	}
-	high := uint16(cpuRead(offset + 1&0x00FF))
+	high := uint16(cpuRead((offset + 1) & 0x00FF))
 
 	location := (high << 8) | low
 	location += uint16(cpu.Y)
 
 	// high bits increased due to x offset
-	if location&0xFF00 != (high<<8) && cpu.Instructions[cpuRead(cpu.PC)].ClockCycles != 8 {
+	if location&0xFF00 != (high<<8) && cpu.Instructions[cpuRead(cpu.PC)].ClockCycles == 5 {
 		return location, 1
 	}
 	return location, 0
@@ -147,7 +147,6 @@ func (cpu *CPU) REL(cpuRead func(location uint16) uint8) (uint16, uint8) {
 	opcode := cpuRead(cpu.PC)
 	inst := cpu.Instructions[opcode]
 	return uint16(int16(cpu.PC) + int16(offset) + int16(inst.Length)), 0
-
 }
 
 // ZP0 is for the Zero page addressing mode.

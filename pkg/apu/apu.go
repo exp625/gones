@@ -16,6 +16,7 @@ type audioStream interface {
 type APU struct {
 	Cycle             uint64
 	FrameCounterHalfs uint64
+	FrameCounterReset int8
 	Bus               bus.Bus
 
 	// Registers
@@ -48,6 +49,14 @@ func (apu *APU) Clock() {
 	apu.FrameCounterHalfs++
 	// Clock channels
 	apu.DMC.Clock()
+
+	if apu.FrameCounterReset > 0 {
+		apu.FrameCounterReset--
+	}
+	if apu.FrameCounterHalfs%2 == 0 && apu.FrameCounterReset == 0 {
+		apu.FrameCounterHalfs = 0
+		apu.FrameCounterReset = -1
+	}
 
 	if apu.FrameCounterHalfs == 3728*2+1 ||
 		apu.FrameCounterHalfs == 7456*2+1 ||
@@ -252,7 +261,10 @@ func (apu *APU) CPUWrite(location uint16, data uint8) {
 			if apu.FrameCounterRegister.DisableFrameIRQ() {
 				apu.FrameInterrupt = false
 			}
-			apu.FrameCounterHalfs = 0
+			apu.FrameCounterReset = 3
+			if apu.FrameCounterRegister.FiveFrameSequence() {
+				// TODO: Clock quarter frame and half frame
+			}
 		}
 		return
 	}
